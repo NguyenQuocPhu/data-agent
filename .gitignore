@@ -51,3 +51,20 @@ Thumbs.db
 # Ignore large LCB evaluation files
 dgm_agent/lcb_tasks/
 dgm_agent/lcb_predictions*/sandbox/
+# DA-Code and DS-Bench datasets
+data/
+task_cfg/
+eval_cfg/
+*.zip
+
+# Sandbox outputs
+dgm_agent/lcb_sandbox/
+
+# Stray output files
+*.csv
+*.db
+*.txt
+
+
+*.pdf
+

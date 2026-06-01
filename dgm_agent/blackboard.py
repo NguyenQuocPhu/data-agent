@@ -21,6 +21,7 @@ import re
 import subprocess
 import sys
 import time
+import zlib
 from collections import defaultdict
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -127,7 +128,13 @@ class Blackboard:
                 if fc.preview:
                     lines.append(f"    Preview (20 rows):\n{fc.preview}")
             lines.append("")
-        return "\n".join(lines)
+            
+        full_context = "\n".join(lines)
+        # Giới hạn context chặt chẽ hơn (60000 chars) vì dữ liệu bảng chứa nhiều số/token
+        if len(full_context) > 60000:
+            full_context = full_context[:60000] + "\n...[CONTEXT TRUNCATED DUE TO LENGTH LIMIT]..."
+            
+        return full_context
 
 
 # ─────────────────────────── File Agent ───────────────────────────────────── #
@@ -145,70 +152,133 @@ class FileAgent:
 
     # ── Đọc file ── #
 
-    def _read_csv(self, fpath: str) -> FileContext:
+    def _compute_ncd(self, x: bytes, y: bytes) -> float:
+        if not x and not y:
+            return 0.0
+        if not x or not y:
+            return 1.0
+        cx = len(zlib.compress(x))
+        cy = len(zlib.compress(y))
+        cxy = len(zlib.compress(x + b' ' + y))
+        return (cxy - min(cx, cy)) / max(cx, cy)
+
+    def _prune_dataframe(self, df: pd.DataFrame, goal_hint: str) -> str:
+        if df.empty or not goal_hint:
+            return df.head(20).to_string(index=False, max_rows=20, max_cols=15)
+        
+        goal_bytes = goal_hint.encode('utf-8')
+        scored_rows = []
+        
+        # Limit to 1000 rows
+        df_limited = df.head(1000)
+        columns = df_limited.columns.tolist()
+        
+        for idx, row in df_limited.iterrows():
+            # Header-Row Injection
+            row_parts = []
+            for col, val in zip(columns, row.values):
+                row_parts.append(f"{col}: {val}")
+            row_str = ", ".join(row_parts)
+            
+            row_bytes = row_str.encode('utf-8')
+            score = self._compute_ncd(goal_bytes, row_bytes)
+            scored_rows.append((score, row_str))
+            
+        scored_rows.sort(key=lambda x: x[0])
+        top_rows = [x[1] for x in scored_rows[:20]]
+        return "\n".join(top_rows)
+
+    def _prune_text(self, lines: List[str], goal_hint: str) -> str:
+        if not lines or not goal_hint:
+            return "".join(lines[:20])[:2000]
+            
+        goal_bytes = goal_hint.encode('utf-8')
+        scored_lines = []
+        
+        # Limit to 1000 lines
+        limited_lines = lines[:1000]
+        
+        for line in limited_lines:
+            line_str = line.strip()
+            if not line_str:
+                continue
+            line_bytes = line_str.encode('utf-8')
+            score = self._compute_ncd(goal_bytes, line_bytes)
+            scored_lines.append((score, line_str))
+            
+        scored_lines.sort(key=lambda x: x[0])
+        top_lines = [x[1] for x in scored_lines[:20]]
+        return "\n".join(top_lines)[:2000]
+
+    def _read_csv(self, fpath: str, goal_hint: str) -> FileContext:
         try:
-            df = pd.read_csv(fpath, nrows=20, encoding="utf-8", on_bad_lines="skip")
+            df = pd.read_csv(fpath, nrows=1000, encoding="utf-8", on_bad_lines="skip")
+            preview = self._prune_dataframe(df, goal_hint)
             return FileContext(
                 file_path=fpath,
                 file_type="csv",
                 columns=list(df.columns),
                 dtypes={col: str(df[col].dtype) for col in df.columns},
-                preview=df.to_string(index=False, max_rows=20, max_cols=15),
+                preview=preview,
             )
         except Exception as e:
             return FileContext(file_path=fpath, file_type="csv", error=str(e))
 
-    def _read_xlsx(self, fpath: str) -> FileContext:
+    def _read_xlsx(self, fpath: str, goal_hint: str) -> FileContext:
         try:
             xl = pd.ExcelFile(fpath)
             sheets = xl.sheet_names
             # Đọc sheet đầu tiên để lấy cột + preview
-            df = pd.read_excel(fpath, sheet_name=sheets[0], nrows=20)
+            df = pd.read_excel(fpath, sheet_name=sheets[0], nrows=1000)
+            preview = self._prune_dataframe(df, goal_hint)
             return FileContext(
                 file_path=fpath,
                 file_type="xlsx",
                 columns=list(df.columns),
                 dtypes={col: str(df[col].dtype) for col in df.columns},
                 sheets=sheets,
-                preview=df.to_string(index=False, max_rows=20, max_cols=15),
+                preview=preview,
             )
         except Exception as e:
             return FileContext(file_path=fpath, file_type="xlsx", error=str(e))
 
-    def _read_json(self, fpath: str) -> FileContext:
+    def _read_json(self, fpath: str, goal_hint: str) -> FileContext:
         try:
             with open(fpath, "r", encoding="utf-8") as f:
-                raw = "".join(f.readlines()[:20])
+                lines = f.readlines()
+            preview = self._prune_text(lines, goal_hint)
+            
             try:
-                obj = json.loads(open(fpath, encoding="utf-8").read())
+                obj = json.loads("".join(lines))
                 if isinstance(obj, list) and obj:
                     cols = list(obj[0].keys()) if isinstance(obj[0], dict) else []
                 else:
                     cols = []
             except Exception:
                 cols = []
-            return FileContext(file_path=fpath, file_type="json", columns=cols, preview=raw[:2000])
+            return FileContext(file_path=fpath, file_type="json", columns=cols, preview=preview)
         except Exception as e:
             return FileContext(file_path=fpath, file_type="json", error=str(e))
 
-    def _read_generic(self, fpath: str) -> FileContext:
+    def _read_generic(self, fpath: str, goal_hint: str) -> FileContext:
         try:
             with open(fpath, "r", encoding="utf-8", errors="ignore") as f:
-                preview = "".join(f.readlines()[:20])
-            return FileContext(file_path=fpath, file_type="txt", preview=preview[:2000])
+                lines = f.readlines()
+            preview = self._prune_text(lines, goal_hint)
+            return FileContext(file_path=fpath, file_type="txt", preview=preview)
         except Exception as e:
             return FileContext(file_path=fpath, file_type="other", error=str(e))
 
-    def read_file(self, fpath: str) -> FileContext:
+    def read_file(self, fpath: str, goal_hint: str) -> FileContext:
         ext = Path(fpath).suffix.lower()
         if ext == ".csv":
-            return self._read_csv(fpath)
+            return self._read_csv(fpath, goal_hint)
         elif ext in (".xlsx", ".xls", ".ods"):
-            return self._read_xlsx(fpath)
+            return self._read_xlsx(fpath, goal_hint)
         elif ext == ".json":
-            return self._read_json(fpath)
+            return self._read_json(fpath, goal_hint)
         else:
-            return self._read_generic(fpath)
+            return self._read_generic(fpath, goal_hint)
 
     # ── Đánh giá độ liên quan ── #
 
@@ -253,7 +323,7 @@ class FileAgent:
     def handle_request(self, request: BlackboardRequest) -> BlackboardResponse:
         """Đọc các file trong cụm và trả về FileContexts."""
         print(f"  🤖 FileAgent [{self.agent_id}] đang quét cụm '{self.cluster_name}' ({len(self.file_paths)} files)...")
-        file_contexts = [self.read_file(fp) for fp in self.file_paths]
+        file_contexts = [self.read_file(fp, request.question) for fp in self.file_paths]
         relevance = self._compute_relevance(request.question, file_contexts)
         return BlackboardResponse(
             agent_id=self.agent_id,
@@ -392,13 +462,13 @@ INSTRUCTIONS:
 - Use the exact file paths shown above to load the data.
 - Use pandas, numpy, or other standard data science libraries.
 - Handle missing values (NaN) appropriately.
-- Print ONLY the final answer/result to stdout — no plots, no extra output.
+- DO NOT use print() to output results. Instead, define the specific variables requested in the question (e.g., 'avg_salary') and assign the final calculated result to them.
 - Return ONLY valid, executable Python code inside ```python ``` blocks.
 """
 
-    def solve(self, task_id: str, question: str, data_lake_dir: str) -> Dict[str, Any]:
+    def solve(self, task_id: str, question: str, data_lake_dir: str, test_code: str = "") -> Dict[str, Any]:
         """
-        Giải một bài toán DS-Bench bằng Blackboard + DGM pipeline.
+        Giải một bài toán DA-Code bằng Blackboard + DGM pipeline.
         Returns dict với answer, code, success, traceback.
         """
         print(f"\n{'='*60}")
@@ -424,6 +494,7 @@ INSTRUCTIONS:
 
         # ── Pha 2: Coding Agent sinh code pandas ── #
         coding_prompt = self._build_coding_prompt(question, context)
+        
         print("\n🧠 [Coding Agent] Đang sinh code pandas...")
         raw_response = self._call_llm(coding_prompt)
         code = self._extract_python_code(raw_response)
@@ -435,15 +506,24 @@ INSTRUCTIONS:
 
         for round_idx in range(self.max_debug_rounds):
             print(f"\n⚙️  [Sandbox] Chạy thử (round {round_idx})...")
-            success, output = self._run_in_sandbox(code, f"{task_id}_r{round_idx}")
-            if success:
-                print(f"  ✅ Thực thi thành công! Output: {output[:200]}")
+            
+            # Combine generated code with test_code
+            combined_code = code + "\n\n# --- TEST CODE ---\n" + test_code
+            
+            execution_success, output = self._run_in_sandbox(combined_code, f"{task_id}_r{round_idx}")
+            
+            if execution_success:
+                print(f"  ✅ Thực thi thành công (Pass toàn bộ assert)!")
+                success = True
                 break
             else:
+                success = False
                 traceback_info = output
-                print(f"  ❌ Lỗi (round {round_idx}): {output[:300]}")
-                if round_idx < self.max_debug_rounds - 1:
-                    debug_prompt = f"""The following Python code produced an error. Fix it.
+                print(f"  ❌ Lỗi Runtime / Assertion (round {round_idx}): {output[:300]}")
+
+            # Nếu fail (runtime hoặc logic) thì debug
+            if not success and round_idx < self.max_debug_rounds - 1:
+                debug_prompt = f"""The following Python code produced an AssertionError or Runtime Error when tested. Fix it.
 
 ORIGINAL QUESTION:
 {question}
@@ -455,13 +535,18 @@ CURRENT CODE:
 {code}
 ```
 
-ERROR TRACEBACK:
-{traceback_info}
+TEST CODE THAT FAILED:
+```python
+{test_code}
+```
 
-Return ONLY the fixed Python code inside ```python ``` blocks."""
-                    print(f"  🔧 [Self-Debug] Đang sửa lỗi (round {round_idx+1})...")
-                    raw_fix = self._call_llm(debug_prompt)
-                    code = self._extract_python_code(raw_fix)
+ERROR OR INCORRECT OUTPUT:
+{traceback_info[-5000:] if len(traceback_info) > 5000 else traceback_info}
+
+Return ONLY the fixed Python code inside ```python ``` blocks. Do not include the test code in your response, just the main logic."""
+                print(f"  🔧 [Self-Debug] Đang sửa lỗi (round {round_idx+1})...")
+                raw_fix = self._call_llm(debug_prompt)
+                code = self._extract_python_code(raw_fix)
 
         elapsed = time.time() - t_start
         return {
@@ -469,7 +554,6 @@ Return ONLY the fixed Python code inside ```python ``` blocks."""
             "question": question,
             "data_lake_dir": data_lake_dir,
             "success": success,
-            "answer": output if success else "",
             "code": code,
             "traceback": traceback_info,
             "elapsed_sec": round(elapsed, 2),
@@ -510,10 +594,27 @@ def run_ds_pipeline(
     results = []
     for i, task in enumerate(tasks):
         print(f"\n\n[{i+1}/{len(tasks)}] Processing task: {task['task_id']}")
+        test_code = task.get("test_code", "")
+        data_lake_dir = task.get("data_lake_dir", task.get("task_dir", ""))
+        
+        # Đọc nội dung câu hỏi thật từ file txt nếu có (dành cho log DS-Bench cũ)
+        q_id = task['task_id'].split('_')[-1] # vd: 'question7'
+        q_file_path = os.path.join(data_lake_dir, f"{q_id}.txt")
+        actual_question = task["question"]
+        if os.path.exists(q_file_path):
+            try:
+                with open(q_file_path, "r", encoding="utf-8") as f:
+                    content = f.read().strip()
+                    if content:
+                        actual_question = content
+            except Exception as e:
+                print(f"  ⚠️ Lỗi khi đọc câu hỏi thật: {e}")
+
         result = agent.solve(
             task_id=task["task_id"],
-            question=task["question"],
-            data_lake_dir=task["task_dir"],
+            question=actual_question,
+            data_lake_dir=data_lake_dir,
+            test_code=test_code,
         )
         results.append(result)
 
