@@ -375,6 +375,21 @@ class EvolutionaryScheduler:
             print(f"[Solver] Selected best candidate from {sandbox_dir} with score: {eval_result['score']}")
             
             # --- 4. ARCHIVE DECISION ---
+            evolved_params = {}
+            try:
+                lambda_file = os.path.join(sandbox_dir, 'LAMBDA.py')
+                if os.path.exists(lambda_file):
+                    with open(lambda_file, 'r', encoding='utf-8') as f:
+                        content = f.read()
+                        epi_min = re.search(r'self\.epiplexity_min\s*=\s*([\d\.]+)', content)
+                        epi_max = re.search(r'self\.epiplexity_max\s*=\s*([\d\.]+)', content)
+                        vocab_drop = re.search(r'self\.vocab_dropout_rate\s*=\s*([\d\.]+)', content)
+                        if epi_min: evolved_params["epiplexity_min"] = float(epi_min.group(1))
+                        if epi_max: evolved_params["epiplexity_max"] = float(epi_max.group(1))
+                        if vocab_drop: evolved_params["vocab_dropout_rate"] = float(vocab_drop.group(1))
+            except Exception as e:
+                print(f"[Archive] Lỗi trích xuất biến tiến hóa: {e}")
+
             generation_record = {
                 "cycle": t + 1,
                 "timestamp": datetime.now().isoformat(),
@@ -385,6 +400,7 @@ class EvolutionaryScheduler:
                 "is_valid": eval_result["is_valid"],
                 "epiplexity_score": eval_result.get("epiplexity_score", 0.0),
                 "goldilocks_status": eval_result.get("goldilocks_status", "N/A"),
+                "evolved_parameters": evolved_params
             }
             
             if eval_result["is_valid"]:
@@ -602,6 +618,21 @@ class EvolutionaryScheduler:
             status = eval_result.get("goldilocks_status", "N/A")
             
             # 4. Archive Decision
+            evolved_params = {}
+            try:
+                lambda_file = os.path.join(sandbox_dir, 'LAMBDA.py')
+                if os.path.exists(lambda_file):
+                    with open(lambda_file, 'r', encoding='utf-8') as f:
+                        content = f.read()
+                        epi_min = re.search(r'self\.epiplexity_min\s*=\s*([\d\.]+)', content)
+                        epi_max = re.search(r'self\.epiplexity_max\s*=\s*([\d\.]+)', content)
+                        vocab_drop = re.search(r'self\.vocab_dropout_rate\s*=\s*([\d\.]+)', content)
+                        if epi_min: evolved_params["epiplexity_min"] = float(epi_min.group(1))
+                        if epi_max: evolved_params["epiplexity_max"] = float(epi_max.group(1))
+                        if vocab_drop: evolved_params["vocab_dropout_rate"] = float(vocab_drop.group(1))
+            except Exception:
+                pass
+
             if eval_result["is_valid"]:
                 record = {
                     "cycle": t + 1,
@@ -610,6 +641,7 @@ class EvolutionaryScheduler:
                     "score": eval_result["score"],
                     "epiplexity_score": epi,
                     "goldilocks_status": status,
+                    "evolved_parameters": evolved_params
                 }
                 self.archive.append(record)
                 self._save_archive()

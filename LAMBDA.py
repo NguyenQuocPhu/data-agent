@@ -40,6 +40,20 @@ class LAMBDA:
 
         if self.conv.retrieval:
             self.conv.programmer.messages[0]["content"] += KNOWLEDGE_INTEGRATION_SYSTEM
+            
+        # [NEW] CỤM BIẾN TIẾN HÓA (Evolvable Variables)
+        # LLM (Solver) được phép trực tiếp sửa đổi các con số này trong quá trình mutate!
+        self.epiplexity_min = 0.5   # Ngưỡng dưới của Vùng Goldilocks
+        self.epiplexity_max = 2.2   # Ngưỡng trên của Vùng Goldilocks
+        self.vocab_dropout_rate = 0.15 # Tỷ lệ chặn từ vựng ép Proposer sáng tạo
+
+    def get_evolution_params(self):
+        """Hàm này export cấu hình hiện tại để lưu vào Archive hoặc in ra log."""
+        return {
+            "epiplexity_min": getattr(self, 'epiplexity_min', 0.5),
+            "epiplexity_max": getattr(self, 'epiplexity_max', 2.2),
+            "vocab_dropout_rate": getattr(self, 'vocab_dropout_rate', 0.15)
+        }
 
 
     def init_local_cache_path(self, project_cache_path):

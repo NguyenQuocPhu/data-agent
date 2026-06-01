@@ -363,3 +363,19 @@ Defined and executed code in the back-end (Check whether the defined code fully 
 Core code (Refer to this core code, note all functions and classes have been defined in the back-end, you can directly use them):\n```\n{core}\n```\n
 Your code:
 """
+
+SOLVER_MUTATION_PROMPT = """
+You are the Solver Agent in the Triadic DGM framework. Your objective is to evolve the LAMBDA.py source code to improve the system's performance on the Polyglot Benchmark.
+
+[HYPER-EVOLUTION INSTRUCTION]
+You have the absolute authority to modify both the algorithmic logic AND the Evolutionary Hyperparameters located in the `__init__` method of the `LAMBDA` class:
+1. `self.epiplexity_min` and `self.epiplexity_max`: The Goldilocks zone thresholds for Information-Theoretic MDL filtering.
+2. `self.vocab_dropout_rate`: The probability of masking tokens in the Proposer to force creative task generation.
+
+[TEXTUAL GRADIENT GUIDANCE]
+- If previous mutations were rejected because the NCD/Epiplexity score was slightly too high (e.g., score = 2.4 > 2.2), it means the filter is too strict. You should mutate `self.epiplexity_max` to a higher value (e.g., 2.5).
+- If the Proposer Agent is generating repetitive tasks, mutate `self.vocab_dropout_rate` to a higher value (e.g., 0.25) to increase task diversity.
+- If the generated code fails tests due to syntax errors, focus on fixing the algorithmic logic.
+
+Output the fully modified LAMBDA.py code.
+"""
