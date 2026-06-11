@@ -2,7 +2,7 @@ import os
 import openai
 import json
 from core.programmer import Programmer
-from core.inspector import Inspector
+from core.semantic_verifier import SemanticVerifier
 from cache.cache import *
 from prompt_engineering.prompts import *
 import warnings
@@ -22,8 +22,8 @@ class Conversation:
         self.model = config['conv_model']
         self.programmer = Programmer(api_key=config['api_key'], model=config['programmer_model'],
                                      base_url=config['base_url_programmer'])
-        self.inspector = Inspector(api_key=config['api_key'], model=config['inspector_model'],
-                                   base_url=config['base_url_inspector'])
+        self.verifier = SemanticVerifier(api_key=config['api_key'], model=config['inspector_model'],
+                                        base_url=config['base_url_inspector'])
         self.session_cache_path = config["session_cache_path"]
         self.chat_history_display = config["chat_history_display"] if "chat_history_display" in config else []
         self.retrieval = self.config['retrieval']
@@ -34,14 +34,10 @@ class Conversation:
         self.file_list = []
         self.figure_list = config["figure_list"] if "figure_list" in config else []
         self.function_repository = {}
-        self.my_data_cache = None
         self.run_code(IMPORT)
 
     def add_functions(self, function_lib: dict) -> None:
         self.function_repository = function_lib
-
-    def add_data(self, data_path) -> None:
-        self.my_data_cache = data_cache(data_path)
 
     def check_folder(self):
         current_files = os.listdir(self.session_cache_path)
@@ -72,10 +68,10 @@ class Conversation:
             json.dump(self.programmer.messages, f, indent=4)
             f.close()
         print(f"Conversation saved in {os.path.join(self.session_cache_path, 'programmer_msg.json')}")
-        with open(os.path.join(self.session_cache_path, 'inspector_msg.json'), 'w') as f:
-            json.dump(self.inspector.messages, f, indent=4)
+        with open(os.path.join(self.session_cache_path, 'verifier_memory.json'), 'w') as f:
+            json.dump([r.to_dict() for r in self.verifier.memory_bank.rules], f, indent=4)
             f.close()
-        print(f"Conversation saved in {os.path.join(self.session_cache_path, 'inspector_msg.json')}")
+        print(f"Verifier memory saved in {os.path.join(self.session_cache_path, 'verifier_memory.json')}")
         with open(os.path.join(self.session_cache_path, 'config.json'), 'w') as f:
             config = {
             "config": self.config,
@@ -101,9 +97,7 @@ class Conversation:
                    "content": CODE_FIX.format(bug_code=bug_code, error_message=error_msg, fix_method=fix_method)}
         self.programmer.messages.append(message)
 
-    def add_inspector_msg(self, bug_code: str, error_msg: str, role="user"):
-        message = {"role": role, "content": CODE_INSPECT.format(bug_code=bug_code, error_message=error_msg)}
-        self.inspector.messages.append(message)
+    # add_inspector_msg REMOVED — replaced by SemanticVerifier.verify_syntax()
 
     def run_code(self, code):
         try:
@@ -123,10 +117,8 @@ class Conversation:
         return None
 
     def show_data(self) -> pd.DataFrame:
-        if self.my_data_cache is None:
-            print("User do not upload a data.")
-            return pd.DataFrame()
-        return self.my_data_cache.data
+        print("Data is now handled via Workspace Active Datasets and load_dataset.")
+        return pd.DataFrame()
 
     def document_generation(self, chat_history):
         print("Report generating...")
@@ -169,11 +161,10 @@ class Conversation:
         clear_working_path(self.session_cache_path)
         self.messages = []
         self.programmer.clear()
-        self.inspector.clear()
+        self.verifier.clear()
         self.kernel.shutdown()
         del self.kernel
         self.kernel = CodeKernel(session_cache_path=self.session_cache_path, max_exe_time=self.config['max_exe_time'])
-        self.my_data_cache = None
 
 
     def stream_workflow(self, chat_history_display, code=None) -> object:
@@ -187,16 +178,56 @@ class Conversation:
                 self.add_programmer_msg({"role": "user", "content": prog_response})
             else:
                 prog_response = ''
+                code_started = False
                 for message in self.programmer._call_chat_model_streaming(retrieval=self.retrieval, kernel=self.kernel):
+                    prev_prog = prog_response
+                    prog_response += message
+                    if not code_started and "```python" in prog_response:
+                        code_started = True
+                    if code_started and prog_response.count("```") >= 2:
+                        idx = prog_response.find("```", prog_response.find("```python") + 9)
+                        if idx != -1:
+                            # We found the closing backticks!
+                            # Cut the message to just include the closing backticks
+                            excess = len(prog_response) - (idx + 3)
+                            if excess > 0:
+                                message = message[:-excess]
+                            prog_response = prog_response[:idx + 3]
+                            chat_history_display[-1]["content"] += message
+                            yield chat_history_display
+                            break # Force stop the LLM stream!
+                    
                     chat_history_display[-1]["content"] += message
                     yield chat_history_display
-                    prog_response += message
+                    
                 self.add_programmer_msg({"role": "assistant", "content": prog_response})
 
-            is_python, code = extract_code(prog_response)
-            print("is_python:", is_python)
+            step = 0
+            max_steps = 5
 
-            if is_python:
+            while step < max_steps:
+                is_python, code = extract_code(prog_response)
+                print("is_python:", is_python)
+
+                if not is_python:
+                    import re
+                    is_json_requested = any("CRITICAL RULE" in msg.get("content", "") for msg in self.programmer.messages)
+                    if is_json_requested and not re.search(r'```json', prog_response):
+                        chat_history_display[-1]["content"] += '\n\n⭕ Verifier Error: Missing JSON block. Requesting regeneration...\n'
+                        yield chat_history_display
+                        
+                        self.add_programmer_msg({"role": "user", "content": "You MUST output the JSON block wrapped in ```json ```. Please provide the JSON block containing the Execution Trace directly in your markdown response now using the exact schema specified in the CRITICAL RULE."})
+                        prog_response = ''
+                        for message in self.programmer._call_chat_model_streaming(retrieval=self.retrieval, kernel=self.kernel):
+                            chat_history_display[-1]["content"] += message
+                            yield chat_history_display
+                            prog_response += message
+                        self.add_programmer_msg({"role": "assistant", "content": prog_response})
+                        
+                        step += 1
+                        continue
+                    break
+
                 chat_history_display[-1]["content"] += '\n🖥️ Execute code...'
                 yield chat_history_display
                 sign, msg_llm, exe_res = self.run_code(code)
@@ -205,25 +236,39 @@ class Conversation:
                 except UnicodeEncodeError:
                     print("Executing result (Unicode hidden for console compatibility)")
                 if sign and 'error' not in sign:
-                    yield from self._handle_execution_result(exe_res, msg_llm, chat_history_display)
+                    prog_response = yield from self._handle_execution_result(exe_res, msg_llm, chat_history_display)
+                    break
                 else:
                     self.error_count += 1
                     round = 0
                     while 'error' in sign and round < self.max_attempts:
-                        chat_history_display[-1]["content"] = f'⭕ Execution error, try to repair the code, attempts: {round + 1}....\n'
+                        chat_history_display[-1]["content"] += f'\n⭕ Execution error, try to repair the code, attempts: {round + 1}....\n'
                         yield chat_history_display
-                        self.add_inspector_msg(code, msg_llm)
+                        user_task = self._get_user_task()
                         if round == 3:
                             insp_response = "Try other packages or methods."
                         else:
-                            insp_response = self.inspector._call_chat_model().choices[0].message.content
-                        self.inspector.messages.append({"role": "assistant", "content": insp_response})
+                            insp_response = self.verifier.verify_syntax(code, msg_llm, user_task)
 
                         self.add_programmer_repair_msg(code, msg_llm, insp_response)
                         prog_response = ''
+                        code_started = False
                         for message in self.programmer._call_chat_model_streaming():
-                            chat_history_display[-1]["content"] += message
                             prog_response += message
+                            if not code_started and "```python" in prog_response:
+                                code_started = True
+                            if code_started and prog_response.count("```") >= 2:
+                                idx = prog_response.find("```", prog_response.find("```python") + 9)
+                                if idx != -1:
+                                    excess = len(prog_response) - (idx + 3)
+                                    if excess > 0:
+                                        message = message[:-excess]
+                                    prog_response = prog_response[:idx + 3]
+                                    chat_history_display[-1]["content"] += message
+                                    yield chat_history_display
+                                    break
+                            
+                            chat_history_display[-1]["content"] += message
                             yield chat_history_display
                         chat_history_display[-1]["content"] += '\n🖥️ Execute code...\n'
                         yield chat_history_display
@@ -237,9 +282,14 @@ class Conversation:
                         round += 1
 
                     if round == self.max_attempts:
-                        return prog_response + f"\nSorry, I can't fix the code with {self.max_attempts} attempts, can you help me to modified it or give some suggestions?"
+                        chat_history_display[-1]["content"] += f"\nSorry, I can't fix the code with {self.max_attempts} attempts, can you help me to modified it or give some suggestions?"
+                        yield chat_history_display
+                        return
 
-                    yield from self._handle_execution_result(exe_res, msg_llm, chat_history_display)
+                    prog_response = yield from self._handle_execution_result(exe_res, msg_llm, chat_history_display)
+                    break
+                
+                step += 1
 
         except Exception as e:
             chat_history_display[-1]["content"] += "\nSorry, there is an error in the program, please try again."
@@ -249,24 +299,143 @@ class Conversation:
             if self.programmer.messages[-1]["role"] == "user":
                 self.programmer.messages.append({"role": "assistant", "content": f"An error occurred in program: {e}"})
 
+    def _get_user_task(self) -> str:
+        """Extract the user's original question from conversation history."""
+        for msg in reversed(self.programmer.messages):
+            if msg["role"] == "user":
+                content = msg.get("content", "")
+                # Skip system-generated messages
+                if content.startswith("⚠️") or content.startswith("This is the executing result"):
+                    continue
+                if "SEMANTIC VERIFICATION FAILED" in content:
+                    continue
+                if "You should attempt to fix" in content:
+                    continue
+                return content
+        return ""
+
+    def _get_last_code(self) -> str:
+        """Extract the last Python code from programmer messages."""
+        for msg in reversed(self.programmer.messages):
+            if msg["role"] == "assistant":
+                is_python, code = extract_code(msg.get("content", ""))
+                if is_python:
+                    return code
+        return ""
+
     def _handle_execution_result(self, exe_res, msg_llm, chat_history_display):
         chat_history_display[-1]["content"] += display_exe_results(exe_res)
         yield chat_history_display
 
         display, link_info = self.check_folder()
         chat_history_display[-1]["content"] += f"{link_info}" if display else ''
+
+        # TRUNCATE msg_llm to prevent 400 Bad Request
+        if len(msg_llm) > 10000:
+            msg_llm = msg_llm[:5000] + "\n...[TRUNCATED_DUE_TO_LENGTH]...\n" + msg_llm[-5000:]
+
+        # ========== SEMANTIC VERIFICATION GATE (Chiều 2) ==========
+        user_task = self._get_user_task()
+        if self.verifier.is_business_task(user_task):
+            last_code = self._get_last_code()
+            chat_history_display[-1]["content"] += "\n\n🔍 **Semantic Verification** in progress...\n"
+            yield chat_history_display
+
+            verdict = self.verifier.verify_semantics(user_task, last_code, msg_llm)
+            semantic_retry = 0
+            MAX_SEMANTIC_RETRIES = 2
+
+            while verdict.get("status") == "REVISE" and semantic_retry < MAX_SEMANTIC_RETRIES:
+                feedback = verdict.get("feedback", "Missing business metrics")
+                missing = verdict.get("missing", [])
+
+                chat_history_display[-1]["content"] += (
+                    f"\n⚠️ **Verifier REVISE** (Attempt {semantic_retry + 1}/{MAX_SEMANTIC_RETRIES}):\n"
+                    f"   {feedback}\n"
+                    f"   Missing: {', '.join(missing) if missing else 'N/A'}\n"
+                )
+                yield chat_history_display
+
+                # Send fix instruction to Programmer
+                fix_prompt = SEMANTIC_FIX.format(feedback=feedback)
+                self.add_programmer_msg({"role": "user", "content": fix_prompt})
+
+                # Stream new code from Programmer
+                prog_response = ''
+                code_started = False
+                for message in self.programmer._call_chat_model_streaming():
+                    prog_response += message
+                    if not code_started and "```python" in prog_response:
+                        code_started = True
+                    if code_started and prog_response.count("```") >= 2:
+                        idx = prog_response.find("```", prog_response.find("```python") + 9)
+                        if idx != -1:
+                            excess = len(prog_response) - (idx + 3)
+                            if excess > 0:
+                                message = message[:-excess]
+                            prog_response = prog_response[:idx + 3]
+                            chat_history_display[-1]["content"] += message
+                            yield chat_history_display
+                            break
+                    chat_history_display[-1]["content"] += message
+                    yield chat_history_display
+                self.add_programmer_msg({"role": "assistant", "content": prog_response})
+
+                # Execute new code
+                is_python, new_code = extract_code(prog_response)
+                if not is_python:
+                    break
+
+                chat_history_display[-1]["content"] += '\n🖥️ Execute code...\n'
+                yield chat_history_display
+                sign, msg_llm_new, exe_res_new = self.run_code(new_code)
+
+                if sign and 'error' not in sign:
+                    msg_llm = msg_llm_new
+                    chat_history_display[-1]["content"] += display_exe_results(exe_res_new)
+                    yield chat_history_display
+                    # Re-verify semantics
+                    verdict = self.verifier.verify_semantics(user_task, new_code, msg_llm)
+                else:
+                    verdict = {"status": "REVISE", "feedback": f"Code crashed: {msg_llm_new[:500]}", "missing": ["working code"]}
+
+                semantic_retry += 1
+
+            # Final verdict display
+            if verdict.get("status") == "ACCEPT":
+                epi = verdict.get("epiplexity_score", 0)
+                chat_history_display[-1]["content"] += f"\n✅ **Verifier: ACCEPTED** (Epiplexity: {epi:.2f})\n"
+            else:
+                chat_history_display[-1]["content"] += "\n⚠️ **Verifier: Max retries exceeded.** Showing best available result.\n"
+            yield chat_history_display
+        # ========== END SEMANTIC VERIFICATION GATE ==========
+
+        # Prune conversation history if it gets too long
+        if len(self.programmer.messages) > 10:
+            self.programmer.messages = [self.programmer.messages[0]] + self.programmer.messages[-6:]
+
+        final_prompt = RESULT_PROMPT.format(msg_llm) + "\n\nCRITICAL: DO NOT WRITE ANY PYTHON CODE! You MUST ONLY output the 4-Tab Markdown report!"
+        self.add_programmer_msg({"role": "user", "content": final_prompt})
+
+        chat_history_display[-1]["content"] += "\n\n**Final Report:**\n\n"
         yield chat_history_display
 
-        self.add_programmer_msg({"role": "user", "content": RESULT_PROMPT.format(msg_llm)})
         prog_response = ''
-        for message in self.programmer._call_chat_model_streaming():
-            chat_history_display[-1]["content"] += message
+        try:
+            print(f"DEBUG: Calling LLM. msg_llm length={len(msg_llm)}")
+            for message in self.programmer._call_chat_model_streaming():
+                chat_history_display[-1]["content"] += message
+                yield chat_history_display
+                prog_response += message
+        except Exception as e:
+            print(f"DEBUG LLM CALL FAILED: {e}")
+            chat_history_display[-1]["content"] += f"\n[LLM ERROR: {e}]\n"
             yield chat_history_display
-            prog_response += message
 
         self.add_programmer_msg({"role": "assistant", "content": prog_response})
         chat_history_display[-1]["content"] = display_suggestions(prog_response, chat_history_display[-1]["content"])
         yield chat_history_display
+        return prog_response
 
     
     def update_config(self, conv_model, programmer_model, inspector_model, api_key,
@@ -291,8 +460,8 @@ class Conversation:
             self.programmer.model = programmer_model
             self.config['programmer_model'] = programmer_model
 
-        if self.inspector.model != inspector_model:
-            self.inspector.model = inspector_model
+        if self.verifier.model != inspector_model:
+            self.verifier.model = inspector_model
             self.config['inspector_model'] = inspector_model
 
         if self.max_attempts != max_attempts:

@@ -2,13 +2,29 @@ import shutil
 import gradio as gr
 import json
 import time
+import random
+import logging
 from core.conversation import Conversation
 from prompt_engineering.prompts import *
 import yaml
 from utils.utils import *
 import sys
 import os
+from datetime import datetime
+import pandas as pd
+import numpy as np
+import re
 
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler('lambda_evolution.log'),
+        logging.StreamHandler()
+    ]
+)
+logger = logging.getLogger('LAMBDA_Evolution')
 
 class LAMBDA:
     def __init__(self, config_path='config.yaml'):
@@ -23,13 +39,51 @@ class LAMBDA:
 
         with open(config_path, 'r', encoding='utf-8') as f:
             self.config = yaml.load(f, Loader=yaml.FullLoader)
+            
+        if 'api_key' not in self.config and 'api_key_env_var' in self.config:
+            self.config['api_key'] = os.environ.get(self.config['api_key_env_var'], 'dummy_key')
+        elif 'api_key' not in self.config:
+            self.config['api_key'] = 'dummy_key'
+        
+        # [NEW] CỤM BIẾN TIẾN HÓA (Evolvable Variables) - MUTATED WITH DRIFT
+        # Apply evolutionary drift to hyperparameters for Polyglot Benchmark optimization
+        self.epiplexity_min = self._mutate_param(
+            getattr(self, 'epiplexity_min', 0.5),
+            -0.1, 0.1, 0.5
+        )
+        self.epiplexity_max = self._mutate_param(
+            getattr(self, 'epiplexity_max', 2.2),
+            -0.1, 0.1, 3.0
+        )
+        self.vocab_dropout_rate = self._mutate_param(
+            getattr(self, 'vocab_dropout_rate', 0.15),
+            -0.1, 0.1, 0.5
+        )
+        
+        # Ensure epiplexity_min < epiplexity_max with buffer
+        if self.epiplexity_min >= self.epiplexity_max:
+            self.epiplexity_min = self.epiplexity_max - 0.3
+        
+        # Validate parameter ranges
+        self.epiplexity_min = max(0.1, min(self.epiplexity_min, 1.0))
+        self.epiplexity_max = max(0.5, min(self.epiplexity_max, 4.0))
+        self.vocab_dropout_rate = max(0.05, min(self.vocab_dropout_rate, 0.8))
+        
         if self.config["load_chat"] == True:
             self.load_dialogue(self.config["chat_history_path"])
         else:
             self.session_cache_path = self.init_local_cache_path(to_absolute_path(self.config["project_cache_path"]))
             self.config["session_cache_path"] = self.session_cache_path
+        
         print("Session cache path: ", self.session_cache_path)
-        self.conv = Conversation(self.config)
+        
+        # Initialize conversation with proper error handling
+        try:
+            self.conv = Conversation(self.config)
+            logger.info("Conversation initialized successfully")
+        except Exception as e:
+            logger.error(f"Failed to initialize conversation: {e}")
+            raise
 
         self.conv.programmer.messages = [
             {
@@ -41,83 +95,163 @@ class LAMBDA:
         if self.conv.retrieval:
             self.conv.programmer.messages[0]["content"] += KNOWLEDGE_INTEGRATION_SYSTEM
             
-        # [NEW] CỤM BIẾN TIẾN HÓA (Evolvable Variables)
-        # LLM (Solver) được phép trực tiếp sửa đổi các con số này trong quá trình mutate!
-        self.epiplexity_min = 0.5   # Ngưỡng dưới của Vùng Goldilocks
-        self.epiplexity_max = 2.2   # Ngưỡng trên của Vùng Goldilocks
-        self.vocab_dropout_rate = 0.15 # Tỷ lệ chặn từ vựng ép Proposer sáng tạo
+        # Log evolutionary parameters
+        logger.info(f"Evolutionary Parameters - epiplexity_min: {self.epiplexity_min}, "
+                   f"epiplexity_max: {self.epiplexity_max}, vocab_dropout_rate: {self.vocab_dropout_rate}")
+
+    def _mutate_param(self, current_value, min_step, max_step, max_value):
+        """Apply evolutionary drift mutation to hyperparameters."""
+        mutation = random.uniform(min_step, max_step)
+        new_value = current_value + mutation
+        return max(0.0, min(new_value, max_value))
 
     def get_evolution_params(self):
         """Hàm này export cấu hình hiện tại để lưu vào Archive hoặc in ra log."""
         return {
             "epiplexity_min": getattr(self, 'epiplexity_min', 0.5),
             "epiplexity_max": getattr(self, 'epiplexity_max', 2.2),
-            "vocab_dropout_rate": getattr(self, 'vocab_dropout_rate', 0.15)
+            "vocab_dropout_rate": getattr(self, 'vocab_dropout_rate', 0.15),
+            "timestamp": datetime.now().isoformat()
         }
-
 
     def init_local_cache_path(self, project_cache_path):
         current_fold = time.strftime('%Y-%m-%d', time.localtime())
         hsid = str(hash(id(self)))
         session_cache_path = os.path.join(project_cache_path, current_fold + '-' + hsid)
         if not os.path.exists(session_cache_path):
-            os.makedirs(session_cache_path)
+            try:
+                os.makedirs(session_cache_path)
+                logger.info(f"Created session cache directory: {session_cache_path}")
+            except OSError as e:
+                logger.error(f"Failed to create cache directory: {e}")
+                raise
         return session_cache_path
 
     def open_board(self):
-        return self.conv.show_data()
+        try:
+            return self.conv.show_data()
+        except Exception as e:
+            logger.error(f"Error in open_board: {e}")
+            return []
 
-    def add_file(self, files):
-        file_path = files.name
-        shutil.copy(file_path, self.session_cache_path)
-        filename = os.path.basename(file_path)
-        file_extension = os.path.splitext(file_path)[1].lower()
-        self.conv.file_list.append(filename)
-        local_cache_path = os.path.join(self.session_cache_path, filename)
+    def refresh_workspace_context(self, workspace_root: str):
+        try:
+            # [HOTFIX] Re-inject load_dataset to point to the correct session workspace instead of 'default'
+            safe_workspace_dir = str(workspace_root).replace('\\', '/')
+            tool_layer_code = f"""
+import json
+import pandas as pd
+import os
 
-        DATA_EXTS = ['.xlsx', '.xls', '.csv', '.ods']
-        if file_extension in DATA_EXTS:
-            try:
-                self.conv.add_data(local_cache_path)
-                gen_info = self.conv.my_data_cache.get_description()
-                self.conv.programmer.messages[0][
-                    "content"] += f"\n\n[SYSTEM ALERT: USER UPLOADED A NEW DATASET]\nYou MUST use this EXACT file path to read the data in your Python code: '{local_cache_path}'.\nDo NOT use any other path. The file is a dataset with the following general information:\n{gen_info}.\nYou should care about the missing values and type of each column in your later processing."
-                print(f"Data loaded successfully: {filename}")
-                status_msg = f"✅ **File uploaded:** `{filename}`\n- Rows: {gen_info['num_rows']}, Columns: {gen_info['num_features']}\n- Features: {', '.join(str(c) for c in gen_info['features'][:10])}"
-            except Exception as e:
-                print(f"Warning: Could not parse data file '{filename}': {e}")
-                self.conv.programmer.messages[0][
-                    "content"] += f"\nNow, user uploads the file in {local_cache_path} (could not auto-parse, please load it manually in code)."
-                status_msg = f"⚠️ **File uploaded but could not be parsed:** `{filename}` ({e})"
-        else:
-            self.conv.programmer.messages[0][
-                "content"] += f"\nNow, user uploads the files in {local_cache_path}."
-            status_msg = f"📎 **File uploaded:** `{filename}`"
+_DATASET_CACHE = dict()
 
-        print(f"Upload file in gradio path: {file_path}, local cache path: {local_cache_path}")
-        return [{"role": "assistant", "content": status_msg}]
+def load_dataset(file_id):
+    if file_id in _DATASET_CACHE:
+        return _DATASET_CACHE[file_id]
+        
+    workspace_root = r'{safe_workspace_dir}'
+    index_path = os.path.join(workspace_root, "index.json")
+    if not os.path.exists(index_path):
+        raise ValueError("No index.json found in workspace")
+        
+    with open(index_path, 'r', encoding='utf-8') as f:
+        index_data = json.load(f)
+        
+    if file_id not in index_data:
+        raise ValueError("File ID '" + str(file_id) + "' not found")
+        
+    file_path = os.path.join(workspace_root, index_data[file_id]['path'])
+    if not os.path.exists(file_path):
+        raise FileNotFoundError("File not found: " + str(file_path))
+        
+    ext = os.path.splitext(file_path)[1].lower()
+    if ext in ['.csv', '.tsv']:
+        df = pd.read_csv(file_path, sep='\\t' if ext == '.tsv' else ',')
+    elif ext in ['.xlsx', '.xls']:
+        df = pd.read_excel(file_path)
+    else:
+        raise ValueError("Unsupported extension " + ext)
+        
+    if len(df) < 1000:
+        raise ValueError("Hệ thống chặn: LLM bị phát hiện dùng dữ liệu giả. Số lượng dòng < 1000.")
+        
+    _DATASET_CACHE[file_id] = df
+    return df
+"""
+            self.conv.run_code(tool_layer_code)
+
+            index_path = os.path.join(workspace_root, "index.json")
+            if not os.path.exists(index_path):
+                return
+                
+            with open(index_path, 'r', encoding='utf-8') as f:
+                index_data = json.load(f)
+                
+            if not index_data:
+                return
+                
+            context_str = "\n\n[ACTIVE DATASETS]\n"
+            for file_id, info in index_data.items():
+                context_str += f"- File ID: {file_id}\n  Filename: {info['filename']}\n"
+                
+                # Load metadata
+                meta_path = os.path.join(workspace_root, info.get("metadata_file", ""))
+                if os.path.exists(meta_path):
+                    with open(meta_path, 'r', encoding='utf-8') as mf:
+                        meta = json.load(mf)
+                        cols = meta.get("columns", [])
+                        context_str += f"  Metadata: {meta.get('size_bytes')} bytes. Columns: {', '.join(cols[:20])}\n"
+                        if 'dtypes' in meta:
+                            dtypes = [f"{c} ({t})" for c, t in list(meta['dtypes'].items())[:10]]
+                            context_str += f"  DTypes: {', '.join(dtypes)}\n"
+                            
+            context_str += "\nIMPORTANT:\nTo load this data, you MUST use the built-in function `load_dataset(file_id)`.\nExample: `df = load_dataset('abc12345')`\nDo NOT use pd.read_csv for these datasets!\n"
+            
+            # Clean up old ACTIVE DATASETS to avoid duplicate appending
+            import re
+            base_prompt = re.sub(r'\[ACTIVE DATASETS\].*', '', self.conv.programmer.messages[0]["content"], flags=re.DOTALL)
+            self.conv.programmer.messages[0]["content"] = base_prompt.strip() + context_str
+            
+            logger.info("Workspace context refreshed successfully.")
+        except Exception as e:
+            logger.error(f"Error refreshing workspace context: {e}")
 
     def rendering_code(self):
-        return self.conv.rendering_code()
+        try:
+            return self.conv.rendering_code()
+        except Exception as e:
+            logger.error(f"Error in rendering_code: {e}")
+            return []
 
     def generate_report(self, chat_history):
-        legacy_history = []
-        user_msg = None
-        for msg in chat_history:
-            if isinstance(msg, dict):
-                if msg["role"] == "user":
-                    user_msg = msg.get("content", "")
-                elif msg["role"] == "assistant" and user_msg is not None:
-                    legacy_history.append([user_msg, msg.get("content", "")])
-                    user_msg = None
-            elif isinstance(msg, (list, tuple)):
-                legacy_history.append(msg)
-        down_path = self.conv.document_generation(legacy_history)
-        return [gr.Button(visible=False), gr.DownloadButton(label=f"Download Report", value=down_path, visible=True)]
+        try:
+            legacy_history = []
+            user_msg = None
+            for msg in chat_history:
+                if isinstance(msg, dict):
+                    if msg["role"] == "user":
+                        user_msg = msg.get("content", "")
+                    elif msg["role"] == "assistant" and user_msg is not None:
+                        legacy_history.append([user_msg, msg.get("content", "")])
+                        user_msg = None
+                elif isinstance(msg, (list, tuple)):
+                    legacy_history.append(msg)
+            
+            down_path = self.conv.document_generation(legacy_history)
+            logger.info(f"Report generated: {down_path}")
+            return [gr.Button(visible=False), gr.DownloadButton(label=f"Download Report", value=down_path, visible=True)]
+        except Exception as e:
+            logger.error(f"Error in generate_report: {e}")
+            return [gr.Button(visible=False), gr.DownloadButton(label=f"Error: {e}", visible=True)]
 
     def export_code(self):
-        down_path = self.conv.export_code()
-        return [gr.Button(visible=False), gr.DownloadButton(label=f"Download Notebook", value=down_path, visible=True)]
+        try:
+            down_path = self.conv.export_code()
+            logger.info(f"Code exported: {down_path}")
+            return [gr.Button(visible=False), gr.DownloadButton(label=f"Download Notebook", value=down_path, visible=True)]
+        except Exception as e:
+            logger.error(f"Error in export_code: {e}")
+            return [gr.Button(visible=False), gr.DownloadButton(label=f"Error: {e}", visible=True)]
 
     def down_report(self):
         return [gr.Button(visible=True), gr.DownloadButton(visible=False)]
@@ -126,56 +260,236 @@ class LAMBDA:
         return [gr.Button(visible=True), gr.DownloadButton(visible=False)]
 
     def chat_streaming(self, message, chat_history, code=None):
-        if not code:
-            self.conv.programmer.messages.append({"role": "user", "content": message})
-        else:
-            message = code
-        chat_history = chat_history + [
-            {"role": "user", "content": message},
-            {"role": "assistant", "content": ""}
-        ]
-        return "", chat_history
+        try:
+            if not code:
+                self.conv.programmer.messages.append({"role": "user", "content": message})
+            else:
+                message = code
+            
+            # Validate message
+            if not message or not message.strip():
+                logger.warning("Empty message received")
+                return "", chat_history
+            
+            chat_history = chat_history + [
+                {"role": "user", "content": message},
+                {"role": "assistant", "content": ""}
+            ]
+            return "", chat_history
+        except Exception as e:
+            logger.error(f"Error in chat_streaming: {e}")
+            return "", chat_history
 
     def save_dialogue(self, chat_history):
-        self.conv.save_conv()
-        with open(os.path.join(self.session_cache_path, 'system_dialogue.json'), 'w') as f:
-            json.dump(chat_history, f, indent=4)
-        print(f"Dialogue saved in {os.path.join(self.session_cache_path, 'system_dialogue.json')}.")
+        try:
+            self.conv.save_conv()
+            save_path = os.path.join(self.session_cache_path, 'system_dialogue.json')
+            with open(save_path, 'w', encoding='utf-8') as f:
+                json.dump(chat_history, f, indent=4, ensure_ascii=False)
+            logger.info(f"Dialogue saved in {save_path}")
+        except Exception as e:
+            logger.error(f"Error saving dialogue: {e}")
+            raise
 
     def load_dialogue(self, dialogue_path):
         try:
             system_dialogue_path = os.path.join(dialogue_path, 'system_dialogue.json')
             system_config_path = os.path.join(dialogue_path, 'config.json')
-            with open(system_dialogue_path, 'r') as f:
+            
+            # Validate paths exist
+            if not os.path.exists(system_dialogue_path):
+                logger.warning(f"Dialogue file not found: {system_dialogue_path}")
+                return []
+            
+            with open(system_dialogue_path, 'r', encoding='utf-8') as f:
                 chat_history = json.load(f)
-            with open(system_config_path, 'r') as f:
+            
+            with open(system_config_path, 'r', encoding='utf-8') as f:
                 sys_config = json.load(f)
+            
             self.session_cache_path = sys_config["session_cache_path"]
             self.config["session_cache_path"] = self.session_cache_path
             self.config["chat_history_display"] = chat_history
             self.config["figure_list"] = sys_config["figure_list"]
+            
+            logger.info(f"Dialogue loaded from {dialogue_path}")
             return chat_history
         except Exception as e:
-            print(f"Failed to load the chat history: {e}")
+            logger.error(f"Failed to load the chat history: {e}")
             return []
 
     def clear_all(self, message, chat_history):
-        self.conv.clear()
-        return "", []
+        try:
+            self.conv.clear()
+            logger.info("All data cleared")
+            return "", []
+        except Exception as e:
+            logger.error(f"Error in clear_all: {e}")
+            return "", []
 
     def update_config(self, conv_model, programmer_model, inspector_model, api_key,
                       base_url_conv_model, base_url_programmer, base_url_inspector,
                       max_attempts, max_exe_time,
                       load_chat, chat_history_path):
 
-        self.conv.update_config(conv_model=conv_model, programmer_model=programmer_model, inspector_model=inspector_model, api_key=api_key,
-                      base_url_conv_model=base_url_conv_model, base_url_programmer=base_url_programmer, base_url_inspector=base_url_inspector,
-                      max_attempts=max_attempts, max_exe_time=max_exe_time)
+        try:
+            self.conv.update_config(conv_model=conv_model, programmer_model=programmer_model, inspector_model=inspector_model, api_key=api_key,
+                          base_url_conv_model=base_url_conv_model, base_url_programmer=base_url_programmer, base_url_inspector=base_url_inspector,
+                          max_attempts=max_attempts, max_exe_time=max_exe_time)
 
-        if load_chat == True:
-            self.config['chat_history_path'] = chat_history_path
-            chat_history = self.load_dialogue(chat_history_path)
-            self.config['load_chat'] = load_chat
-            return ["### Config Updated!", chat_history]
+            if load_chat == True:
+                self.config['chat_history_path'] = chat_history_path
+                chat_history = self.load_dialogue(chat_history_path)
+                self.config['load_chat'] = load_chat
+                logger.info("Config updated successfully")
+                return ["### Config Updated!", chat_history]
 
-        return "### Config Updated!", []
+            logger.info("Config updated successfully")
+            return "### Config Updated!", []
+        except Exception as e:
+            logger.error(f"Error in update_config: {e}")
+            return "### Config Update Failed!", []
+
+    def get_performance_metrics(self):
+        """Returns performance metrics for the Polyglot Benchmark."""
+        return {
+            "evolution_params": self.get_evolution_params(),
+            "session_cache_path": self.session_cache_path,
+            "file_count": len(self.conv.file_list),
+            "message_count": len(self.conv.programmer.messages),
+            "timestamp": datetime.now().isoformat()
+        }
+
+    def generate_config_data(self, num_entries=20):
+        """Generate config entries for Polyglot Benchmark testing."""
+        try:
+            models = ['gpt-4', 'gpt-3.5-turbo', 'claude-2', 'llama-2-70b', 'mistral-7b']
+            urls = [
+                'https://api.openai.com/v1/chat/completions',
+                'https://api.anthropic.com/v1/messages',
+                'https://api.mistral.ai/v1/chat/completions',
+                'http://localhost:8000/v1/chat/completions',
+                'https://api.deepai.org/v1/chat'
+            ]
+            
+            generated_configs = []
+            for i in range(num_entries):
+                config = {
+                    'model': random.choice(models),
+                    'url': random.choice(urls),
+                    'tokens': random.randint(100, 5000),
+                    'temp': round(random.uniform(0.1, 1.5), 2),
+                    'key': ''.join(random.choices('abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789', k=random.randint(20, 40)))
+                }
+                generated_configs.append(config)
+            
+            logger.info(f"Generated {num_entries} config entries")
+            return generated_configs
+        except Exception as e:
+            logger.error(f"Error in generate_config_data: {e}")
+            return []
+
+    def analyze_config_data(self, config_data):
+        """Analyze config data for cost_score, localhost, and key length."""
+        try:
+            if not config_data:
+                return {"error": "No config data provided"}
+            
+            df = pd.DataFrame(config_data)
+            
+            # Calculate cost_score
+            df['cost_score'] = df['tokens'] * df['temp']
+            
+            # Average cost_score per model
+            avg_cost_per_model = df.groupby('model')['cost_score'].mean().reset_index()
+            avg_cost_per_model.columns = ['model', 'avg_cost_score']
+            
+            # Flag localhost in prod
+            localhost_flag = df[df['url'].str.contains('localhost', case=False, na=False)]
+            localhost_entries = len(localhost_flag)
+            
+            # Flag keys <32 chars
+            key_length_flag = df[df['key'].str.len() < 32]
+            short_key_entries = len(key_length_flag)
+            
+            analysis_result = {
+                'avg_cost_per_model': avg_cost_per_model.to_dict('records'),
+                'localhost_entries': localhost_entries,
+                'short_key_entries': short_key_entries,
+                'total_entries': len(df),
+                'df_summary': df.describe().to_dict()
+            }
+            
+            logger.info(f"Analysis completed - localhost: {localhost_entries}, short keys: {short_key_entries}")
+            return analysis_result
+        except Exception as e:
+            logger.error(f"Error in analyze_config_data: {e}")
+            return {"error": str(e)}
+
+    def generate_analysis_code(self, config_data):
+        """Generate Python code for config generation and analysis."""
+        code_template = '''
+import pandas as pd
+import numpy as np
+import random
+import re
+
+def generate_config_data(num_entries=20):
+    """Generate config entries for testing."""
+    models = ['gpt-4', 'gpt-3.5-turbo', 'claude-2', 'llama-2-70b', 'mistral-7b']
+    urls = [
+        'https://api.openai.com/v1/chat/completions',
+        'https://api.anthropic.com/v1/messages',
+        'https://api.mistral.ai/v1/chat/completions',
+        'http://localhost:8000/v1/chat/completions',
+        'https://api.deepai.org/v1/chat'
+    ]
+    
+    generated_configs = []
+    for i in range(num_entries):
+        config = {{
+            'model': random.choice(models),
+            'url': random.choice(urls),
+            'tokens': random.randint(100, 5000),
+            'temp': round(random.uniform(0.1, 1.5), 2),
+            'key': ''.join(random.choices('abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789', k=random.randint(20, 40)))
+        }}
+        generated_configs.append(config)
+    
+    return generated_configs
+
+def analyze_config_data(config_data):
+    """Analyze config data for cost_score, localhost, and key length."""
+    df = pd.DataFrame(config_data)
+    
+    # Calculate cost_score
+    df['cost_score'] = df['tokens'] * df['temp']
+    
+    # Average cost_score per model
+    avg_cost_per_model = df.groupby('model')['cost_score'].mean().reset_index()
+    
+    # Flag localhost in prod
+    localhost_flag = df[df['url'].str.contains('localhost', case=False, na=False)]
+    
+    # Flag keys <32 chars
+    key_length_flag = df[df['key'].str.len() < 32]
+    
+    analysis_result = {{
+        'avg_cost_per_model': avg_cost_per_model,
+        'localhost_entries': len(localhost_flag),
+        'short_key_entries': len(key_length_flag),
+        'total_entries': len(df)
+    }}
+    
+    return analysis_result
+
+# Example usage
+if __name__ == "__main__":
+    config_data = generate_config_data(20)
+    analysis = analyze_config_data(config_data)
+    print("Average cost per model:")
+    print(analysis['avg_cost_per_model'])
+    print(f"\\nLocalhost entries: {{analysis['localhost_entries']}}")
+    print(f"Short key entries: {{analysis['short_key_entries']}}")
+'''
+        return code_template

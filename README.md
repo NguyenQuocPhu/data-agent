@@ -73,6 +73,18 @@ LAMBDA/
 
 ---
 
+## 📜 Changelog / Release Notes
+
+### [v2.1.0] - 2026-06-11: Data Persona Discovery & Triadic Verifier
+- **Architectural Upgrade**: Deprecated the legacy syntax-only `Inspector` and integrated the `SemanticVerifier`. This new Dual-Axis Verifier implements Triadic DGM (Proposer-Solver-Verifier) by evaluating both syntax and business logic (Epiplexity, Silhouette, Churn rules) before releasing reports.
+- **Auto-K Selection**: K-Means clustering now dynamically tests K from 2 to 6 and automatically selects the optimal number of personas based on the highest Silhouette Score, eliminating hardcoded biases.
+- **Evidence-First Prompts**: Restructured the LLM prompts to force the Agent to output raw evidence (Support, Churn rates) before drawing business insights.
+- **Revenue Impact**: Added precise calculations for *Total Revenue* and *Revenue at Risk* (in VND) for each discovered persona.
+- **Hidden Patterns**: Fixed "cluster feature leakage" in the Decision Tree. The Agent now discovers human-readable IF-THEN churn rules using raw categorical/numerical features.
+- **Memory Bank**: Integrated the `RimruleMemoryBank` to log tracebacks and self-correct Python runtime exceptions systemically.
+
+---
+
 ## 🚀 Quick Start
 
 ### 1. Environment Setup
