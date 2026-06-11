@@ -83,11 +83,17 @@ class CodeKernel(object):
                 msg_list.append(iopub_msg)
                 if iopub_msg['msg_type'] == 'status' and iopub_msg['content'].get('execution_state') == 'idle':
                     break
-            except:
+            except queue.Empty:
                 if self.interrupt_signal:
                     self.kernel_manager.interrupt_kernel()
                     self.interrupt_signal = False
+                elif not self.kernel_manager.is_alive():
+                    msg_list.append({'msg_type': 'error', 'content': {'traceback': ['Kernel died unexpectedly.']}})
+                    break
                 continue
+            except Exception as e:
+                msg_list.append({'msg_type': 'error', 'content': {'traceback': [f'Kernel error: {str(e)}']}})
+                break
 
         all_output = []
         # sign = None

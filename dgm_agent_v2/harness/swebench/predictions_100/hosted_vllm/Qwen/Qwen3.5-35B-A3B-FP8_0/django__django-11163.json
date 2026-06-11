@@ -1,0 +1,6 @@
+{
+    "instance_id": "django__django-11163",
+    "model_name_or_path": "hosted_vllm/Qwen/Qwen3.5-35B-A3B-FP8",
+    "model_patch": "",
+    "proposed_model_patches": []
+}

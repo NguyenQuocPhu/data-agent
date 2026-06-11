@@ -1,0 +1,6 @@
+{
+    "instance_id": "astropy__astropy-14598",
+    "model_name_or_path": "hosted_vllm/Qwen/Qwen3.5-35B-A3B-FP8",
+    "model_patch": "diff --git a/pyproject.toml b/pyproject.toml\nindex 243782fdf..b2688da2a 100644\n--- a/pyproject.toml\n+++ b/pyproject.toml\n@@ -1,5 +1,5 @@\n [build-system]\n-requires = [\"setuptools\",\n+requires = [\"setuptools==68.0.0\",\n             \"setuptools_scm>=6.2\",\n             \"wheel\",\n             \"cython==0.29.30\",\ndiff --git a/test_regex.py b/test_regex.py\nnew file mode 100644\nindex 000000000..0a03583f8\n--- /dev/null\n+++ b/test_regex.py\n@@ -0,0 +1,16 @@\n+import re\n+_strg = r\"'(?P<strg>([ -~]+?|''|) *?)'(?=$|/| )\"\n+print(\"Pattern:\", _strg)\n+\n+test_strings = [\n+    \"''\",\n+    \"x''\",\n+    \"xx''\",\n+    \"x\" * 65 + \"''\",\n+]\n+for s in test_strings:\n+    m = re.match(_strg, s)\n+    if m:\n+        print(\"Match for %r: %r\" % (s, m.group(\"strg\")))\n+    else:\n+        print(\"No match for %r\" % s)\n",
+    "proposed_model_patches": []
+}

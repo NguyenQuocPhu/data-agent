@@ -1,0 +1,6 @@
+{
+    "instance_id": "astropy__astropy-14096",
+    "model_name_or_path": "hosted_vllm/Qwen/Qwen3.5-35B-A3B-FP8",
+    "model_patch": "diff --git a/pyproject.toml b/pyproject.toml\nindex 486d6b9b3..1c5f74f3a 100644\n--- a/pyproject.toml\n+++ b/pyproject.toml\n@@ -1,5 +1,5 @@\n [build-system]\n-requires = [\"setuptools\",\n+requires = [\"setuptools==68.0.0\",\n             \"setuptools_scm>=6.2\",\n             \"wheel\",\n             \"cython==0.29.30\",\ndiff --git a/test_issue.py b/test_issue.py\nnew file mode 100644\nindex 000000000..e18013a61\n--- /dev/null\n+++ b/test_issue.py\n@@ -0,0 +1,11 @@\n+import astropy.coordinates as coord\n+\n+\n+class custom_coord(coord.SkyCoord):\n+    @property\n+    def prop(self):\n+        return self.random_attr\n+\n+\n+c = custom_coord('00h42m30s', '+41d12m00s', frame='icrs')\n+c.prop\n",
+    "proposed_model_patches": []
+}

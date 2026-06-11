@@ -1,0 +1,6 @@
+{
+    "instance_id": "astropy__astropy-13579",
+    "model_name_or_path": "hosted_vllm/Qwen/Qwen3.5-35B-A3B-FP8",
+    "model_patch": "diff --git a/pyproject.toml b/pyproject.toml\nindex 7a3b85fc9..83f08ed12 100644\n--- a/pyproject.toml\n+++ b/pyproject.toml\n@@ -1,5 +1,5 @@\n [build-system]\n-requires = [\"setuptools\",\n+requires = [\"setuptools==68.0.0\",\n             \"setuptools_scm>=6.2\",\n             \"wheel\",\n             \"cython==0.29.30\",\n",
+    "proposed_model_patches": []
+}

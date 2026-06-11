@@ -1,0 +1,6 @@
+{
+    "instance_id": "astropy__astropy-7671",
+    "model_name_or_path": "hosted_vllm/Qwen/Qwen3.5-35B-A3B-FP8",
+    "model_patch": "diff --git a/astropy/utils/introspection.py b/astropy/utils/introspection.py\nindex 3e784f9fc..4b1603b6e 100644\n--- a/astropy/utils/introspection.py\n+++ b/astropy/utils/introspection.py\n@@ -6,7 +6,7 @@\n import inspect\n import types\n import importlib\n-from distutils.version import LooseVersion\n+from packaging.version import parse as parse_version\n \n \n __all__ = ['resolve_name', 'minversion', 'find_current_module',\n@@ -140,9 +140,9 @@ def minversion(module, version, inclusive=True, version_path='__version__'):\n         have_version = resolve_name(module.__name__, version_path)\n \n     if inclusive:\n-        return LooseVersion(have_version) >= LooseVersion(version)\n+        return parse_version(str(have_version)) >= parse_version(str(version))\n     else:\n-        return LooseVersion(have_version) > LooseVersion(version)\n+        return parse_version(str(have_version)) > parse_version(str(version))\n \n \n def find_current_module(depth=1, finddiff=False):\n",
+    "proposed_model_patches": []
+}

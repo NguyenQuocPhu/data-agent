@@ -1,0 +1,7 @@
+[
+    {
+        "task_id": "test_task_001",
+        "description": "Read the sales_data.csv file. Fill missing sales values with the mean, then calculate the total sales by region.",
+        "workspace": "./dgm_agent_v2/test_workspace"
+    }
+]

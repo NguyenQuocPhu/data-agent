@@ -1,0 +1,981 @@
+2026-05-29 11:52:58,324 - ThreadPoolExecutor-3_0 - INFO - No existing container with name sweb.eval.django__django-11848.20260529_115258_319214 found.
+2026-05-29 11:52:58,363 - ThreadPoolExecutor-3_0 - INFO - Environment image sweb.env.py.x86_64.a18371b03f944585b4f08c:latest found for django__django-11848
+Building instance image sweb.eval.x86_64.django__django-11848:latest for django__django-11848
+2026-05-29 11:54:38,310 - ThreadPoolExecutor-3_0 - INFO - Creating container for django__django-11848...
+2026-05-29 11:54:38,403 - ThreadPoolExecutor-3_0 - INFO - Container for django__django-11848 created: 9a163fe3f2bcbd4c1244557af800b9f5885e306b509f9f7088017391533a9fe0
+2026-05-29 11:54:38,650 - ThreadPoolExecutor-3_0 - INFO - Working directory set to: D:\kh4ng\Data_agent\dgm_agent
+2026-05-29 11:54:38,755 - ThreadPoolExecutor-3_0 - INFO - Copying coding_agent.py to container at /dgm/coding_agent.py
+2026-05-29 11:54:38,764 - ThreadPoolExecutor-3_0 - INFO - Successfully copied coding_agent.py to container
+2026-05-29 11:54:38,863 - ThreadPoolExecutor-3_0 - INFO - Copying requirements.txt to container at /dgm/requirements.txt
+2026-05-29 11:54:38,874 - ThreadPoolExecutor-3_0 - INFO - Successfully copied requirements.txt to container
+2026-05-29 11:54:38,969 - ThreadPoolExecutor-3_0 - INFO - Copying pytest.ini to container at /dgm/pytest.ini
+2026-05-29 11:54:38,981 - ThreadPoolExecutor-3_0 - INFO - Successfully copied pytest.ini to container
+2026-05-29 11:54:39,090 - ThreadPoolExecutor-3_0 - INFO - Copying tools to container at /dgm/tools
+2026-05-29 11:54:39,115 - ThreadPoolExecutor-3_0 - INFO - Successfully copied tools to container
+2026-05-29 11:54:39,200 - ThreadPoolExecutor-3_0 - INFO - Copying utils to container at /dgm/utils
+2026-05-29 11:54:39,211 - ThreadPoolExecutor-3_0 - INFO - Successfully copied utils to container
+2026-05-29 11:54:39,295 - ThreadPoolExecutor-3_0 - INFO - Copying tests to container at /dgm/tests
+2026-05-29 11:54:39,305 - ThreadPoolExecutor-3_0 - INFO - Successfully copied tests to container
+2026-05-29 11:54:39,391 - ThreadPoolExecutor-3_0 - INFO - Copying prompts to container at /dgm/prompts
+2026-05-29 11:54:39,401 - ThreadPoolExecutor-3_0 - INFO - Successfully copied prompts to container
+2026-05-29 11:54:39,484 - ThreadPoolExecutor-3_0 - INFO - Copying llm.py to container at /dgm/llm.py
+2026-05-29 11:54:39,492 - ThreadPoolExecutor-3_0 - INFO - Successfully copied llm.py to container
+2026-05-29 11:54:39,596 - ThreadPoolExecutor-3_0 - INFO - Copying llm_withtools.py to container at /dgm/llm_withtools.py
+2026-05-29 11:54:39,608 - ThreadPoolExecutor-3_0 - INFO - Successfully copied llm_withtools.py to container
+2026-05-29 11:54:39,608 - ThreadPoolExecutor-3_0 - INFO - Setting up environment
+2026-05-29 11:54:39,701 - ThreadPoolExecutor-3_0 - INFO - Copying D:\kh4ng\Data_agent\dgm_agent\swe_bench\predictions_100\hosted_vllm\Qwen\Qwen3.5-35B-A3B-FP8_0\django__django-11848_eval.sh to container at /eval.sh
+2026-05-29 11:54:39,710 - ThreadPoolExecutor-3_0 - INFO - Successfully copied D:\kh4ng\Data_agent\dgm_agent\swe_bench\predictions_100\hosted_vllm\Qwen\Qwen3.5-35B-A3B-FP8_0\django__django-11848_eval.sh to container
+2026-05-29 11:54:45,378 - ThreadPoolExecutor-3_0 - INFO - Container output: + source /opt/miniconda3/bin/activate
+++ _CONDA_ROOT=/opt/miniconda3
+++ . /opt/miniconda3/etc/profile.d/conda.sh
++++ export CONDA_EXE=/opt/miniconda3/bin/conda
++++ CONDA_EXE=/opt/miniconda3/bin/conda
++++ export _CE_M=
++++ _CE_M=
++++ export _CE_CONDA=
++++ _CE_CONDA=
++++ export CONDA_PYTHON_EXE=/opt/miniconda3/bin/python
++++ CONDA_PYTHON_EXE=/opt/miniconda3/bin/python
++++ '[' -z '' ']'
++++ export CONDA_SHLVL=0
++++ CONDA_SHLVL=0
++++ '[' -n '' ']'
++++++ dirname /opt/miniconda3/bin/conda
+++++ dirname /opt/miniconda3/bin
++++ PATH=/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
++++ export PATH
++++ '[' -z '' ']'
++++ PS1=
+++ conda activate
+++ local cmd=activate
+++ case "$cmd" in
+++ __conda_activate activate
+++ '[' -n '' ']'
+++ local ask_conda
++++ PS1=
++++ __conda_exe shell.posix activate
++++ /opt/miniconda3/bin/conda shell.posix activate
+++ ask_conda='PS1='\''(base) '\''
+export PATH='\''/opt/miniconda3/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'\''
+export CONDA_PREFIX='\''/opt/miniconda3'\''
+export CONDA_SHLVL='\''1'\''
+export CONDA_DEFAULT_ENV='\''base'\''
+export CONDA_PROMPT_MODIFIER='\''(base) '\''
+export CONDA_EXE='\''/opt/miniconda3/bin/conda'\''
+export _CE_M='\'''\''
+export _CE_CONDA='\'''\''
+export CONDA_PYTHON_EXE='\''/opt/miniconda3/bin/python'\'''
+++ eval 'PS1='\''(base) '\''
+export PATH='\''/opt/miniconda3/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'\''
+export CONDA_PREFIX='\''/opt/miniconda3'\''
+export CONDA_SHLVL='\''1'\''
+export CONDA_DEFAULT_ENV='\''base'\''
+export CONDA_PROMPT_MODIFIER='\''(base) '\''
+export CONDA_EXE='\''/opt/miniconda3/bin/conda'\''
+export _CE_M='\'''\''
+export _CE_CONDA='\'''\''
+export CONDA_PYTHON_EXE='\''/opt/miniconda3/bin/python'\'''
++++ PS1='(base) '
++++ export PATH=/opt/miniconda3/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
++++ PATH=/opt/miniconda3/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
++++ export CONDA_PREFIX=/opt/miniconda3
++++ CONDA_PREFIX=/opt/miniconda3
++++ export CONDA_SHLVL=1
++++ CONDA_SHLVL=1
++++ export CONDA_DEFAULT_ENV=base
++++ CONDA_DEFAULT_ENV=base
++++ export 'CONDA_PROMPT_MODIFIER=(base) '
++++ CONDA_PROMPT_MODIFIER='(base) '
++++ export CONDA_EXE=/opt/miniconda3/bin/conda
++++ CONDA_EXE=/opt/miniconda3/bin/conda
++++ export _CE_M=
++++ _CE_M=
++++ export _CE_CONDA=
++++ _CE_CONDA=
++++ export CONDA_PYTHON_EXE=/opt/miniconda3/bin/python
++++ CONDA_PYTHON_EXE=/opt/miniconda3/bin/python
+++ __conda_hashr
+++ '[' -n '' ']'
+++ '[' -n '' ']'
+++ hash -r
++ conda activate testbed
++ local cmd=activate
++ case "$cmd" in
++ __conda_activate activate testbed
++ '[' -n '' ']'
++ local ask_conda
+++ PS1='(base) '
+++ __conda_exe shell.posix activate testbed
+++ /opt/miniconda3/bin/conda shell.posix activate testbed
++ ask_conda='PS1='\''(testbed) '\''
+export PATH='\''/opt/miniconda3/envs/testbed/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'\''
+export CONDA_PREFIX='\''/opt/miniconda3/envs/testbed'\''
+export CONDA_SHLVL='\''2'\''
+export CONDA_DEFAULT_ENV='\''testbed'\''
+export CONDA_PROMPT_MODIFIER='\''(testbed) '\''
+export CONDA_PREFIX_1='\''/opt/miniconda3'\''
+export CONDA_EXE='\''/opt/miniconda3/bin/conda'\''
+export _CE_M='\'''\''
+export _CE_CONDA='\'''\''
+export CONDA_PYTHON_EXE='\''/opt/miniconda3/bin/python'\'''
++ eval 'PS1='\''(testbed) '\''
+export PATH='\''/opt/miniconda3/envs/testbed/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'\''
+export CONDA_PREFIX='\''/opt/miniconda3/envs/testbed'\''
+export CONDA_SHLVL='\''2'\''
+export CONDA_DEFAULT_ENV='\''testbed'\''
+export CONDA_PROMPT_MODIFIER='\''(testbed) '\''
+export CONDA_PREFIX_1='\''/opt/miniconda3'\''
+export CONDA_EXE='\''/opt/miniconda3/bin/conda'\''
+export _CE_M='\'''\''
+export _CE_CONDA='\'''\''
+export CONDA_PYTHON_EXE='\''/opt/miniconda3/bin/python'\'''
+++ PS1='(testbed) '
+++ export PATH=/opt/miniconda3/envs/testbed/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+++ PATH=/opt/miniconda3/envs/testbed/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+++ export CONDA_PREFIX=/opt/miniconda3/envs/testbed
+++ CONDA_PREFIX=/opt/miniconda3/envs/testbed
+++ export CONDA_SHLVL=2
+++ CONDA_SHLVL=2
+++ export CONDA_DEFAULT_ENV=testbed
+++ CONDA_DEFAULT_ENV=testbed
+++ export 'CONDA_PROMPT_MODIFIER=(testbed) '
+++ CONDA_PROMPT_MODIFIER='(testbed) '
+++ export CONDA_PREFIX_1=/opt/miniconda3
+++ CONDA_PREFIX_1=/opt/miniconda3
+++ export CONDA_EXE=/opt/miniconda3/bin/conda
+++ CONDA_EXE=/opt/miniconda3/bin/conda
+++ export _CE_M=
+++ _CE_M=
+++ export _CE_CONDA=
+++ _CE_CONDA=
+++ export CONDA_PYTHON_EXE=/opt/miniconda3/bin/python
+++ CONDA_PYTHON_EXE=/opt/miniconda3/bin/python
++ __conda_hashr
++ '[' -n '' ']'
++ '[' -n '' ']'
++ hash -r
++ cd /testbed
++ sed -i '/en_US.UTF-8/s/^# //g' /etc/locale.gen
++ locale-gen
+Generating locales (this might take a while)...
+  en_US.UTF-8... done
+Generation complete.
++ export LANG=en_US.UTF-8
++ LANG=en_US.UTF-8
++ export LANGUAGE=en_US:en
++ LANGUAGE=en_US:en
++ export LC_ALL=en_US.UTF-8
++ LC_ALL=en_US.UTF-8
++ git config --global --add safe.directory /testbed
++ cd /testbed
++ git status
+On branch main
+nothing to commit, working tree clean
++ git show
+commit 72ece2f6fa253f53859e7b4756f8b434f261a3f1
+Author: SWE-bench <setup@swebench.config>
+Date:   Fri May 29 04:54:19 2026 +0000
+
+    SWE-bench
++ git -c core.fileMode=false diff f0adf3b9b7a19cdee05368ff0c0c2d087f011180
++ source /opt/miniconda3/bin/activate
+++ _CONDA_ROOT=/opt/miniconda3
+++ . /opt/miniconda3/etc/profile.d/conda.sh
++++ export CONDA_EXE=/opt/miniconda3/bin/conda
++++ CONDA_EXE=/opt/miniconda3/bin/conda
++++ export _CE_M=
++++ _CE_M=
++++ export _CE_CONDA=
++++ _CE_CONDA=
++++ export CONDA_PYTHON_EXE=/opt/miniconda3/bin/python
++++ CONDA_PYTHON_EXE=/opt/miniconda3/bin/python
++++ '[' -z x ']'
+++ conda activate
+++ local cmd=activate
+++ case "$cmd" in
+++ __conda_activate activate
+++ '[' -n '' ']'
+++ local ask_conda
++++ PS1='(testbed) '
++++ __conda_exe shell.posix activate
++++ /opt/miniconda3/bin/conda shell.posix activate
+++ ask_conda='PS1='\''(base) '\''
+export PATH='\''/opt/miniconda3/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'\''
+export CONDA_PREFIX='\''/opt/miniconda3'\''
+export CONDA_SHLVL='\''3'\''
+export CONDA_DEFAULT_ENV='\''base'\''
+export CONDA_PROMPT_MODIFIER='\''(base) '\''
+export CONDA_PREFIX_2='\''/opt/miniconda3/envs/testbed'\''
+export CONDA_EXE='\''/opt/miniconda3/bin/conda'\''
+export _CE_M='\'''\''
+export _CE_CONDA='\'''\''
+export CONDA_PYTHON_EXE='\''/opt/miniconda3/bin/python'\'''
+++ eval 'PS1='\''(base) '\''
+export PATH='\''/opt/miniconda3/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'\''
+export CONDA_PREFIX='\''/opt/miniconda3'\''
+export CONDA_SHLVL='\''3'\''
+export CONDA_DEFAULT_ENV='\''base'\''
+export CONDA_PROMPT_MODIFIER='\''(base) '\''
+export CONDA_PREFIX_2='\''/opt/miniconda3/envs/testbed'\''
+export CONDA_EXE='\''/opt/miniconda3/bin/conda'\''
+export _CE_M='\'''\''
+export _CE_CONDA='\'''\''
+export CONDA_PYTHON_EXE='\''/opt/miniconda3/bin/python'\'''
++++ PS1='(base) '
++++ export PATH=/opt/miniconda3/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
++++ PATH=/opt/miniconda3/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
++++ export CONDA_PREFIX=/opt/miniconda3
++++ CONDA_PREFIX=/opt/miniconda3
++++ export CONDA_SHLVL=3
++++ CONDA_SHLVL=3
++++ export CONDA_DEFAULT_ENV=base
++++ CONDA_DEFAULT_ENV=base
++++ export 'CONDA_PROMPT_MODIFIER=(base) '
++++ CONDA_PROMPT_MODIFIER='(base) '
++++ export CONDA_PREFIX_2=/opt/miniconda3/envs/testbed
++++ CONDA_PREFIX_2=/opt/miniconda3/envs/testbed
++++ export CONDA_EXE=/opt/miniconda3/bin/conda
++++ CONDA_EXE=/opt/miniconda3/bin/conda
++++ export _CE_M=
++++ _CE_M=
++++ export _CE_CONDA=
++++ _CE_CONDA=
++++ export CONDA_PYTHON_EXE=/opt/miniconda3/bin/python
++++ CONDA_PYTHON_EXE=/opt/miniconda3/bin/python
+++ __conda_hashr
+++ '[' -n '' ']'
+++ '[' -n '' ']'
+++ hash -r
++ conda activate testbed
++ local cmd=activate
++ case "$cmd" in
++ __conda_activate activate testbed
++ '[' -n '' ']'
++ local ask_conda
+++ PS1='(base) '
+++ __conda_exe shell.posix activate testbed
+++ /opt/miniconda3/bin/conda shell.posix activate testbed
++ ask_conda='PS1='\''(testbed) '\''
+export PATH='\''/opt/miniconda3/envs/testbed/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'\''
+export CONDA_PREFIX='\''/opt/miniconda3/envs/testbed'\''
+export CONDA_SHLVL='\''4'\''
+export CONDA_DEFAULT_ENV='\''testbed'\''
+export CONDA_PROMPT_MODIFIER='\''(testbed) '\''
+export CONDA_PREFIX_3='\''/opt/miniconda3'\''
+export CONDA_EXE='\''/opt/miniconda3/bin/conda'\''
+export _CE_M='\'''\''
+export _CE_CONDA='\'''\''
+export CONDA_PYTHON_EXE='\''/opt/miniconda3/bin/python'\'''
++ eval 'PS1='\''(testbed) '\''
+export PATH='\''/opt/miniconda3/envs/testbed/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'\''
+export CONDA_PREFIX='\''/opt/miniconda3/envs/testbed'\''
+export CONDA_SHLVL='\''4'\''
+export CONDA_DEFAULT_ENV='\''testbed'\''
+export CONDA_PROMPT_MODIFIER='\''(testbed) '\''
+export CONDA_PREFIX_3='\''/opt/miniconda3'\''
+export CONDA_EXE='\''/opt/miniconda3/bin/conda'\''
+export _CE_M='\'''\''
+export _CE_CONDA='\'''\''
+export CONDA_PYTHON_EXE='\''/opt/miniconda3/bin/python'\'''
+++ PS1='(testbed) '
+++ export PATH=/opt/miniconda3/envs/testbed/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+++ PATH=/opt/miniconda3/envs/testbed/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+++ export CONDA_PREFIX=/opt/miniconda3/envs/testbed
+++ CONDA_PREFIX=/opt/miniconda3/envs/testbed
+++ export CONDA_SHLVL=4
+++ CONDA_SHLVL=4
+++ export CONDA_DEFAULT_ENV=testbed
+++ CONDA_DEFAULT_ENV=testbed
+++ export 'CONDA_PROMPT_MODIFIER=(testbed) '
+++ CONDA_PROMPT_MODIFIER='(testbed) '
+++ export CONDA_PREFIX_3=/opt/miniconda3
+++ CONDA_PREFIX_3=/opt/miniconda3
+++ export CONDA_EXE=/opt/miniconda3/bin/conda
+++ CONDA_EXE=/opt/miniconda3/bin/conda
+++ export _CE_M=
+++ _CE_M=
+++ export _CE_CONDA=
+++ _CE_CONDA=
+++ export CONDA_PYTHON_EXE=/opt/miniconda3/bin/python
+++ CONDA_PYTHON_EXE=/opt/miniconda3/bin/python
++ __conda_hashr
++ '[' -n '' ']'
++ '[' -n '' ']'
++ hash -r
++ python -m pip install -e .
+Obtaining file:///testbed
+Requirement already satisfied: pytz in /opt/miniconda3/envs/testbed/lib/python3.6/site-packages (from Django==3.1) (2026.2)
+Requirement already satisfied: sqlparse in /opt/miniconda3/envs/testbed/lib/python3.6/site-packages (from Django==3.1) (0.4.4)
+Requirement already satisfied: asgiref in /opt/miniconda3/envs/testbed/lib/python3.6/site-packages (from Django==3.1) (3.4.1)
+Requirement already satisfied: typing-extensions in /opt/miniconda3/envs/testbed/lib/python3.6/site-packages (from asgiref->Django==3.1) (4.1.1)
+Installing collected packages: Django
+  Attempting uninstall: Django
+    Found existing installation: Django 3.1
+    Uninstalling Django-3.1:
+      Successfully uninstalled Django-3.1
+  Running setup.py develop for Django
+Successfully installed Django-3.1
+WARNING: Running pip as the 'root' user can result in broken permissions and conflicting behaviour with the system package manager. It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv
++ git checkout f0adf3b9b7a19cdee05368ff0c0c2d087f011180 tests/utils_tests/test_http.py
+Updated 0 paths from 523bee2a37
++ git apply -v -
+Checking patch tests/utils_tests/test_http.py...
+Applied patch tests/utils_tests/test_http.py cleanly.
++ : '>>>>> Start Test Output'
++ ./tests/runtests.py --verbosity 2 --settings=test_sqlite --parallel 1 utils_tests.test_http
+test_input_too_large (utils_tests.test_http.Base36IntTests) ... ok
+test_invalid_literal (utils_tests.test_http.Base36IntTests) ... ok
+test_negative_input (utils_tests.test_http.Base36IntTests) ... ok
+test_roundtrip (utils_tests.test_http.Base36IntTests) ... ok
+test_to_base36_errors (utils_tests.test_http.Base36IntTests) ... ok
+test_to_int_errors (utils_tests.test_http.Base36IntTests) ... ok
+test_values (utils_tests.test_http.Base36IntTests) ... ok
+test_allowed_hosts_str (utils_tests.test_http.IsSafeURLTests) ... ok
+test_bad_urls (utils_tests.test_http.IsSafeURLTests) ... ok
+test_basic_auth (utils_tests.test_http.IsSafeURLTests) ... ok
+test_good_urls (utils_tests.test_http.IsSafeURLTests) ... ok
+test_is_safe_url_deprecated (utils_tests.test_http.IsSafeURLTests) ... ok
+test_no_allowed_hosts (utils_tests.test_http.IsSafeURLTests) ... ok
+test_secure_param_https_urls (utils_tests.test_http.IsSafeURLTests) ... ok
+test_secure_param_non_https_urls (utils_tests.test_http.IsSafeURLTests) ... ok
+test_custom_iterable_not_doseq (utils_tests.test_http.URLEncodeTests) ... ok
+test_dict (utils_tests.test_http.URLEncodeTests) ... ok
+test_dict_containing_empty_sequence_doseq (utils_tests.test_http.URLEncodeTests) ... ok
+test_dict_containing_sequence_doseq (utils_tests.test_http.URLEncodeTests) ... ok
+test_dict_containing_sequence_not_doseq (utils_tests.test_http.URLEncodeTests) ... ok
+test_dict_containing_tuple_not_doseq (utils_tests.test_http.URLEncodeTests) ... ok
+test_dict_with_bytearray (utils_tests.test_http.URLEncodeTests) ... ok
+test_dict_with_bytes_values (utils_tests.test_http.URLEncodeTests) ... ok
+test_dict_with_sequence_of_bytes (utils_tests.test_http.URLEncodeTests) ... ok
+test_generator (utils_tests.test_http.URLEncodeTests) ... ok
+test_multivaluedict (utils_tests.test_http.URLEncodeTests) ... ok
+test_none (utils_tests.test_http.URLEncodeTests) ... ok
+test_none_in_generator (utils_tests.test_http.URLEncodeTests) ... ok
+test_none_in_sequence (utils_tests.test_http.URLEncodeTests) ... ok
+test_tuples (utils_tests.test_http.URLEncodeTests) ... ok
+test_parsing (utils_tests.test_http.ETagProcessingTests) ... ok
+test_quoting (utils_tests.test_http.ETagProcessingTests) ... ok
+test (utils_tests.test_http.EscapeLeadingSlashesTests) ... ok
+test_http_date (utils_tests.test_http.HttpDateProcessingTests) ... ok
+test_parsing_asctime (utils_tests.test_http.HttpDateProcessingTests) ... ok
+test_parsing_rfc1123 (utils_tests.test_http.HttpDateProcessingTests) ... ok
+test_parsing_rfc850 (utils_tests.test_http.HttpDateProcessingTests) ... test_parsing_year_less_than_70 (utils_tests.test_http.HttpDateProcessingTests) ... ok
+test_bad (utils_tests.test_http.IsSameDomainTests) ... ok
+test_good (utils_tests.test_http.IsSameDomainTests) ... ok
+test_quote (utils_tests.test_http.URLQuoteTests) ... ok
+test_quote_plus (utils_tests.test_http.URLQuoteTests) ... ok
+test_unquote (utils_tests.test_http.URLQuoteTests) ... ok
+test_unquote_plus (utils_tests.test_http.URLQuoteTests) ... ok
+test_roundtrip (utils_tests.test_http.URLSafeBase64Tests) ... Testing against Django installed in '/testbed/django'
+Importing application utils_tests
+Skipping setup of unused database(s): default, other.
+System check identified no issues (0 silenced).
+ok
+
+======================================================================
+FAIL: test_parsing_rfc850 (utils_tests.test_http.HttpDateProcessingTests) (rfc850str='Wednesday, 31-Dec-70 08:49:37 GMT')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/testbed/tests/utils_tests/test_http.py", line 340, in test_parsing_rfc850
+    self.assertEqual(datetime.utcfromtimestamp(parsed), expected_date)
+AssertionError: datetime.datetime(1970, 12, 31, 8, 49, 37) != datetime.datetime(2070, 12, 31, 8, 49, 37)
+
+----------------------------------------------------------------------
+Ran 45 tests in 0.006s
+
+FAILED (failures=1)
++ : '>>>>> End Test Output'
++ git checkout f0adf3b9b7a19cdee05368ff0c0c2d087f011180 tests/utils_tests/test_http.py
+Updated 1 path from 523bee2a37
+
+2026-05-29 11:54:45,498 - ThreadPoolExecutor-3_0 - INFO - Container output: 
+2026-05-29 11:54:45,498 - ThreadPoolExecutor-3_0 - INFO - Installing more requirements
+2026-05-29 11:55:20,445 - ThreadPoolExecutor-3_0 - INFO - Running the agent
+2026-05-29 12:03:35,667 - ThreadPoolExecutor-3_0 - INFO - Container output: Using hosted_vllm proxy (https://proxy.onebot.meobeo.ai/v1) with model hosted_vllm/Qwen/Qwen3.5-35B-A3B-FP8.
+
+2026-05-29 12:03:35,668 - ThreadPoolExecutor-3_0 - INFO - Copying output files back to host
+2026-05-29 12:03:35,837 - ThreadPoolExecutor-3_0 - INFO - Copying from container /dgm/django__django-11848.md to local path D:\kh4ng\Data_agent\dgm_agent\swe_bench\predictions_100\hosted_vllm\Qwen\Qwen3.5-35B-A3B-FP8_0\django__django-11848.md
+2026-05-29 12:03:35,850 - ThreadPoolExecutor-3_0 - INFO - Successfully copied from container to D:\kh4ng\Data_agent\dgm_agent\swe_bench\predictions_100\hosted_vllm\Qwen\Qwen3.5-35B-A3B-FP8_0\django__django-11848.md
+2026-05-29 12:03:35,952 - ThreadPoolExecutor-3_0 - INFO - Getting model_patch
+2026-05-29 12:03:36,047 - ThreadPoolExecutor-3_0 - INFO - Container output: 
+2026-05-29 12:03:36,141 - ThreadPoolExecutor-3_0 - INFO - Attempting to stop container sweb.eval.django__django-11848.20260529_115258_319214...
+2026-05-29 12:03:51,689 - ThreadPoolExecutor-3_0 - INFO - Attempting to remove container sweb.eval.django__django-11848.20260529_115258_319214...
+2026-05-29 12:03:52,909 - ThreadPoolExecutor-3_0 - INFO - Container sweb.eval.django__django-11848.20260529_115258_319214 removed.
+2026-05-29 12:03:52,942 - ThreadPoolExecutor-3_0 - INFO - No existing container with name sweb.eval.django__django-11964.20260529_120352_934953 found.
+2026-05-29 12:03:53,004 - ThreadPoolExecutor-3_0 - INFO - Environment image sweb.env.py.x86_64.a18371b03f944585b4f08c:latest found for django__django-11964
+Building instance image sweb.eval.x86_64.django__django-11964:latest for django__django-11964
+2026-05-29 12:06:38,928 - ThreadPoolExecutor-3_0 - INFO - Creating container for django__django-11964...
+2026-05-29 12:06:39,339 - ThreadPoolExecutor-3_0 - INFO - Container for django__django-11964 created: 8709c1eae128c6a116573b0661bb23692515361dc614922c4dcd88b9383dbf05
+2026-05-29 12:06:39,880 - ThreadPoolExecutor-3_0 - INFO - Working directory set to: D:\kh4ng\Data_agent\dgm_agent
+2026-05-29 12:06:39,955 - ThreadPoolExecutor-3_0 - INFO - Copying coding_agent.py to container at /dgm/coding_agent.py
+2026-05-29 12:06:39,965 - ThreadPoolExecutor-3_0 - INFO - Successfully copied coding_agent.py to container
+2026-05-29 12:06:40,025 - ThreadPoolExecutor-3_0 - INFO - Copying requirements.txt to container at /dgm/requirements.txt
+2026-05-29 12:06:40,032 - ThreadPoolExecutor-3_0 - INFO - Successfully copied requirements.txt to container
+2026-05-29 12:06:40,307 - ThreadPoolExecutor-3_0 - INFO - Copying pytest.ini to container at /dgm/pytest.ini
+2026-05-29 12:06:40,319 - ThreadPoolExecutor-3_0 - INFO - Successfully copied pytest.ini to container
+2026-05-29 12:06:40,402 - ThreadPoolExecutor-3_0 - INFO - Copying tools to container at /dgm/tools
+2026-05-29 12:06:40,412 - ThreadPoolExecutor-3_0 - INFO - Successfully copied tools to container
+2026-05-29 12:06:40,519 - ThreadPoolExecutor-3_0 - INFO - Copying utils to container at /dgm/utils
+2026-05-29 12:06:40,536 - ThreadPoolExecutor-3_0 - INFO - Successfully copied utils to container
+2026-05-29 12:06:40,620 - ThreadPoolExecutor-3_0 - INFO - Copying tests to container at /dgm/tests
+2026-05-29 12:06:40,631 - ThreadPoolExecutor-3_0 - INFO - Successfully copied tests to container
+2026-05-29 12:06:40,708 - ThreadPoolExecutor-3_0 - INFO - Copying prompts to container at /dgm/prompts
+2026-05-29 12:06:40,720 - ThreadPoolExecutor-3_0 - INFO - Successfully copied prompts to container
+2026-05-29 12:06:40,830 - ThreadPoolExecutor-3_0 - INFO - Copying llm.py to container at /dgm/llm.py
+2026-05-29 12:06:40,840 - ThreadPoolExecutor-3_0 - INFO - Successfully copied llm.py to container
+2026-05-29 12:06:40,900 - ThreadPoolExecutor-3_0 - INFO - Copying llm_withtools.py to container at /dgm/llm_withtools.py
+2026-05-29 12:06:40,910 - ThreadPoolExecutor-3_0 - INFO - Successfully copied llm_withtools.py to container
+2026-05-29 12:06:40,910 - ThreadPoolExecutor-3_0 - INFO - Setting up environment
+2026-05-29 12:06:41,017 - ThreadPoolExecutor-3_0 - INFO - Copying D:\kh4ng\Data_agent\dgm_agent\swe_bench\predictions_100\hosted_vllm\Qwen\Qwen3.5-35B-A3B-FP8_0\django__django-11964_eval.sh to container at /eval.sh
+2026-05-29 12:06:41,028 - ThreadPoolExecutor-3_0 - INFO - Successfully copied D:\kh4ng\Data_agent\dgm_agent\swe_bench\predictions_100\hosted_vllm\Qwen\Qwen3.5-35B-A3B-FP8_0\django__django-11964_eval.sh to container
+2026-05-29 12:06:47,504 - ThreadPoolExecutor-3_0 - INFO - Container output: + source /opt/miniconda3/bin/activate
+++ _CONDA_ROOT=/opt/miniconda3
+++ . /opt/miniconda3/etc/profile.d/conda.sh
++++ export CONDA_EXE=/opt/miniconda3/bin/conda
++++ CONDA_EXE=/opt/miniconda3/bin/conda
++++ export _CE_M=
++++ _CE_M=
++++ export _CE_CONDA=
++++ _CE_CONDA=
++++ export CONDA_PYTHON_EXE=/opt/miniconda3/bin/python
++++ CONDA_PYTHON_EXE=/opt/miniconda3/bin/python
++++ '[' -z '' ']'
++++ export CONDA_SHLVL=0
++++ CONDA_SHLVL=0
++++ '[' -n '' ']'
++++++ dirname /opt/miniconda3/bin/conda
+++++ dirname /opt/miniconda3/bin
++++ PATH=/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
++++ export PATH
++++ '[' -z '' ']'
++++ PS1=
+++ conda activate
+++ local cmd=activate
+++ case "$cmd" in
+++ __conda_activate activate
+++ '[' -n '' ']'
+++ local ask_conda
++++ PS1=
++++ __conda_exe shell.posix activate
++++ /opt/miniconda3/bin/conda shell.posix activate
+++ ask_conda='PS1='\''(base) '\''
+export PATH='\''/opt/miniconda3/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'\''
+export CONDA_PREFIX='\''/opt/miniconda3'\''
+export CONDA_SHLVL='\''1'\''
+export CONDA_DEFAULT_ENV='\''base'\''
+export CONDA_PROMPT_MODIFIER='\''(base) '\''
+export CONDA_EXE='\''/opt/miniconda3/bin/conda'\''
+export _CE_M='\'''\''
+export _CE_CONDA='\'''\''
+export CONDA_PYTHON_EXE='\''/opt/miniconda3/bin/python'\'''
+++ eval 'PS1='\''(base) '\''
+export PATH='\''/opt/miniconda3/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'\''
+export CONDA_PREFIX='\''/opt/miniconda3'\''
+export CONDA_SHLVL='\''1'\''
+export CONDA_DEFAULT_ENV='\''base'\''
+export CONDA_PROMPT_MODIFIER='\''(base) '\''
+export CONDA_EXE='\''/opt/miniconda3/bin/conda'\''
+export _CE_M='\'''\''
+export _CE_CONDA='\'''\''
+export CONDA_PYTHON_EXE='\''/opt/miniconda3/bin/python'\'''
++++ PS1='(base) '
++++ export PATH=/opt/miniconda3/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
++++ PATH=/opt/miniconda3/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
++++ export CONDA_PREFIX=/opt/miniconda3
++++ CONDA_PREFIX=/opt/miniconda3
++++ export CONDA_SHLVL=1
++++ CONDA_SHLVL=1
++++ export CONDA_DEFAULT_ENV=base
++++ CONDA_DEFAULT_ENV=base
++++ export 'CONDA_PROMPT_MODIFIER=(base) '
++++ CONDA_PROMPT_MODIFIER='(base) '
++++ export CONDA_EXE=/opt/miniconda3/bin/conda
++++ CONDA_EXE=/opt/miniconda3/bin/conda
++++ export _CE_M=
++++ _CE_M=
++++ export _CE_CONDA=
++++ _CE_CONDA=
++++ export CONDA_PYTHON_EXE=/opt/miniconda3/bin/python
++++ CONDA_PYTHON_EXE=/opt/miniconda3/bin/python
+++ __conda_hashr
+++ '[' -n '' ']'
+++ '[' -n '' ']'
+++ hash -r
++ conda activate testbed
++ local cmd=activate
++ case "$cmd" in
++ __conda_activate activate testbed
++ '[' -n '' ']'
++ local ask_conda
+++ PS1='(base) '
+++ __conda_exe shell.posix activate testbed
+++ /opt/miniconda3/bin/conda shell.posix activate testbed
++ ask_conda='PS1='\''(testbed) '\''
+export PATH='\''/opt/miniconda3/envs/testbed/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'\''
+export CONDA_PREFIX='\''/opt/miniconda3/envs/testbed'\''
+export CONDA_SHLVL='\''2'\''
+export CONDA_DEFAULT_ENV='\''testbed'\''
+export CONDA_PROMPT_MODIFIER='\''(testbed) '\''
+export CONDA_PREFIX_1='\''/opt/miniconda3'\''
+export CONDA_EXE='\''/opt/miniconda3/bin/conda'\''
+export _CE_M='\'''\''
+export _CE_CONDA='\'''\''
+export CONDA_PYTHON_EXE='\''/opt/miniconda3/bin/python'\'''
++ eval 'PS1='\''(testbed) '\''
+export PATH='\''/opt/miniconda3/envs/testbed/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'\''
+export CONDA_PREFIX='\''/opt/miniconda3/envs/testbed'\''
+export CONDA_SHLVL='\''2'\''
+export CONDA_DEFAULT_ENV='\''testbed'\''
+export CONDA_PROMPT_MODIFIER='\''(testbed) '\''
+export CONDA_PREFIX_1='\''/opt/miniconda3'\''
+export CONDA_EXE='\''/opt/miniconda3/bin/conda'\''
+export _CE_M='\'''\''
+export _CE_CONDA='\'''\''
+export CONDA_PYTHON_EXE='\''/opt/miniconda3/bin/python'\'''
+++ PS1='(testbed) '
+++ export PATH=/opt/miniconda3/envs/testbed/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+++ PATH=/opt/miniconda3/envs/testbed/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+++ export CONDA_PREFIX=/opt/miniconda3/envs/testbed
+++ CONDA_PREFIX=/opt/miniconda3/envs/testbed
+++ export CONDA_SHLVL=2
+++ CONDA_SHLVL=2
+++ export CONDA_DEFAULT_ENV=testbed
+++ CONDA_DEFAULT_ENV=testbed
+++ export 'CONDA_PROMPT_MODIFIER=(testbed) '
+++ CONDA_PROMPT_MODIFIER='(testbed) '
+++ export CONDA_PREFIX_1=/opt/miniconda3
+++ CONDA_PREFIX_1=/opt/miniconda3
+++ export CONDA_EXE=/opt/miniconda3/bin/conda
+++ CONDA_EXE=/opt/miniconda3/bin/conda
+++ export _CE_M=
+++ _CE_M=
+++ export _CE_CONDA=
+++ _CE_CONDA=
+++ export CONDA_PYTHON_EXE=/opt/miniconda3/bin/python
+++ CONDA_PYTHON_EXE=/opt/miniconda3/bin/python
++ __conda_hashr
++ '[' -n '' ']'
++ '[' -n '' ']'
++ hash -r
++ cd /testbed
++ sed -i '/en_US.UTF-8/s/^# //g' /etc/locale.gen
++ locale-gen
+Generating locales (this might take a while)...
+  en_US.UTF-8... done
+Generation complete.
++ export LANG=en_US.UTF-8
++ LANG=en_US.UTF-8
++ export LANGUAGE=en_US:en
++ LANGUAGE=en_US:en
++ export LC_ALL=en_US.UTF-8
++ LC_ALL=en_US.UTF-8
++ git config --global --add safe.directory /testbed
++ cd /testbed
++ git status
+On branch main
+nothing to commit, working tree clean
++ git show
+commit b351b3ee46037acfaf3b81da47f50d9f2656a8af
+Author: SWE-bench <setup@swebench.config>
+Date:   Fri May 29 05:06:16 2026 +0000
+
+    SWE-bench
++ git -c core.fileMode=false diff fc2b1cc926e34041953738e58fa6ad3053059b22
++ source /opt/miniconda3/bin/activate
+++ _CONDA_ROOT=/opt/miniconda3
+++ . /opt/miniconda3/etc/profile.d/conda.sh
++++ export CONDA_EXE=/opt/miniconda3/bin/conda
++++ CONDA_EXE=/opt/miniconda3/bin/conda
++++ export _CE_M=
++++ _CE_M=
++++ export _CE_CONDA=
++++ _CE_CONDA=
++++ export CONDA_PYTHON_EXE=/opt/miniconda3/bin/python
++++ CONDA_PYTHON_EXE=/opt/miniconda3/bin/python
++++ '[' -z x ']'
+++ conda activate
+++ local cmd=activate
+++ case "$cmd" in
+++ __conda_activate activate
+++ '[' -n '' ']'
+++ local ask_conda
++++ PS1='(testbed) '
++++ __conda_exe shell.posix activate
++++ /opt/miniconda3/bin/conda shell.posix activate
+++ ask_conda='PS1='\''(base) '\''
+export PATH='\''/opt/miniconda3/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'\''
+export CONDA_PREFIX='\''/opt/miniconda3'\''
+export CONDA_SHLVL='\''3'\''
+export CONDA_DEFAULT_ENV='\''base'\''
+export CONDA_PROMPT_MODIFIER='\''(base) '\''
+export CONDA_PREFIX_2='\''/opt/miniconda3/envs/testbed'\''
+export CONDA_EXE='\''/opt/miniconda3/bin/conda'\''
+export _CE_M='\'''\''
+export _CE_CONDA='\'''\''
+export CONDA_PYTHON_EXE='\''/opt/miniconda3/bin/python'\'''
+++ eval 'PS1='\''(base) '\''
+export PATH='\''/opt/miniconda3/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'\''
+export CONDA_PREFIX='\''/opt/miniconda3'\''
+export CONDA_SHLVL='\''3'\''
+export CONDA_DEFAULT_ENV='\''base'\''
+export CONDA_PROMPT_MODIFIER='\''(base) '\''
+export CONDA_PREFIX_2='\''/opt/miniconda3/envs/testbed'\''
+export CONDA_EXE='\''/opt/miniconda3/bin/conda'\''
+export _CE_M='\'''\''
+export _CE_CONDA='\'''\''
+export CONDA_PYTHON_EXE='\''/opt/miniconda3/bin/python'\'''
++++ PS1='(base) '
++++ export PATH=/opt/miniconda3/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
++++ PATH=/opt/miniconda3/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
++++ export CONDA_PREFIX=/opt/miniconda3
++++ CONDA_PREFIX=/opt/miniconda3
++++ export CONDA_SHLVL=3
++++ CONDA_SHLVL=3
++++ export CONDA_DEFAULT_ENV=base
++++ CONDA_DEFAULT_ENV=base
++++ export 'CONDA_PROMPT_MODIFIER=(base) '
++++ CONDA_PROMPT_MODIFIER='(base) '
++++ export CONDA_PREFIX_2=/opt/miniconda3/envs/testbed
++++ CONDA_PREFIX_2=/opt/miniconda3/envs/testbed
++++ export CONDA_EXE=/opt/miniconda3/bin/conda
++++ CONDA_EXE=/opt/miniconda3/bin/conda
++++ export _CE_M=
++++ _CE_M=
++++ export _CE_CONDA=
++++ _CE_CONDA=
++++ export CONDA_PYTHON_EXE=/opt/miniconda3/bin/python
++++ CONDA_PYTHON_EXE=/opt/miniconda3/bin/python
+++ __conda_hashr
+++ '[' -n '' ']'
+++ '[' -n '' ']'
+++ hash -r
++ conda activate testbed
++ local cmd=activate
++ case "$cmd" in
++ __conda_activate activate testbed
++ '[' -n '' ']'
++ local ask_conda
+++ PS1='(base) '
+++ __conda_exe shell.posix activate testbed
+++ /opt/miniconda3/bin/conda shell.posix activate testbed
++ ask_conda='PS1='\''(testbed) '\''
+export PATH='\''/opt/miniconda3/envs/testbed/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'\''
+export CONDA_PREFIX='\''/opt/miniconda3/envs/testbed'\''
+export CONDA_SHLVL='\''4'\''
+export CONDA_DEFAULT_ENV='\''testbed'\''
+export CONDA_PROMPT_MODIFIER='\''(testbed) '\''
+export CONDA_PREFIX_3='\''/opt/miniconda3'\''
+export CONDA_EXE='\''/opt/miniconda3/bin/conda'\''
+export _CE_M='\'''\''
+export _CE_CONDA='\'''\''
+export CONDA_PYTHON_EXE='\''/opt/miniconda3/bin/python'\'''
++ eval 'PS1='\''(testbed) '\''
+export PATH='\''/opt/miniconda3/envs/testbed/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'\''
+export CONDA_PREFIX='\''/opt/miniconda3/envs/testbed'\''
+export CONDA_SHLVL='\''4'\''
+export CONDA_DEFAULT_ENV='\''testbed'\''
+export CONDA_PROMPT_MODIFIER='\''(testbed) '\''
+export CONDA_PREFIX_3='\''/opt/miniconda3'\''
+export CONDA_EXE='\''/opt/miniconda3/bin/conda'\''
+export _CE_M='\'''\''
+export _CE_CONDA='\'''\''
+export CONDA_PYTHON_EXE='\''/opt/miniconda3/bin/python'\'''
+++ PS1='(testbed) '
+++ export PATH=/opt/miniconda3/envs/testbed/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+++ PATH=/opt/miniconda3/envs/testbed/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+++ export CONDA_PREFIX=/opt/miniconda3/envs/testbed
+++ CONDA_PREFIX=/opt/miniconda3/envs/testbed
+++ export CONDA_SHLVL=4
+++ CONDA_SHLVL=4
+++ export CONDA_DEFAULT_ENV=testbed
+++ CONDA_DEFAULT_ENV=testbed
+++ export 'CONDA_PROMPT_MODIFIER=(testbed) '
+++ CONDA_PROMPT_MODIFIER='(testbed) '
+++ export CONDA_PREFIX_3=/opt/miniconda3
+++ CONDA_PREFIX_3=/opt/miniconda3
+++ export CONDA_EXE=/opt/miniconda3/bin/conda
+++ CONDA_EXE=/opt/miniconda3/bin/conda
+++ export _CE_M=
+++ _CE_M=
+++ export _CE_CONDA=
+++ _CE_CONDA=
+++ export CONDA_PYTHON_EXE=/opt/miniconda3/bin/python
+++ CONDA_PYTHON_EXE=/opt/miniconda3/bin/python
++ __conda_hashr
++ '[' -n '' ']'
++ '[' -n '' ']'
++ hash -r
++ python -m pip install -e .
+Obtaining file:///testbed
+Requirement already satisfied: pytz in /opt/miniconda3/envs/testbed/lib/python3.6/site-packages (from Django==3.1) (2026.2)
+Requirement already satisfied: sqlparse in /opt/miniconda3/envs/testbed/lib/python3.6/site-packages (from Django==3.1) (0.4.4)
+Requirement already satisfied: asgiref in /opt/miniconda3/envs/testbed/lib/python3.6/site-packages (from Django==3.1) (3.4.1)
+Requirement already satisfied: typing-extensions in /opt/miniconda3/envs/testbed/lib/python3.6/site-packages (from asgiref->Django==3.1) (4.1.1)
+Installing collected packages: Django
+  Attempting uninstall: Django
+    Found existing installation: Django 3.1
+    Uninstalling Django-3.1:
+      Successfully uninstalled Django-3.1
+  Running setup.py develop for Django
+Successfully installed Django-3.1
+WARNING: Running pip as the 'root' user can result in broken permissions and conflicting behaviour with the system package manager. It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv
++ git checkout fc2b1cc926e34041953738e58fa6ad3053059b22 tests/model_enums/tests.py
+Updated 0 paths from 246d860317
++ git apply -v -
+Checking patch tests/model_enums/tests.py...
+Applied patch tests/model_enums/tests.py cleanly.
++ : '>>>>> Start Test Output'
++ ./tests/runtests.py --verbosity 2 --settings=test_sqlite --parallel 1 model_enums.tests
+test_integerchoices (model_enums.tests.ChoicesTests) ... ok
+test_integerchoices_auto_label (model_enums.tests.ChoicesTests) ... ok
+test_integerchoices_containment (model_enums.tests.ChoicesTests) ... ok
+test_integerchoices_empty_label (model_enums.tests.ChoicesTests) ... ok
+test_integerchoices_functional_api (model_enums.tests.ChoicesTests) ... ok
+test_invalid_definition (model_enums.tests.ChoicesTests) ... ok
+test_str (model_enums.tests.ChoicesTests) ... test_textchoices (model_enums.tests.ChoicesTests) ... ok
+test_textchoices_auto_label (model_enums.tests.ChoicesTests) ... ok
+test_textchoices_blank_value (model_enums.tests.ChoicesTests) ... ok
+test_textchoices_containment (model_enums.tests.ChoicesTests) ... ok
+test_textchoices_empty_label (model_enums.tests.ChoicesTests) ... ok
+test_textchoices_functional_api (model_enums.tests.ChoicesTests) ... ok
+test_bool_unsupported (model_enums.tests.CustomChoicesTests) ... ok
+test_labels_valid (model_enums.tests.CustomChoicesTests) ... ok
+test_timezone_unsupported (model_enums.tests.CustomChoicesTests) ... ok
+test_uuid_unsupported (model_enums.tests.CustomChoicesTests) ... Testing against Django installed in '/testbed/django'
+Importing application model_enums
+Skipping setup of unused database(s): default, other.
+System check identified no issues (0 silenced).
+ok
+
+======================================================================
+FAIL: test_str (model_enums.tests.ChoicesTests) (member=<Gender.MALE: 'M'>)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/testbed/tests/model_enums/tests.py", line 150, in test_str
+    self.assertEqual(str(test[member.name]), str(member.value))
+AssertionError: 'Gender.MALE' != 'M'
+- Gender.MALE
++ M
+
+
+======================================================================
+FAIL: test_str (model_enums.tests.ChoicesTests) (member=<Gender.FEMALE: 'F'>)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/testbed/tests/model_enums/tests.py", line 150, in test_str
+    self.assertEqual(str(test[member.name]), str(member.value))
+AssertionError: 'Gender.FEMALE' != 'F'
+- Gender.FEMALE
++ F
+
+
+======================================================================
+FAIL: test_str (model_enums.tests.ChoicesTests) (member=<Gender.NOT_SPECIFIED: 'X'>)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/testbed/tests/model_enums/tests.py", line 150, in test_str
+    self.assertEqual(str(test[member.name]), str(member.value))
+AssertionError: 'Gender.NOT_SPECIFIED' != 'X'
+- Gender.NOT_SPECIFIED
++ X
+
+
+======================================================================
+FAIL: test_str (model_enums.tests.ChoicesTests) (member=<Suit.DIAMOND: 1>)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/testbed/tests/model_enums/tests.py", line 150, in test_str
+    self.assertEqual(str(test[member.name]), str(member.value))
+AssertionError: 'Suit.DIAMOND' != '1'
+- Suit.DIAMOND
++ 1
+
+
+======================================================================
+FAIL: test_str (model_enums.tests.ChoicesTests) (member=<Suit.SPADE: 2>)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/testbed/tests/model_enums/tests.py", line 150, in test_str
+    self.assertEqual(str(test[member.name]), str(member.value))
+AssertionError: 'Suit.SPADE' != '2'
+- Suit.SPADE
++ 2
+
+
+======================================================================
+FAIL: test_str (model_enums.tests.ChoicesTests) (member=<Suit.HEART: 3>)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/testbed/tests/model_enums/tests.py", line 150, in test_str
+    self.assertEqual(str(test[member.name]), str(member.value))
+AssertionError: 'Suit.HEART' != '3'
+- Suit.HEART
++ 3
+
+
+======================================================================
+FAIL: test_str (model_enums.tests.ChoicesTests) (member=<Suit.CLUB: 4>)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/testbed/tests/model_enums/tests.py", line 150, in test_str
+    self.assertEqual(str(test[member.name]), str(member.value))
+AssertionError: 'Suit.CLUB' != '4'
+- Suit.CLUB
++ 4
+
+
+======================================================================
+FAIL: test_str (model_enums.tests.ChoicesTests) (member=<YearInSchool.FRESHMAN: 'FR'>)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/testbed/tests/model_enums/tests.py", line 150, in test_str
+    self.assertEqual(str(test[member.name]), str(member.value))
+AssertionError: 'YearInSchool.FRESHMAN' != 'FR'
+- YearInSchool.FRESHMAN
++ FR
+
+
+======================================================================
+FAIL: test_str (model_enums.tests.ChoicesTests) (member=<YearInSchool.SOPHOMORE: 'SO'>)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/testbed/tests/model_enums/tests.py", line 150, in test_str
+    self.assertEqual(str(test[member.name]), str(member.value))
+AssertionError: 'YearInSchool.SOPHOMORE' != 'SO'
+- YearInSchool.SOPHOMORE
++ SO
+
+
+======================================================================
+FAIL: test_str (model_enums.tests.ChoicesTests) (member=<YearInSchool.JUNIOR: 'JR'>)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/testbed/tests/model_enums/tests.py", line 150, in test_str
+    self.assertEqual(str(test[member.name]), str(member.value))
+AssertionError: 'YearInSchool.JUNIOR' != 'JR'
+- YearInSchool.JUNIOR
++ JR
+
+
+======================================================================
+FAIL: test_str (model_enums.tests.ChoicesTests) (member=<YearInSchool.SENIOR: 'SR'>)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/testbed/tests/model_enums/tests.py", line 150, in test_str
+    self.assertEqual(str(test[member.name]), str(member.value))
+AssertionError: 'YearInSchool.SENIOR' != 'SR'
+- YearInSchool.SENIOR
++ SR
+
+
+======================================================================
+FAIL: test_str (model_enums.tests.ChoicesTests) (member=<YearInSchool.GRADUATE: 'GR'>)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/testbed/tests/model_enums/tests.py", line 150, in test_str
+    self.assertEqual(str(test[member.name]), str(member.value))
+AssertionError: 'YearInSchool.GRADUATE' != 'GR'
+- YearInSchool.GRADUATE
++ GR
+
+
+======================================================================
+FAIL: test_str (model_enums.tests.ChoicesTests) (member=<Vehicle.CAR: 1>)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/testbed/tests/model_enums/tests.py", line 150, in test_str
+    self.assertEqual(str(test[member.name]), str(member.value))
+AssertionError: 'Vehicle.CAR' != '1'
+- Vehicle.CAR
++ 1
+
+
+======================================================================
+FAIL: test_str (model_enums.tests.ChoicesTests) (member=<Vehicle.TRUCK: 2>)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/testbed/tests/model_enums/tests.py", line 150, in test_str
+    self.assertEqual(str(test[member.name]), str(member.value))
+AssertionError: 'Vehicle.TRUCK' != '2'
+- Vehicle.TRUCK
++ 2
+
+
+======================================================================
+FAIL: test_str (model_enums.tests.ChoicesTests) (member=<Vehicle.JET_SKI: 3>)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/testbed/tests/model_enums/tests.py", line 150, in test_str
+    self.assertEqual(str(test[member.name]), str(member.value))
+AssertionError: 'Vehicle.JET_SKI' != '3'
+- Vehicle.JET_SKI
++ 3
+
+
+----------------------------------------------------------------------
+Ran 17 tests in 0.004s
+
+FAILED (failures=15)
++ : '>>>>> End Test Output'
++ git checkout fc2b1cc926e34041953738e58fa6ad3053059b22 tests/model_enums/tests.py
+Updated 1 path from 246d860317
+
+2026-05-29 12:06:47,608 - ThreadPoolExecutor-3_0 - INFO - Container output: 
+2026-05-29 12:06:47,608 - ThreadPoolExecutor-3_0 - INFO - Installing more requirements
+2026-05-29 12:07:22,716 - ThreadPoolExecutor-3_0 - INFO - Running the agent
+2026-05-29 13:02:13,639 - ThreadPoolExecutor-3_0 - INFO - Container output: Using hosted_vllm proxy (https://proxy.onebot.meobeo.ai/v1) with model hosted_vllm/Qwen/Qwen3.5-35B-A3B-FP8.
+Error in chat_with_agent_manualtools: Error code: 400 - {'error': {'message': 'litellm.BadRequestError: Hosted_vllmException - {"object":"error","message":"Requested token count exceeds the model\'s maximum context length of 64000 tokens. You requested a total of 65598 tokens: 61502 tokens from the input messages and 4096 tokens for the completion. Please reduce the number of tokens in the input messages or the completion to fit within the limit.","type":"BadRequestError","param":null,"code":400}. Received Model Group=hosted_vllm/Qwen/Qwen3.5-35B-A3B-FP8\nAvailable Model Group Fallbacks=None', 'type': None, 'param': None, 'code': '400'}}
+Traceback (most recent call last):
+  File "/dgm/llm_withtools.py", line 333, in chat_with_agent_manualtools
+    response, new_msg_history = get_response_from_llm(
+                                ^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/miniconda3/lib/python3.11/site-packages/backoff/_sync.py", line 105, in retry
+    ret = target(*args, **kwargs)
+          ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/dgm/llm.py", line 314, in get_response_from_llm
+    response = client.chat.completions.create(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/miniconda3/lib/python3.11/site-packages/openai/_utils/_utils.py", line 298, in wrapper
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/miniconda3/lib/python3.11/site-packages/openai/resources/chat/completions/completions.py", line 1215, in create
+    return self._post(
+           ^^^^^^^^^^^
+  File "/opt/miniconda3/lib/python3.11/site-packages/openai/_base_client.py", line 1332, in post
+    return cast(ResponseT, self.request(cast_to, opts, stream=stream, stream_cls=stream_cls))
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/miniconda3/lib/python3.11/site-packages/openai/_base_client.py", line 1105, in request
+    raise self._make_status_error_from_response(err.response) from None
+openai.BadRequestError: Error code: 400 - {'error': {'message': 'litellm.BadRequestError: Hosted_vllmException - {"object":"error","message":"Requested token count exceeds the model\'s maximum context length of 64000 tokens. You requested a total of 65598 tokens: 61502 tokens from the input messages and 4096 tokens for the completion. Please reduce the number of tokens in the input messages or the completion to fit within the limit.","type":"BadRequestError","param":null,"code":400}. Received Model Group=hosted_vllm/Qwen/Qwen3.5-35B-A3B-FP8\nAvailable Model Group Fallbacks=None', 'type': None, 'param': None, 'code': '400'}}
+
+
+2026-05-29 13:02:13,639 - ThreadPoolExecutor-3_0 - INFO - Copying output files back to host
+2026-05-29 13:02:13,861 - ThreadPoolExecutor-3_0 - INFO - Copying from container /dgm/django__django-11964.md to local path D:\kh4ng\Data_agent\dgm_agent\swe_bench\predictions_100\hosted_vllm\Qwen\Qwen3.5-35B-A3B-FP8_0\django__django-11964.md
+2026-05-29 13:02:13,883 - ThreadPoolExecutor-3_0 - INFO - Successfully copied from container to D:\kh4ng\Data_agent\dgm_agent\swe_bench\predictions_100\hosted_vllm\Qwen\Qwen3.5-35B-A3B-FP8_0\django__django-11964.md
+2026-05-29 13:02:14,027 - ThreadPoolExecutor-3_0 - INFO - Getting model_patch
+2026-05-29 13:02:14,151 - ThreadPoolExecutor-3_0 - INFO - Container output: diff --git a/django/db/models/enums.py b/django/db/models/enums.py
+index bbe362a6ab..4a5db27ecf 100644
+--- a/django/db/models/enums.py
++++ b/django/db/models/enums.py
+@@ -65,11 +65,16 @@ class Choices(enum.Enum, metaclass=ChoicesMeta):
+ 
+ class IntegerChoices(int, Choices):
+     """Class for creating enumerated integer choices."""
+-    pass
++
++    def __str__(self):
++        return str(self.value)
+ 
+ 
+ class TextChoices(str, Choices):
+     """Class for creating enumerated string choices."""
+ 
++    def __str__(self):
++        return self.value
++
+     def _generate_next_value_(name, start, count, last_values):
+         return name
+
+2026-05-29 13:02:14,260 - ThreadPoolExecutor-3_0 - INFO - Attempting to stop container sweb.eval.django__django-11964.20260529_120352_934953...
+2026-05-29 13:02:30,150 - ThreadPoolExecutor-3_0 - INFO - Attempting to remove container sweb.eval.django__django-11964.20260529_120352_934953...
+2026-05-29 13:02:32,952 - ThreadPoolExecutor-3_0 - INFO - Container sweb.eval.django__django-11964.20260529_120352_934953 removed.

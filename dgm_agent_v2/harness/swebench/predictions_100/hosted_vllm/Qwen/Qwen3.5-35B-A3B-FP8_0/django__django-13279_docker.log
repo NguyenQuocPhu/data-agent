@@ -1,0 +1,1605 @@
+2026-05-29 14:03:33,622 - ThreadPoolExecutor-3_1 - INFO - No existing container with name sweb.eval.django__django-13279.20260529_140333_615446 found.
+2026-05-29 14:03:33,659 - ThreadPoolExecutor-3_1 - INFO - Environment image sweb.env.py.x86_64.e83e37f52c09532c62acfb:latest found for django__django-13279
+Building instance image sweb.eval.x86_64.django__django-13279:latest for django__django-13279
+2026-05-29 14:03:33,694 - ThreadPoolExecutor-3_1 - INFO - Image sweb.eval.x86_64.django__django-13279:latest already exists, skipping build.
+2026-05-29 14:03:33,694 - ThreadPoolExecutor-3_1 - INFO - Creating container for django__django-13279...
+2026-05-29 14:03:33,789 - ThreadPoolExecutor-3_1 - INFO - Container for django__django-13279 created: 2f021ef1997c0c51150b61f314e47f005af8e7043c6d107cb6d104436971b2be
+2026-05-29 14:03:34,151 - ThreadPoolExecutor-3_1 - INFO - Working directory set to: D:\kh4ng\Data_agent\dgm_agent
+2026-05-29 14:03:34,234 - ThreadPoolExecutor-3_1 - INFO - Copying coding_agent.py to container at /dgm/coding_agent.py
+2026-05-29 14:03:34,244 - ThreadPoolExecutor-3_1 - INFO - Successfully copied coding_agent.py to container
+2026-05-29 14:03:34,334 - ThreadPoolExecutor-3_1 - INFO - Copying requirements.txt to container at /dgm/requirements.txt
+2026-05-29 14:03:34,346 - ThreadPoolExecutor-3_1 - INFO - Successfully copied requirements.txt to container
+2026-05-29 14:03:34,471 - ThreadPoolExecutor-3_1 - INFO - Copying pytest.ini to container at /dgm/pytest.ini
+2026-05-29 14:03:34,480 - ThreadPoolExecutor-3_1 - INFO - Successfully copied pytest.ini to container
+2026-05-29 14:03:34,585 - ThreadPoolExecutor-3_1 - INFO - Copying tools to container at /dgm/tools
+2026-05-29 14:03:34,595 - ThreadPoolExecutor-3_1 - INFO - Successfully copied tools to container
+2026-05-29 14:03:34,685 - ThreadPoolExecutor-3_1 - INFO - Copying utils to container at /dgm/utils
+2026-05-29 14:03:34,695 - ThreadPoolExecutor-3_1 - INFO - Successfully copied utils to container
+2026-05-29 14:03:34,787 - ThreadPoolExecutor-3_1 - INFO - Copying tests to container at /dgm/tests
+2026-05-29 14:03:34,795 - ThreadPoolExecutor-3_1 - INFO - Successfully copied tests to container
+2026-05-29 14:03:34,904 - ThreadPoolExecutor-3_1 - INFO - Copying prompts to container at /dgm/prompts
+2026-05-29 14:03:34,915 - ThreadPoolExecutor-3_1 - INFO - Successfully copied prompts to container
+2026-05-29 14:03:35,019 - ThreadPoolExecutor-3_1 - INFO - Copying llm.py to container at /dgm/llm.py
+2026-05-29 14:03:35,027 - ThreadPoolExecutor-3_1 - INFO - Successfully copied llm.py to container
+2026-05-29 14:03:35,107 - ThreadPoolExecutor-3_1 - INFO - Copying llm_withtools.py to container at /dgm/llm_withtools.py
+2026-05-29 14:03:35,117 - ThreadPoolExecutor-3_1 - INFO - Successfully copied llm_withtools.py to container
+2026-05-29 14:03:35,117 - ThreadPoolExecutor-3_1 - INFO - Setting up environment
+2026-05-29 14:03:35,213 - ThreadPoolExecutor-3_1 - INFO - Copying D:\kh4ng\Data_agent\dgm_agent\swe_bench\predictions_100\hosted_vllm\Qwen\Qwen3.5-35B-A3B-FP8_0\django__django-13279_eval.sh to container at /eval.sh
+2026-05-29 14:03:35,226 - ThreadPoolExecutor-3_1 - INFO - Successfully copied D:\kh4ng\Data_agent\dgm_agent\swe_bench\predictions_100\hosted_vllm\Qwen\Qwen3.5-35B-A3B-FP8_0\django__django-13279_eval.sh to container
+2026-05-29 14:03:44,014 - ThreadPoolExecutor-3_1 - INFO - Container output: + source /opt/miniconda3/bin/activate
+++ _CONDA_ROOT=/opt/miniconda3
+++ . /opt/miniconda3/etc/profile.d/conda.sh
++++ export CONDA_EXE=/opt/miniconda3/bin/conda
++++ CONDA_EXE=/opt/miniconda3/bin/conda
++++ export _CE_M=
++++ _CE_M=
++++ export _CE_CONDA=
++++ _CE_CONDA=
++++ export CONDA_PYTHON_EXE=/opt/miniconda3/bin/python
++++ CONDA_PYTHON_EXE=/opt/miniconda3/bin/python
++++ '[' -z '' ']'
++++ export CONDA_SHLVL=0
++++ CONDA_SHLVL=0
++++ '[' -n '' ']'
++++++ dirname /opt/miniconda3/bin/conda
+++++ dirname /opt/miniconda3/bin
++++ PATH=/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
++++ export PATH
++++ '[' -z '' ']'
++++ PS1=
+++ conda activate
+++ local cmd=activate
+++ case "$cmd" in
+++ __conda_activate activate
+++ '[' -n '' ']'
+++ local ask_conda
++++ PS1=
++++ __conda_exe shell.posix activate
++++ /opt/miniconda3/bin/conda shell.posix activate
+++ ask_conda='PS1='\''(base) '\''
+export PATH='\''/opt/miniconda3/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'\''
+export CONDA_PREFIX='\''/opt/miniconda3'\''
+export CONDA_SHLVL='\''1'\''
+export CONDA_DEFAULT_ENV='\''base'\''
+export CONDA_PROMPT_MODIFIER='\''(base) '\''
+export CONDA_EXE='\''/opt/miniconda3/bin/conda'\''
+export _CE_M='\'''\''
+export _CE_CONDA='\'''\''
+export CONDA_PYTHON_EXE='\''/opt/miniconda3/bin/python'\'''
+++ eval 'PS1='\''(base) '\''
+export PATH='\''/opt/miniconda3/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'\''
+export CONDA_PREFIX='\''/opt/miniconda3'\''
+export CONDA_SHLVL='\''1'\''
+export CONDA_DEFAULT_ENV='\''base'\''
+export CONDA_PROMPT_MODIFIER='\''(base) '\''
+export CONDA_EXE='\''/opt/miniconda3/bin/conda'\''
+export _CE_M='\'''\''
+export _CE_CONDA='\'''\''
+export CONDA_PYTHON_EXE='\''/opt/miniconda3/bin/python'\'''
++++ PS1='(base) '
++++ export PATH=/opt/miniconda3/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
++++ PATH=/opt/miniconda3/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
++++ export CONDA_PREFIX=/opt/miniconda3
++++ CONDA_PREFIX=/opt/miniconda3
++++ export CONDA_SHLVL=1
++++ CONDA_SHLVL=1
++++ export CONDA_DEFAULT_ENV=base
++++ CONDA_DEFAULT_ENV=base
++++ export 'CONDA_PROMPT_MODIFIER=(base) '
++++ CONDA_PROMPT_MODIFIER='(base) '
++++ export CONDA_EXE=/opt/miniconda3/bin/conda
++++ CONDA_EXE=/opt/miniconda3/bin/conda
++++ export _CE_M=
++++ _CE_M=
++++ export _CE_CONDA=
++++ _CE_CONDA=
++++ export CONDA_PYTHON_EXE=/opt/miniconda3/bin/python
++++ CONDA_PYTHON_EXE=/opt/miniconda3/bin/python
+++ __conda_hashr
+++ '[' -n '' ']'
+++ '[' -n '' ']'
+++ hash -r
++ conda activate testbed
++ local cmd=activate
++ case "$cmd" in
++ __conda_activate activate testbed
++ '[' -n '' ']'
++ local ask_conda
+++ PS1='(base) '
+++ __conda_exe shell.posix activate testbed
+++ /opt/miniconda3/bin/conda shell.posix activate testbed
++ ask_conda='PS1='\''(testbed) '\''
+export PATH='\''/opt/miniconda3/envs/testbed/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'\''
+export CONDA_PREFIX='\''/opt/miniconda3/envs/testbed'\''
+export CONDA_SHLVL='\''2'\''
+export CONDA_DEFAULT_ENV='\''testbed'\''
+export CONDA_PROMPT_MODIFIER='\''(testbed) '\''
+export CONDA_PREFIX_1='\''/opt/miniconda3'\''
+export CONDA_EXE='\''/opt/miniconda3/bin/conda'\''
+export _CE_M='\'''\''
+export _CE_CONDA='\'''\''
+export CONDA_PYTHON_EXE='\''/opt/miniconda3/bin/python'\'''
++ eval 'PS1='\''(testbed) '\''
+export PATH='\''/opt/miniconda3/envs/testbed/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'\''
+export CONDA_PREFIX='\''/opt/miniconda3/envs/testbed'\''
+export CONDA_SHLVL='\''2'\''
+export CONDA_DEFAULT_ENV='\''testbed'\''
+export CONDA_PROMPT_MODIFIER='\''(testbed) '\''
+export CONDA_PREFIX_1='\''/opt/miniconda3'\''
+export CONDA_EXE='\''/opt/miniconda3/bin/conda'\''
+export _CE_M='\'''\''
+export _CE_CONDA='\'''\''
+export CONDA_PYTHON_EXE='\''/opt/miniconda3/bin/python'\'''
+++ PS1='(testbed) '
+++ export PATH=/opt/miniconda3/envs/testbed/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+++ PATH=/opt/miniconda3/envs/testbed/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+++ export CONDA_PREFIX=/opt/miniconda3/envs/testbed
+++ CONDA_PREFIX=/opt/miniconda3/envs/testbed
+++ export CONDA_SHLVL=2
+++ CONDA_SHLVL=2
+++ export CONDA_DEFAULT_ENV=testbed
+++ CONDA_DEFAULT_ENV=testbed
+++ export 'CONDA_PROMPT_MODIFIER=(testbed) '
+++ CONDA_PROMPT_MODIFIER='(testbed) '
+++ export CONDA_PREFIX_1=/opt/miniconda3
+++ CONDA_PREFIX_1=/opt/miniconda3
+++ export CONDA_EXE=/opt/miniconda3/bin/conda
+++ CONDA_EXE=/opt/miniconda3/bin/conda
+++ export _CE_M=
+++ _CE_M=
+++ export _CE_CONDA=
+++ _CE_CONDA=
+++ export CONDA_PYTHON_EXE=/opt/miniconda3/bin/python
+++ CONDA_PYTHON_EXE=/opt/miniconda3/bin/python
++ __conda_hashr
++ '[' -n '' ']'
++ '[' -n '' ']'
++ hash -r
++ cd /testbed
++ sed -i '/en_US.UTF-8/s/^# //g' /etc/locale.gen
++ locale-gen
+Generating locales (this might take a while)...
+  en_US.UTF-8... done
+Generation complete.
++ export LANG=en_US.UTF-8
++ LANG=en_US.UTF-8
++ export LANGUAGE=en_US:en
++ LANGUAGE=en_US:en
++ export LC_ALL=en_US.UTF-8
++ LC_ALL=en_US.UTF-8
++ git config --global --add safe.directory /testbed
++ cd /testbed
++ git status
+On branch main
+nothing to commit, working tree clean
++ git show
+commit f96783b9452d07b3da07ea302f639a28ca9f8b55
+Author: SWE-bench <setup@swebench.config>
+Date:   Thu May 28 16:32:56 2026 +0000
+
+    SWE-bench
++ git -c core.fileMode=false diff 6e9c5ee88fc948e05b4a7d9f82a8861ed2b0343d
++ source /opt/miniconda3/bin/activate
+++ _CONDA_ROOT=/opt/miniconda3
+++ . /opt/miniconda3/etc/profile.d/conda.sh
++++ export CONDA_EXE=/opt/miniconda3/bin/conda
++++ CONDA_EXE=/opt/miniconda3/bin/conda
++++ export _CE_M=
++++ _CE_M=
++++ export _CE_CONDA=
++++ _CE_CONDA=
++++ export CONDA_PYTHON_EXE=/opt/miniconda3/bin/python
++++ CONDA_PYTHON_EXE=/opt/miniconda3/bin/python
++++ '[' -z x ']'
+++ conda activate
+++ local cmd=activate
+++ case "$cmd" in
+++ __conda_activate activate
+++ '[' -n '' ']'
+++ local ask_conda
++++ PS1='(testbed) '
++++ __conda_exe shell.posix activate
++++ /opt/miniconda3/bin/conda shell.posix activate
+++ ask_conda='PS1='\''(base) '\''
+export PATH='\''/opt/miniconda3/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'\''
+export CONDA_PREFIX='\''/opt/miniconda3'\''
+export CONDA_SHLVL='\''3'\''
+export CONDA_DEFAULT_ENV='\''base'\''
+export CONDA_PROMPT_MODIFIER='\''(base) '\''
+export CONDA_PREFIX_2='\''/opt/miniconda3/envs/testbed'\''
+export CONDA_EXE='\''/opt/miniconda3/bin/conda'\''
+export _CE_M='\'''\''
+export _CE_CONDA='\'''\''
+export CONDA_PYTHON_EXE='\''/opt/miniconda3/bin/python'\'''
+++ eval 'PS1='\''(base) '\''
+export PATH='\''/opt/miniconda3/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'\''
+export CONDA_PREFIX='\''/opt/miniconda3'\''
+export CONDA_SHLVL='\''3'\''
+export CONDA_DEFAULT_ENV='\''base'\''
+export CONDA_PROMPT_MODIFIER='\''(base) '\''
+export CONDA_PREFIX_2='\''/opt/miniconda3/envs/testbed'\''
+export CONDA_EXE='\''/opt/miniconda3/bin/conda'\''
+export _CE_M='\'''\''
+export _CE_CONDA='\'''\''
+export CONDA_PYTHON_EXE='\''/opt/miniconda3/bin/python'\'''
++++ PS1='(base) '
++++ export PATH=/opt/miniconda3/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
++++ PATH=/opt/miniconda3/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
++++ export CONDA_PREFIX=/opt/miniconda3
++++ CONDA_PREFIX=/opt/miniconda3
++++ export CONDA_SHLVL=3
++++ CONDA_SHLVL=3
++++ export CONDA_DEFAULT_ENV=base
++++ CONDA_DEFAULT_ENV=base
++++ export 'CONDA_PROMPT_MODIFIER=(base) '
++++ CONDA_PROMPT_MODIFIER='(base) '
++++ export CONDA_PREFIX_2=/opt/miniconda3/envs/testbed
++++ CONDA_PREFIX_2=/opt/miniconda3/envs/testbed
++++ export CONDA_EXE=/opt/miniconda3/bin/conda
++++ CONDA_EXE=/opt/miniconda3/bin/conda
++++ export _CE_M=
++++ _CE_M=
++++ export _CE_CONDA=
++++ _CE_CONDA=
++++ export CONDA_PYTHON_EXE=/opt/miniconda3/bin/python
++++ CONDA_PYTHON_EXE=/opt/miniconda3/bin/python
+++ __conda_hashr
+++ '[' -n '' ']'
+++ '[' -n '' ']'
+++ hash -r
++ conda activate testbed
++ local cmd=activate
++ case "$cmd" in
++ __conda_activate activate testbed
++ '[' -n '' ']'
++ local ask_conda
+++ PS1='(base) '
+++ __conda_exe shell.posix activate testbed
+++ /opt/miniconda3/bin/conda shell.posix activate testbed
++ ask_conda='PS1='\''(testbed) '\''
+export PATH='\''/opt/miniconda3/envs/testbed/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'\''
+export CONDA_PREFIX='\''/opt/miniconda3/envs/testbed'\''
+export CONDA_SHLVL='\''4'\''
+export CONDA_DEFAULT_ENV='\''testbed'\''
+export CONDA_PROMPT_MODIFIER='\''(testbed) '\''
+export CONDA_PREFIX_3='\''/opt/miniconda3'\''
+export CONDA_EXE='\''/opt/miniconda3/bin/conda'\''
+export _CE_M='\'''\''
+export _CE_CONDA='\'''\''
+export CONDA_PYTHON_EXE='\''/opt/miniconda3/bin/python'\'''
++ eval 'PS1='\''(testbed) '\''
+export PATH='\''/opt/miniconda3/envs/testbed/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'\''
+export CONDA_PREFIX='\''/opt/miniconda3/envs/testbed'\''
+export CONDA_SHLVL='\''4'\''
+export CONDA_DEFAULT_ENV='\''testbed'\''
+export CONDA_PROMPT_MODIFIER='\''(testbed) '\''
+export CONDA_PREFIX_3='\''/opt/miniconda3'\''
+export CONDA_EXE='\''/opt/miniconda3/bin/conda'\''
+export _CE_M='\'''\''
+export _CE_CONDA='\'''\''
+export CONDA_PYTHON_EXE='\''/opt/miniconda3/bin/python'\'''
+++ PS1='(testbed) '
+++ export PATH=/opt/miniconda3/envs/testbed/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+++ PATH=/opt/miniconda3/envs/testbed/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+++ export CONDA_PREFIX=/opt/miniconda3/envs/testbed
+++ CONDA_PREFIX=/opt/miniconda3/envs/testbed
+++ export CONDA_SHLVL=4
+++ CONDA_SHLVL=4
+++ export CONDA_DEFAULT_ENV=testbed
+++ CONDA_DEFAULT_ENV=testbed
+++ export 'CONDA_PROMPT_MODIFIER=(testbed) '
+++ CONDA_PROMPT_MODIFIER='(testbed) '
+++ export CONDA_PREFIX_3=/opt/miniconda3
+++ CONDA_PREFIX_3=/opt/miniconda3
+++ export CONDA_EXE=/opt/miniconda3/bin/conda
+++ CONDA_EXE=/opt/miniconda3/bin/conda
+++ export _CE_M=
+++ _CE_M=
+++ export _CE_CONDA=
+++ _CE_CONDA=
+++ export CONDA_PYTHON_EXE=/opt/miniconda3/bin/python
+++ CONDA_PYTHON_EXE=/opt/miniconda3/bin/python
++ __conda_hashr
++ '[' -n '' ']'
++ '[' -n '' ']'
++ hash -r
++ python -m pip install -e .
+Obtaining file:///testbed
+Requirement already satisfied: asgiref>=3.2.10 in /opt/miniconda3/envs/testbed/lib/python3.6/site-packages (from Django==3.2) (3.4.1)
+Requirement already satisfied: pytz in /opt/miniconda3/envs/testbed/lib/python3.6/site-packages (from Django==3.2) (2026.2)
+Requirement already satisfied: sqlparse>=0.2.2 in /opt/miniconda3/envs/testbed/lib/python3.6/site-packages (from Django==3.2) (0.4.4)
+Requirement already satisfied: typing-extensions in /opt/miniconda3/envs/testbed/lib/python3.6/site-packages (from asgiref>=3.2.10->Django==3.2) (4.1.1)
+Installing collected packages: Django
+  Attempting uninstall: Django
+    Found existing installation: Django 3.2
+    Uninstalling Django-3.2:
+      Successfully uninstalled Django-3.2
+  Running setup.py develop for Django
+Successfully installed Django-3.2
+WARNING: Running pip as the 'root' user can result in broken permissions and conflicting behaviour with the system package manager. It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv
++ git checkout 6e9c5ee88fc948e05b4a7d9f82a8861ed2b0343d tests/sessions_tests/tests.py
+Updated 0 paths from 4c027686e4
++ git apply -v -
+Checking patch tests/sessions_tests/tests.py...
+Applied patch tests/sessions_tests/tests.py cleanly.
++ : '>>>>> Start Test Output'
++ ./tests/runtests.py --verbosity 2 --settings=test_sqlite --parallel 1 sessions_tests.tests
+Creating test database for alias 'default' ('file:memorydb_default?mode=memory&cache=shared')...
+test_actual_expiry (sessions_tests.tests.CacheDBSessionTests) ... ok
+test_clear (sessions_tests.tests.CacheDBSessionTests) ... ok
+test_custom_expiry_datetime (sessions_tests.tests.CacheDBSessionTests) ... ok
+test_custom_expiry_reset (sessions_tests.tests.CacheDBSessionTests) ... ok
+test_custom_expiry_seconds (sessions_tests.tests.CacheDBSessionTests) ... ok
+test_custom_expiry_timedelta (sessions_tests.tests.CacheDBSessionTests) ... ok
+test_cycle (sessions_tests.tests.CacheDBSessionTests) ... ok
+test_cycle_with_no_session_cache (sessions_tests.tests.CacheDBSessionTests) ... ok
+test_decode (sessions_tests.tests.CacheDBSessionTests) ... ok
+test_decode_failure_logged_to_security (sessions_tests.tests.CacheDBSessionTests) ... ok
+test_decode_legacy (sessions_tests.tests.CacheDBSessionTests) ... ok
+test_default_expiry (sessions_tests.tests.CacheDBSessionTests) ... ok
+test_default_hashing_algorith_legacy_decode (sessions_tests.tests.CacheDBSessionTests) ... ERROR
+test_delete (sessions_tests.tests.CacheDBSessionTests) ... ok
+test_exists_searches_cache_first (sessions_tests.tests.CacheDBSessionTests) ... ok
+test_flush (sessions_tests.tests.CacheDBSessionTests) ... ok
+test_get_empty (sessions_tests.tests.CacheDBSessionTests) ... ok
+test_get_expire_at_browser_close (sessions_tests.tests.CacheDBSessionTests) ... ok
+test_has_key (sessions_tests.tests.CacheDBSessionTests) ... ok
+test_invalid_key (sessions_tests.tests.CacheDBSessionTests) ... ok
+test_items (sessions_tests.tests.CacheDBSessionTests) ... ok
+test_keys (sessions_tests.tests.CacheDBSessionTests) ... ok
+test_load_overlong_key (sessions_tests.tests.CacheDBSessionTests) ... ok
+test_new_session (sessions_tests.tests.CacheDBSessionTests) ... ok
+test_non_default_cache (sessions_tests.tests.CacheDBSessionTests) ... ok
+test_pop (sessions_tests.tests.CacheDBSessionTests) ... ok
+test_pop_default (sessions_tests.tests.CacheDBSessionTests) ... ok
+test_pop_default_named_argument (sessions_tests.tests.CacheDBSessionTests) ... ok
+test_pop_no_default_keyerror_raised (sessions_tests.tests.CacheDBSessionTests) ... ok
+test_save (sessions_tests.tests.CacheDBSessionTests) ... ok
+test_save_doesnt_clear_data (sessions_tests.tests.CacheDBSessionTests) ... ok
+test_session_key_empty_string_invalid (sessions_tests.tests.CacheDBSessionTests)
+Falsey values (Such as an empty string) are rejected. ... ok
+test_session_key_is_read_only (sessions_tests.tests.CacheDBSessionTests) ... ok
+test_session_key_too_short_invalid (sessions_tests.tests.CacheDBSessionTests)
+Strings shorter than 8 characters are rejected. ... ok
+test_session_key_valid_string_saved (sessions_tests.tests.CacheDBSessionTests)
+Strings of length 8 and up are accepted and stored. ... ok
+test_session_load_does_not_create_record (sessions_tests.tests.CacheDBSessionTests) ... ok
+test_session_save_does_not_resurrect_session_logged_out_in_other_context (sessions_tests.tests.CacheDBSessionTests) ... ok
+test_setdefault (sessions_tests.tests.CacheDBSessionTests) ... ok
+test_store (sessions_tests.tests.CacheDBSessionTests) ... ok
+test_update (sessions_tests.tests.CacheDBSessionTests) ... ok
+test_values (sessions_tests.tests.CacheDBSessionTests) ... ok
+test_actual_expiry (sessions_tests.tests.CacheDBSessionWithTimeZoneTests) ... ok
+test_clear (sessions_tests.tests.CacheDBSessionWithTimeZoneTests) ... ok
+test_custom_expiry_datetime (sessions_tests.tests.CacheDBSessionWithTimeZoneTests) ... ok
+test_custom_expiry_reset (sessions_tests.tests.CacheDBSessionWithTimeZoneTests) ... ok
+test_custom_expiry_seconds (sessions_tests.tests.CacheDBSessionWithTimeZoneTests) ... ok
+test_custom_expiry_timedelta (sessions_tests.tests.CacheDBSessionWithTimeZoneTests) ... ok
+test_cycle (sessions_tests.tests.CacheDBSessionWithTimeZoneTests) ... ok
+test_cycle_with_no_session_cache (sessions_tests.tests.CacheDBSessionWithTimeZoneTests) ... ok
+test_decode (sessions_tests.tests.CacheDBSessionWithTimeZoneTests) ... ok
+test_decode_failure_logged_to_security (sessions_tests.tests.CacheDBSessionWithTimeZoneTests) ... ok
+test_decode_legacy (sessions_tests.tests.CacheDBSessionWithTimeZoneTests) ... ok
+test_default_expiry (sessions_tests.tests.CacheDBSessionWithTimeZoneTests) ... ok
+test_default_hashing_algorith_legacy_decode (sessions_tests.tests.CacheDBSessionWithTimeZoneTests) ... ERROR
+test_delete (sessions_tests.tests.CacheDBSessionWithTimeZoneTests) ... ok
+test_exists_searches_cache_first (sessions_tests.tests.CacheDBSessionWithTimeZoneTests) ... ok
+test_flush (sessions_tests.tests.CacheDBSessionWithTimeZoneTests) ... ok
+test_get_empty (sessions_tests.tests.CacheDBSessionWithTimeZoneTests) ... ok
+test_get_expire_at_browser_close (sessions_tests.tests.CacheDBSessionWithTimeZoneTests) ... ok
+test_has_key (sessions_tests.tests.CacheDBSessionWithTimeZoneTests) ... ok
+test_invalid_key (sessions_tests.tests.CacheDBSessionWithTimeZoneTests) ... ok
+test_items (sessions_tests.tests.CacheDBSessionWithTimeZoneTests) ... ok
+test_keys (sessions_tests.tests.CacheDBSessionWithTimeZoneTests) ... ok
+test_load_overlong_key (sessions_tests.tests.CacheDBSessionWithTimeZoneTests) ... ok
+test_new_session (sessions_tests.tests.CacheDBSessionWithTimeZoneTests) ... ok
+test_non_default_cache (sessions_tests.tests.CacheDBSessionWithTimeZoneTests) ... ok
+test_pop (sessions_tests.tests.CacheDBSessionWithTimeZoneTests) ... ok
+test_pop_default (sessions_tests.tests.CacheDBSessionWithTimeZoneTests) ... ok
+test_pop_default_named_argument (sessions_tests.tests.CacheDBSessionWithTimeZoneTests) ... ok
+test_pop_no_default_keyerror_raised (sessions_tests.tests.CacheDBSessionWithTimeZoneTests) ... ok
+test_save (sessions_tests.tests.CacheDBSessionWithTimeZoneTests) ... ok
+test_save_doesnt_clear_data (sessions_tests.tests.CacheDBSessionWithTimeZoneTests) ... ok
+test_session_key_empty_string_invalid (sessions_tests.tests.CacheDBSessionWithTimeZoneTests)
+Falsey values (Such as an empty string) are rejected. ... ok
+test_session_key_is_read_only (sessions_tests.tests.CacheDBSessionWithTimeZoneTests) ... ok
+test_session_key_too_short_invalid (sessions_tests.tests.CacheDBSessionWithTimeZoneTests)
+Strings shorter than 8 characters are rejected. ... ok
+test_session_key_valid_string_saved (sessions_tests.tests.CacheDBSessionWithTimeZoneTests)
+Strings of length 8 and up are accepted and stored. ... ok
+test_session_load_does_not_create_record (sessions_tests.tests.CacheDBSessionWithTimeZoneTests) ... ok
+test_session_save_does_not_resurrect_session_logged_out_in_other_context (sessions_tests.tests.CacheDBSessionWithTimeZoneTests) ... ok
+test_setdefault (sessions_tests.tests.CacheDBSessionWithTimeZoneTests) ... ok
+test_store (sessions_tests.tests.CacheDBSessionWithTimeZoneTests) ... ok
+test_update (sessions_tests.tests.CacheDBSessionWithTimeZoneTests) ... ok
+test_values (sessions_tests.tests.CacheDBSessionWithTimeZoneTests) ... ok
+test_actual_expiry (sessions_tests.tests.CustomDatabaseSessionTests) ... ok
+test_clear (sessions_tests.tests.CustomDatabaseSessionTests) ... ok
+test_clearsessions_command (sessions_tests.tests.CustomDatabaseSessionTests) ... ok
+test_custom_expiry_datetime (sessions_tests.tests.CustomDatabaseSessionTests) ... ok
+test_custom_expiry_reset (sessions_tests.tests.CustomDatabaseSessionTests) ... ok
+test_custom_expiry_seconds (sessions_tests.tests.CustomDatabaseSessionTests) ... ok
+test_custom_expiry_timedelta (sessions_tests.tests.CustomDatabaseSessionTests) ... ok
+test_cycle (sessions_tests.tests.CustomDatabaseSessionTests) ... ok
+test_cycle_with_no_session_cache (sessions_tests.tests.CustomDatabaseSessionTests) ... ok
+test_decode (sessions_tests.tests.CustomDatabaseSessionTests) ... ok
+test_decode_failure_logged_to_security (sessions_tests.tests.CustomDatabaseSessionTests) ... ok
+test_decode_legacy (sessions_tests.tests.CustomDatabaseSessionTests) ... ok
+test_default_expiry (sessions_tests.tests.CustomDatabaseSessionTests) ... ok
+test_default_hashing_algorith_legacy_decode (sessions_tests.tests.CustomDatabaseSessionTests) ... ERROR
+test_delete (sessions_tests.tests.CustomDatabaseSessionTests) ... ok
+test_extra_session_field (sessions_tests.tests.CustomDatabaseSessionTests) ... ok
+test_flush (sessions_tests.tests.CustomDatabaseSessionTests) ... ok
+test_get_empty (sessions_tests.tests.CustomDatabaseSessionTests) ... ok
+test_get_expire_at_browser_close (sessions_tests.tests.CustomDatabaseSessionTests) ... ok
+test_has_key (sessions_tests.tests.CustomDatabaseSessionTests) ... ok
+test_invalid_key (sessions_tests.tests.CustomDatabaseSessionTests) ... ok
+test_items (sessions_tests.tests.CustomDatabaseSessionTests) ... ok
+test_keys (sessions_tests.tests.CustomDatabaseSessionTests) ... ok
+test_new_session (sessions_tests.tests.CustomDatabaseSessionTests) ... ok
+test_pop (sessions_tests.tests.CustomDatabaseSessionTests) ... ok
+test_pop_default (sessions_tests.tests.CustomDatabaseSessionTests) ... ok
+test_pop_default_named_argument (sessions_tests.tests.CustomDatabaseSessionTests) ... ok
+test_pop_no_default_keyerror_raised (sessions_tests.tests.CustomDatabaseSessionTests) ... ok
+test_save (sessions_tests.tests.CustomDatabaseSessionTests) ... ok
+test_save_doesnt_clear_data (sessions_tests.tests.CustomDatabaseSessionTests) ... ok
+test_session_get_decoded (sessions_tests.tests.CustomDatabaseSessionTests) ... ok
+test_session_key_empty_string_invalid (sessions_tests.tests.CustomDatabaseSessionTests)
+Falsey values (Such as an empty string) are rejected. ... ok
+test_session_key_is_read_only (sessions_tests.tests.CustomDatabaseSessionTests) ... ok
+test_session_key_too_short_invalid (sessions_tests.tests.CustomDatabaseSessionTests)
+Strings shorter than 8 characters are rejected. ... ok
+test_session_key_valid_string_saved (sessions_tests.tests.CustomDatabaseSessionTests)
+Strings of length 8 and up are accepted and stored. ... ok
+test_session_load_does_not_create_record (sessions_tests.tests.CustomDatabaseSessionTests) ... ok
+test_session_save_does_not_resurrect_session_logged_out_in_other_context (sessions_tests.tests.CustomDatabaseSessionTests) ... ok
+test_session_str (sessions_tests.tests.CustomDatabaseSessionTests)
+Session repr should be the session key. ... ok
+test_sessionmanager_save (sessions_tests.tests.CustomDatabaseSessionTests) ... ok
+test_setdefault (sessions_tests.tests.CustomDatabaseSessionTests) ... ok
+test_store (sessions_tests.tests.CustomDatabaseSessionTests) ... ok
+test_update (sessions_tests.tests.CustomDatabaseSessionTests) ... ok
+test_values (sessions_tests.tests.CustomDatabaseSessionTests) ... ok
+test_actual_expiry (sessions_tests.tests.DatabaseSessionTests) ... ok
+test_clear (sessions_tests.tests.DatabaseSessionTests) ... ok
+test_clearsessions_command (sessions_tests.tests.DatabaseSessionTests) ... ok
+test_custom_expiry_datetime (sessions_tests.tests.DatabaseSessionTests) ... ok
+test_custom_expiry_reset (sessions_tests.tests.DatabaseSessionTests) ... ok
+test_custom_expiry_seconds (sessions_tests.tests.DatabaseSessionTests) ... ok
+test_custom_expiry_timedelta (sessions_tests.tests.DatabaseSessionTests) ... ok
+test_cycle (sessions_tests.tests.DatabaseSessionTests) ... ok
+test_cycle_with_no_session_cache (sessions_tests.tests.DatabaseSessionTests) ... ok
+test_decode (sessions_tests.tests.DatabaseSessionTests) ... ok
+test_decode_failure_logged_to_security (sessions_tests.tests.DatabaseSessionTests) ... ok
+test_decode_legacy (sessions_tests.tests.DatabaseSessionTests) ... ok
+test_default_expiry (sessions_tests.tests.DatabaseSessionTests) ... ok
+test_default_hashing_algorith_legacy_decode (sessions_tests.tests.DatabaseSessionTests) ... ERROR
+test_delete (sessions_tests.tests.DatabaseSessionTests) ... ok
+test_flush (sessions_tests.tests.DatabaseSessionTests) ... ok
+test_get_empty (sessions_tests.tests.DatabaseSessionTests) ... ok
+test_get_expire_at_browser_close (sessions_tests.tests.DatabaseSessionTests) ... ok
+test_has_key (sessions_tests.tests.DatabaseSessionTests) ... ok
+test_invalid_key (sessions_tests.tests.DatabaseSessionTests) ... ok
+test_items (sessions_tests.tests.DatabaseSessionTests) ... ok
+test_keys (sessions_tests.tests.DatabaseSessionTests) ... ok
+test_new_session (sessions_tests.tests.DatabaseSessionTests) ... ok
+test_pop (sessions_tests.tests.DatabaseSessionTests) ... ok
+test_pop_default (sessions_tests.tests.DatabaseSessionTests) ... ok
+test_pop_default_named_argument (sessions_tests.tests.DatabaseSessionTests) ... ok
+test_pop_no_default_keyerror_raised (sessions_tests.tests.DatabaseSessionTests) ... ok
+test_save (sessions_tests.tests.DatabaseSessionTests) ... ok
+test_save_doesnt_clear_data (sessions_tests.tests.DatabaseSessionTests) ... ok
+test_session_get_decoded (sessions_tests.tests.DatabaseSessionTests) ... ok
+test_session_key_empty_string_invalid (sessions_tests.tests.DatabaseSessionTests)
+Falsey values (Such as an empty string) are rejected. ... ok
+test_session_key_is_read_only (sessions_tests.tests.DatabaseSessionTests) ... ok
+test_session_key_too_short_invalid (sessions_tests.tests.DatabaseSessionTests)
+Strings shorter than 8 characters are rejected. ... ok
+test_session_key_valid_string_saved (sessions_tests.tests.DatabaseSessionTests)
+Strings of length 8 and up are accepted and stored. ... ok
+test_session_load_does_not_create_record (sessions_tests.tests.DatabaseSessionTests) ... ok
+test_session_save_does_not_resurrect_session_logged_out_in_other_context (sessions_tests.tests.DatabaseSessionTests) ... ok
+test_session_str (sessions_tests.tests.DatabaseSessionTests)
+Session repr should be the session key. ... ok
+test_sessionmanager_save (sessions_tests.tests.DatabaseSessionTests) ... ok
+test_setdefault (sessions_tests.tests.DatabaseSessionTests) ... ok
+test_store (sessions_tests.tests.DatabaseSessionTests) ... ok
+test_update (sessions_tests.tests.DatabaseSessionTests) ... ok
+test_values (sessions_tests.tests.DatabaseSessionTests) ... ok
+test_actual_expiry (sessions_tests.tests.DatabaseSessionWithTimeZoneTests) ... ok
+test_clear (sessions_tests.tests.DatabaseSessionWithTimeZoneTests) ... ok
+test_clearsessions_command (sessions_tests.tests.DatabaseSessionWithTimeZoneTests) ... ok
+test_custom_expiry_datetime (sessions_tests.tests.DatabaseSessionWithTimeZoneTests) ... ok
+test_custom_expiry_reset (sessions_tests.tests.DatabaseSessionWithTimeZoneTests) ... ok
+test_custom_expiry_seconds (sessions_tests.tests.DatabaseSessionWithTimeZoneTests) ... ok
+test_custom_expiry_timedelta (sessions_tests.tests.DatabaseSessionWithTimeZoneTests) ... ok
+test_cycle (sessions_tests.tests.DatabaseSessionWithTimeZoneTests) ... ok
+test_cycle_with_no_session_cache (sessions_tests.tests.DatabaseSessionWithTimeZoneTests) ... ok
+test_decode (sessions_tests.tests.DatabaseSessionWithTimeZoneTests) ... ok
+test_decode_failure_logged_to_security (sessions_tests.tests.DatabaseSessionWithTimeZoneTests) ... ok
+test_decode_legacy (sessions_tests.tests.DatabaseSessionWithTimeZoneTests) ... ok
+test_default_expiry (sessions_tests.tests.DatabaseSessionWithTimeZoneTests) ... ok
+test_default_hashing_algorith_legacy_decode (sessions_tests.tests.DatabaseSessionWithTimeZoneTests) ... ERROR
+test_delete (sessions_tests.tests.DatabaseSessionWithTimeZoneTests) ... ok
+test_flush (sessions_tests.tests.DatabaseSessionWithTimeZoneTests) ... ok
+test_get_empty (sessions_tests.tests.DatabaseSessionWithTimeZoneTests) ... ok
+test_get_expire_at_browser_close (sessions_tests.tests.DatabaseSessionWithTimeZoneTests) ... ok
+test_has_key (sessions_tests.tests.DatabaseSessionWithTimeZoneTests) ... ok
+test_invalid_key (sessions_tests.tests.DatabaseSessionWithTimeZoneTests) ... ok
+test_items (sessions_tests.tests.DatabaseSessionWithTimeZoneTests) ... ok
+test_keys (sessions_tests.tests.DatabaseSessionWithTimeZoneTests) ... ok
+test_new_session (sessions_tests.tests.DatabaseSessionWithTimeZoneTests) ... ok
+test_pop (sessions_tests.tests.DatabaseSessionWithTimeZoneTests) ... ok
+test_pop_default (sessions_tests.tests.DatabaseSessionWithTimeZoneTests) ... ok
+test_pop_default_named_argument (sessions_tests.tests.DatabaseSessionWithTimeZoneTests) ... ok
+test_pop_no_default_keyerror_raised (sessions_tests.tests.DatabaseSessionWithTimeZoneTests) ... ok
+test_save (sessions_tests.tests.DatabaseSessionWithTimeZoneTests) ... ok
+test_save_doesnt_clear_data (sessions_tests.tests.DatabaseSessionWithTimeZoneTests) ... ok
+test_session_get_decoded (sessions_tests.tests.DatabaseSessionWithTimeZoneTests) ... ok
+test_session_key_empty_string_invalid (sessions_tests.tests.DatabaseSessionWithTimeZoneTests)
+Falsey values (Such as an empty string) are rejected. ... ok
+test_session_key_is_read_only (sessions_tests.tests.DatabaseSessionWithTimeZoneTests) ... ok
+test_session_key_too_short_invalid (sessions_tests.tests.DatabaseSessionWithTimeZoneTests)
+Strings shorter than 8 characters are rejected. ... ok
+test_session_key_valid_string_saved (sessions_tests.tests.DatabaseSessionWithTimeZoneTests)
+Strings of length 8 and up are accepted and stored. ... ok
+test_session_load_does_not_create_record (sessions_tests.tests.DatabaseSessionWithTimeZoneTests) ... ok
+test_session_save_does_not_resurrect_session_logged_out_in_other_context (sessions_tests.tests.DatabaseSessionWithTimeZoneTests) ... ok
+test_session_str (sessions_tests.tests.DatabaseSessionWithTimeZoneTests)
+Session repr should be the session key. ... ok
+test_sessionmanager_save (sessions_tests.tests.DatabaseSessionWithTimeZoneTests) ... ok
+test_setdefault (sessions_tests.tests.DatabaseSessionWithTimeZoneTests) ... ok
+test_store (sessions_tests.tests.DatabaseSessionWithTimeZoneTests) ... ok
+test_update (sessions_tests.tests.DatabaseSessionWithTimeZoneTests) ... ok
+test_values (sessions_tests.tests.DatabaseSessionWithTimeZoneTests) ... ok
+test_empty_session_saved (sessions_tests.tests.SessionMiddlewareTests) ... ok
+test_flush_empty_without_session_cookie_doesnt_set_cookie (sessions_tests.tests.SessionMiddlewareTests) ... ok
+test_httponly_session_cookie (sessions_tests.tests.SessionMiddlewareTests) ... ok
+test_no_httponly_session_cookie (sessions_tests.tests.SessionMiddlewareTests) ... ok
+test_samesite_session_cookie (sessions_tests.tests.SessionMiddlewareTests) ... ok
+test_secure_session_cookie (sessions_tests.tests.SessionMiddlewareTests) ... ok
+test_session_delete_on_end (sessions_tests.tests.SessionMiddlewareTests) ... ok
+test_session_delete_on_end_with_custom_domain_and_path (sessions_tests.tests.SessionMiddlewareTests) ... ok
+test_session_save_on_500 (sessions_tests.tests.SessionMiddlewareTests) ... ok
+test_session_update_error_redirect (sessions_tests.tests.SessionMiddlewareTests) ... ok
+test_actual_expiry (sessions_tests.tests.CacheSessionTests) ... ok
+test_clear (sessions_tests.tests.CacheSessionTests) ... ok
+test_create_and_save (sessions_tests.tests.CacheSessionTests) ... ok
+test_custom_expiry_datetime (sessions_tests.tests.CacheSessionTests) ... ok
+test_custom_expiry_reset (sessions_tests.tests.CacheSessionTests) ... ok
+test_custom_expiry_seconds (sessions_tests.tests.CacheSessionTests) ... ok
+test_custom_expiry_timedelta (sessions_tests.tests.CacheSessionTests) ... ok
+test_cycle (sessions_tests.tests.CacheSessionTests) ... ok
+test_cycle_with_no_session_cache (sessions_tests.tests.CacheSessionTests) ... ok
+test_decode (sessions_tests.tests.CacheSessionTests) ... ok
+test_decode_failure_logged_to_security (sessions_tests.tests.CacheSessionTests) ... ok
+test_decode_legacy (sessions_tests.tests.CacheSessionTests) ... ok
+test_default_cache (sessions_tests.tests.CacheSessionTests) ... ok
+test_default_expiry (sessions_tests.tests.CacheSessionTests) ... ok
+test_default_hashing_algorith_legacy_decode (sessions_tests.tests.CacheSessionTests) ... ERROR
+test_delete (sessions_tests.tests.CacheSessionTests) ... ok
+test_flush (sessions_tests.tests.CacheSessionTests) ... ok
+test_get_empty (sessions_tests.tests.CacheSessionTests) ... ok
+test_get_expire_at_browser_close (sessions_tests.tests.CacheSessionTests) ... ok
+test_has_key (sessions_tests.tests.CacheSessionTests) ... ok
+test_invalid_key (sessions_tests.tests.CacheSessionTests) ... ok
+test_items (sessions_tests.tests.CacheSessionTests) ... ok
+test_keys (sessions_tests.tests.CacheSessionTests) ... ok
+test_load_overlong_key (sessions_tests.tests.CacheSessionTests) ... ok
+test_new_session (sessions_tests.tests.CacheSessionTests) ... ok
+test_non_default_cache (sessions_tests.tests.CacheSessionTests) ... ok
+test_pop (sessions_tests.tests.CacheSessionTests) ... ok
+test_pop_default (sessions_tests.tests.CacheSessionTests) ... ok
+test_pop_default_named_argument (sessions_tests.tests.CacheSessionTests) ... ok
+test_pop_no_default_keyerror_raised (sessions_tests.tests.CacheSessionTests) ... ok
+test_save (sessions_tests.tests.CacheSessionTests) ... ok
+test_save_doesnt_clear_data (sessions_tests.tests.CacheSessionTests) ... ok
+test_session_key_empty_string_invalid (sessions_tests.tests.CacheSessionTests)
+Falsey values (Such as an empty string) are rejected. ... ok
+test_session_key_is_read_only (sessions_tests.tests.CacheSessionTests) ... ok
+test_session_key_too_short_invalid (sessions_tests.tests.CacheSessionTests)
+Strings shorter than 8 characters are rejected. ... ok
+test_session_key_valid_string_saved (sessions_tests.tests.CacheSessionTests)
+Strings of length 8 and up are accepted and stored. ... ok
+test_session_load_does_not_create_record (sessions_tests.tests.CacheSessionTests) ... ok
+test_session_save_does_not_resurrect_session_logged_out_in_other_context (sessions_tests.tests.CacheSessionTests) ... ok
+test_setdefault (sessions_tests.tests.CacheSessionTests) ... ok
+test_store (sessions_tests.tests.CacheSessionTests) ... ok
+test_update (sessions_tests.tests.CacheSessionTests) ... ok
+test_values (sessions_tests.tests.CacheSessionTests) ... ok
+test_actual_expiry (sessions_tests.tests.CookieSessionTests) ... expected failure
+test_clear (sessions_tests.tests.CookieSessionTests) ... ok
+test_custom_expiry_datetime (sessions_tests.tests.CookieSessionTests) ... ok
+test_custom_expiry_reset (sessions_tests.tests.CookieSessionTests) ... ok
+test_custom_expiry_seconds (sessions_tests.tests.CookieSessionTests) ... ok
+test_custom_expiry_timedelta (sessions_tests.tests.CookieSessionTests) ... ok
+test_cycle (sessions_tests.tests.CookieSessionTests) ... ok
+test_cycle_with_no_session_cache (sessions_tests.tests.CookieSessionTests) ... ok
+test_decode (sessions_tests.tests.CookieSessionTests) ... ok
+test_decode_failure_logged_to_security (sessions_tests.tests.CookieSessionTests) ... ok
+test_decode_legacy (sessions_tests.tests.CookieSessionTests) ... ok
+test_default_expiry (sessions_tests.tests.CookieSessionTests) ... ok
+test_default_hashing_algorith_legacy_decode (sessions_tests.tests.CookieSessionTests) ... ERROR
+test_delete (sessions_tests.tests.CookieSessionTests) ... ok
+test_flush (sessions_tests.tests.CookieSessionTests) ... ok
+test_get_empty (sessions_tests.tests.CookieSessionTests) ... ok
+test_get_expire_at_browser_close (sessions_tests.tests.CookieSessionTests) ... ok
+test_has_key (sessions_tests.tests.CookieSessionTests) ... ok
+test_invalid_key (sessions_tests.tests.CookieSessionTests) ... ok
+test_items (sessions_tests.tests.CookieSessionTests) ... ok
+test_keys (sessions_tests.tests.CookieSessionTests) ... ok
+test_new_session (sessions_tests.tests.CookieSessionTests) ... ok
+test_pop (sessions_tests.tests.CookieSessionTests) ... ok
+test_pop_default (sessions_tests.tests.CookieSessionTests) ... ok
+test_pop_default_named_argument (sessions_tests.tests.CookieSessionTests) ... ok
+test_pop_no_default_keyerror_raised (sessions_tests.tests.CookieSessionTests) ... ok
+test_save (sessions_tests.tests.CookieSessionTests) ... ok
+test_save_doesnt_clear_data (sessions_tests.tests.CookieSessionTests) ... ok
+test_session_key_empty_string_invalid (sessions_tests.tests.CookieSessionTests)
+Falsey values (Such as an empty string) are rejected. ... ok
+test_session_key_is_read_only (sessions_tests.tests.CookieSessionTests) ... ok
+test_session_key_too_short_invalid (sessions_tests.tests.CookieSessionTests)
+Strings shorter than 8 characters are rejected. ... ok
+test_session_key_valid_string_saved (sessions_tests.tests.CookieSessionTests)
+Strings of length 8 and up are accepted and stored. ... ok
+test_session_load_does_not_create_record (sessions_tests.tests.CookieSessionTests) ... skipped "Cookie backend doesn't have an external store to create records in."
+test_session_save_does_not_resurrect_session_logged_out_in_other_context (sessions_tests.tests.CookieSessionTests) ... skipped 'CookieSession is stored in the client and there is no way to query it.'
+test_setdefault (sessions_tests.tests.CookieSessionTests) ... ok
+test_store (sessions_tests.tests.CookieSessionTests) ... ok
+test_unpickling_exception (sessions_tests.tests.CookieSessionTests) ... ok
+test_update (sessions_tests.tests.CookieSessionTests) ... ok
+test_values (sessions_tests.tests.CookieSessionTests) ... ok
+test_actual_expiry (sessions_tests.tests.FileSessionPathLibTests) ... ok
+test_clear (sessions_tests.tests.FileSessionPathLibTests) ... ok
+test_clearsessions_command (sessions_tests.tests.FileSessionPathLibTests) ... ok
+test_configuration_check (sessions_tests.tests.FileSessionPathLibTests) ... ok
+test_custom_expiry_datetime (sessions_tests.tests.FileSessionPathLibTests) ... ok
+test_custom_expiry_reset (sessions_tests.tests.FileSessionPathLibTests) ... ok
+test_custom_expiry_seconds (sessions_tests.tests.FileSessionPathLibTests) ... ok
+test_custom_expiry_timedelta (sessions_tests.tests.FileSessionPathLibTests) ... ok
+test_cycle (sessions_tests.tests.FileSessionPathLibTests) ... ok
+test_cycle_with_no_session_cache (sessions_tests.tests.FileSessionPathLibTests) ... ok
+test_decode (sessions_tests.tests.FileSessionPathLibTests) ... ok
+test_decode_failure_logged_to_security (sessions_tests.tests.FileSessionPathLibTests) ... ok
+test_decode_legacy (sessions_tests.tests.FileSessionPathLibTests) ... ok
+test_default_expiry (sessions_tests.tests.FileSessionPathLibTests) ... ok
+test_default_hashing_algorith_legacy_decode (sessions_tests.tests.FileSessionPathLibTests) ... ERROR
+test_delete (sessions_tests.tests.FileSessionPathLibTests) ... ok
+test_flush (sessions_tests.tests.FileSessionPathLibTests) ... ok
+test_get_empty (sessions_tests.tests.FileSessionPathLibTests) ... ok
+test_get_expire_at_browser_close (sessions_tests.tests.FileSessionPathLibTests) ... ok
+test_has_key (sessions_tests.tests.FileSessionPathLibTests) ... ok
+test_invalid_key (sessions_tests.tests.FileSessionPathLibTests) ... ok
+test_invalid_key_backslash (sessions_tests.tests.FileSessionPathLibTests) ... ok
+test_invalid_key_forwardslash (sessions_tests.tests.FileSessionPathLibTests) ... ok
+test_items (sessions_tests.tests.FileSessionPathLibTests) ... ok
+test_keys (sessions_tests.tests.FileSessionPathLibTests) ... ok
+test_new_session (sessions_tests.tests.FileSessionPathLibTests) ... ok
+test_pop (sessions_tests.tests.FileSessionPathLibTests) ... ok
+test_pop_default (sessions_tests.tests.FileSessionPathLibTests) ... ok
+test_pop_default_named_argument (sessions_tests.tests.FileSessionPathLibTests) ... ok
+test_pop_no_default_keyerror_raised (sessions_tests.tests.FileSessionPathLibTests) ... ok
+test_save (sessions_tests.tests.FileSessionPathLibTests) ... ok
+test_save_doesnt_clear_data (sessions_tests.tests.FileSessionPathLibTests) ... ok
+test_session_key_empty_string_invalid (sessions_tests.tests.FileSessionPathLibTests)
+Falsey values (Such as an empty string) are rejected. ... ok
+test_session_key_is_read_only (sessions_tests.tests.FileSessionPathLibTests) ... ok
+test_session_key_too_short_invalid (sessions_tests.tests.FileSessionPathLibTests)
+Strings shorter than 8 characters are rejected. ... ok
+test_session_key_valid_string_saved (sessions_tests.tests.FileSessionPathLibTests)
+Strings of length 8 and up are accepted and stored. ... ok
+test_session_load_does_not_create_record (sessions_tests.tests.FileSessionPathLibTests) ... ok
+test_session_save_does_not_resurrect_session_logged_out_in_other_context (sessions_tests.tests.FileSessionPathLibTests) ... ok
+test_setdefault (sessions_tests.tests.FileSessionPathLibTests) ... ok
+test_store (sessions_tests.tests.FileSessionPathLibTests) ... ok
+test_update (sessions_tests.tests.FileSessionPathLibTests) ... ok
+test_values (sessions_tests.tests.FileSessionPathLibTests) ... ok
+test_actual_expiry (sessions_tests.tests.FileSessionTests) ... ok
+test_clear (sessions_tests.tests.FileSessionTests) ... ok
+test_clearsessions_command (sessions_tests.tests.FileSessionTests) ... ok
+test_configuration_check (sessions_tests.tests.FileSessionTests) ... ok
+test_custom_expiry_datetime (sessions_tests.tests.FileSessionTests) ... ok
+test_custom_expiry_reset (sessions_tests.tests.FileSessionTests) ... ok
+test_custom_expiry_seconds (sessions_tests.tests.FileSessionTests) ... ok
+test_custom_expiry_timedelta (sessions_tests.tests.FileSessionTests) ... ok
+test_cycle (sessions_tests.tests.FileSessionTests) ... ok
+test_cycle_with_no_session_cache (sessions_tests.tests.FileSessionTests) ... ok
+test_decode (sessions_tests.tests.FileSessionTests) ... ok
+test_decode_failure_logged_to_security (sessions_tests.tests.FileSessionTests) ... ok
+test_decode_legacy (sessions_tests.tests.FileSessionTests) ... ok
+test_default_expiry (sessions_tests.tests.FileSessionTests) ... ok
+test_default_hashing_algorith_legacy_decode (sessions_tests.tests.FileSessionTests) ... ERROR
+test_delete (sessions_tests.tests.FileSessionTests) ... ok
+test_flush (sessions_tests.tests.FileSessionTests) ... ok
+test_get_empty (sessions_tests.tests.FileSessionTests) ... ok
+test_get_expire_at_browser_close (sessions_tests.tests.FileSessionTests) ... ok
+test_has_key (sessions_tests.tests.FileSessionTests) ... ok
+test_invalid_key (sessions_tests.tests.FileSessionTests) ... ok
+test_invalid_key_backslash (sessions_tests.tests.FileSessionTests) ... ok
+test_invalid_key_forwardslash (sessions_tests.tests.FileSessionTests) ... ok
+test_items (sessions_tests.tests.FileSessionTests) ... ok
+test_keys (sessions_tests.tests.FileSessionTests) ... ok
+test_new_session (sessions_tests.tests.FileSessionTests) ... ok
+test_pop (sessions_tests.tests.FileSessionTests) ... ok
+test_pop_default (sessions_tests.tests.FileSessionTests) ... ok
+test_pop_default_named_argument (sessions_tests.tests.FileSessionTests) ... ok
+test_pop_no_default_keyerror_raised (sessions_tests.tests.FileSessionTests) ... ok
+test_save (sessions_tests.tests.FileSessionTests) ... ok
+test_save_doesnt_clear_data (sessions_tests.tests.FileSessionTests) ... ok
+test_session_key_empty_string_invalid (sessions_tests.tests.FileSessionTests)
+Falsey values (Such as an empty string) are rejected. ... ok
+test_session_key_is_read_only (sessions_tests.tests.FileSessionTests) ... ok
+test_session_key_too_short_invalid (sessions_tests.tests.FileSessionTests)
+Strings shorter than 8 characters are rejected. ... ok
+test_session_key_valid_string_saved (sessions_tests.tests.FileSessionTests)
+Strings of length 8 and up are accepted and stored. ... ok
+test_session_load_does_not_create_record (sessions_tests.tests.FileSessionTests) ... ok
+test_session_save_does_not_resurrect_session_logged_out_in_other_context (sessions_tests.tests.FileSessionTests) ... ok
+test_setdefault (sessions_tests.tests.FileSessionTests) ... ok
+test_store (sessions_tests.tests.FileSessionTests) ... ok
+test_update (sessions_tests.tests.FileSessionTests) ... ok
+test_values (sessions_tests.tests.FileSessionTests) ... Testing against Django installed in '/testbed/django'
+Importing application sessions_tests
+Skipping setup of unused database(s): other.
+Operations to perform:
+  Synchronize unmigrated apps: auth, contenttypes, messages, sessions, sessions_tests, staticfiles
+  Apply all migrations: admin, sites
+Synchronizing apps without migrations:
+  Creating tables...
+    Creating table django_content_type
+    Creating table auth_permission
+    Creating table auth_group
+    Creating table auth_user
+    Creating table django_session
+    Creating table sessions_tests_customsession
+    Running deferred SQL...
+Running migrations:
+  Applying admin.0001_initial... OK
+  Applying admin.0002_logentry_remove_auto_add... OK
+  Applying admin.0003_logentry_add_action_flag_choices... OK
+  Applying sites.0001_initial... OK
+  Applying sites.0002_alter_domain_unique... OK
+System check identified no issues (0 silenced).
+ok
+
+======================================================================
+ERROR: test_default_hashing_algorith_legacy_decode (sessions_tests.tests.CacheDBSessionTests)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/testbed/django/test/utils.py", line 381, in inner
+    return func(*args, **kwargs)
+  File "/testbed/tests/sessions_tests/tests.py", line 333, in test_default_hashing_algorith_legacy_decode
+    self.assertEqual(self.session._legacy_decode(encoded), data)
+  File "/testbed/django/contrib/sessions/backends/base.py", line 126, in _legacy_decode
+    encoded_data = base64.b64decode(session_data.encode('ascii'))
+  File "/opt/miniconda3/envs/testbed/lib/python3.6/base64.py", line 87, in b64decode
+    return binascii.a2b_base64(s)
+binascii.Error: Incorrect padding
+
+======================================================================
+ERROR: test_default_hashing_algorith_legacy_decode (sessions_tests.tests.CacheDBSessionWithTimeZoneTests)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/testbed/django/test/utils.py", line 381, in inner
+    return func(*args, **kwargs)
+  File "/testbed/tests/sessions_tests/tests.py", line 333, in test_default_hashing_algorith_legacy_decode
+    self.assertEqual(self.session._legacy_decode(encoded), data)
+  File "/testbed/django/contrib/sessions/backends/base.py", line 126, in _legacy_decode
+    encoded_data = base64.b64decode(session_data.encode('ascii'))
+  File "/opt/miniconda3/envs/testbed/lib/python3.6/base64.py", line 87, in b64decode
+    return binascii.a2b_base64(s)
+binascii.Error: Incorrect padding
+
+======================================================================
+ERROR: test_default_hashing_algorith_legacy_decode (sessions_tests.tests.CustomDatabaseSessionTests)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/testbed/django/test/utils.py", line 381, in inner
+    return func(*args, **kwargs)
+  File "/testbed/tests/sessions_tests/tests.py", line 333, in test_default_hashing_algorith_legacy_decode
+    self.assertEqual(self.session._legacy_decode(encoded), data)
+  File "/testbed/django/contrib/sessions/backends/base.py", line 126, in _legacy_decode
+    encoded_data = base64.b64decode(session_data.encode('ascii'))
+  File "/opt/miniconda3/envs/testbed/lib/python3.6/base64.py", line 87, in b64decode
+    return binascii.a2b_base64(s)
+binascii.Error: Incorrect padding
+
+======================================================================
+ERROR: test_default_hashing_algorith_legacy_decode (sessions_tests.tests.DatabaseSessionTests)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/testbed/django/test/utils.py", line 381, in inner
+    return func(*args, **kwargs)
+  File "/testbed/tests/sessions_tests/tests.py", line 333, in test_default_hashing_algorith_legacy_decode
+    self.assertEqual(self.session._legacy_decode(encoded), data)
+  File "/testbed/django/contrib/sessions/backends/base.py", line 126, in _legacy_decode
+    encoded_data = base64.b64decode(session_data.encode('ascii'))
+  File "/opt/miniconda3/envs/testbed/lib/python3.6/base64.py", line 87, in b64decode
+    return binascii.a2b_base64(s)
+binascii.Error: Incorrect padding
+
+======================================================================
+ERROR: test_default_hashing_algorith_legacy_decode (sessions_tests.tests.DatabaseSessionWithTimeZoneTests)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/testbed/django/test/utils.py", line 381, in inner
+    return func(*args, **kwargs)
+  File "/testbed/tests/sessions_tests/tests.py", line 333, in test_default_hashing_algorith_legacy_decode
+    self.assertEqual(self.session._legacy_decode(encoded), data)
+  File "/testbed/django/contrib/sessions/backends/base.py", line 126, in _legacy_decode
+    encoded_data = base64.b64decode(session_data.encode('ascii'))
+  File "/opt/miniconda3/envs/testbed/lib/python3.6/base64.py", line 87, in b64decode
+    return binascii.a2b_base64(s)
+binascii.Error: Incorrect padding
+
+======================================================================
+ERROR: test_default_hashing_algorith_legacy_decode (sessions_tests.tests.CacheSessionTests)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/testbed/django/test/utils.py", line 381, in inner
+    return func(*args, **kwargs)
+  File "/testbed/tests/sessions_tests/tests.py", line 333, in test_default_hashing_algorith_legacy_decode
+    self.assertEqual(self.session._legacy_decode(encoded), data)
+  File "/testbed/django/contrib/sessions/backends/base.py", line 126, in _legacy_decode
+    encoded_data = base64.b64decode(session_data.encode('ascii'))
+  File "/opt/miniconda3/envs/testbed/lib/python3.6/base64.py", line 87, in b64decode
+    return binascii.a2b_base64(s)
+binascii.Error: Incorrect padding
+
+======================================================================
+ERROR: test_default_hashing_algorith_legacy_decode (sessions_tests.tests.CookieSessionTests)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/testbed/django/test/utils.py", line 381, in inner
+    return func(*args, **kwargs)
+  File "/testbed/tests/sessions_tests/tests.py", line 333, in test_default_hashing_algorith_legacy_decode
+    self.assertEqual(self.session._legacy_decode(encoded), data)
+  File "/testbed/django/contrib/sessions/backends/base.py", line 126, in _legacy_decode
+    encoded_data = base64.b64decode(session_data.encode('ascii'))
+  File "/opt/miniconda3/envs/testbed/lib/python3.6/base64.py", line 87, in b64decode
+    return binascii.a2b_base64(s)
+binascii.Error: Incorrect padding
+
+======================================================================
+ERROR: test_default_hashing_algorith_legacy_decode (sessions_tests.tests.FileSessionPathLibTests)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/testbed/django/test/utils.py", line 381, in inner
+    return func(*args, **kwargs)
+  File "/testbed/tests/sessions_tests/tests.py", line 333, in test_default_hashing_algorith_legacy_decode
+    self.assertEqual(self.session._legacy_decode(encoded), data)
+  File "/testbed/django/contrib/sessions/backends/base.py", line 126, in _legacy_decode
+    encoded_data = base64.b64decode(session_data.encode('ascii'))
+  File "/opt/miniconda3/envs/testbed/lib/python3.6/base64.py", line 87, in b64decode
+    return binascii.a2b_base64(s)
+binascii.Error: Incorrect padding
+
+======================================================================
+ERROR: test_default_hashing_algorith_legacy_decode (sessions_tests.tests.FileSessionTests)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/testbed/django/test/utils.py", line 381, in inner
+    return func(*args, **kwargs)
+  File "/testbed/tests/sessions_tests/tests.py", line 333, in test_default_hashing_algorith_legacy_decode
+    self.assertEqual(self.session._legacy_decode(encoded), data)
+  File "/testbed/django/contrib/sessions/backends/base.py", line 126, in _legacy_decode
+    encoded_data = base64.b64decode(session_data.encode('ascii'))
+  File "/opt/miniconda3/envs/testbed/lib/python3.6/base64.py", line 87, in b64decode
+    return binascii.a2b_base64(s)
+binascii.Error: Incorrect padding
+
+----------------------------------------------------------------------
+Ran 384 tests in 0.416s
+
+FAILED (errors=9, skipped=2, expected failures=1)
+Destroying test database for alias 'default' ('file:memorydb_default?mode=memory&cache=shared')...
++ : '>>>>> End Test Output'
++ git checkout 6e9c5ee88fc948e05b4a7d9f82a8861ed2b0343d tests/sessions_tests/tests.py
+Updated 1 path from 4c027686e4
+
+2026-05-29 14:03:44,262 - ThreadPoolExecutor-3_1 - INFO - Container output: 
+2026-05-29 14:03:44,263 - ThreadPoolExecutor-3_1 - INFO - Installing more requirements
+2026-05-29 14:04:23,198 - ThreadPoolExecutor-3_1 - INFO - Running the agent
+2026-05-29 14:15:21,287 - ThreadPoolExecutor-3_1 - INFO - Container output: Using hosted_vllm proxy (https://proxy.onebot.meobeo.ai/v1) with model hosted_vllm/Qwen/Qwen3.5-35B-A3B-FP8.
+Error in chat_with_agent_manualtools: expected string or bytes-like object, got 'NoneType'
+Traceback (most recent call last):
+  File "/dgm/llm_withtools.py", line 344, in chat_with_agent_manualtools
+    tool_use = check_for_tool_use(response, model=client_model)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/dgm/llm_withtools.py", line 99, in check_for_tool_use
+    match = re.search(pattern, response, re.DOTALL)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/miniconda3/lib/python3.11/re/__init__.py", line 176, in search
+    return _compile(pattern, flags).search(string)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: expected string or bytes-like object, got 'NoneType'
+
+
+2026-05-29 14:15:21,287 - ThreadPoolExecutor-3_1 - INFO - Copying output files back to host
+2026-05-29 14:15:21,465 - ThreadPoolExecutor-3_1 - INFO - Copying from container /dgm/django__django-13279.md to local path D:\kh4ng\Data_agent\dgm_agent\swe_bench\predictions_100\hosted_vllm\Qwen\Qwen3.5-35B-A3B-FP8_0\django__django-13279.md
+2026-05-29 14:15:21,478 - ThreadPoolExecutor-3_1 - INFO - Successfully copied from container to D:\kh4ng\Data_agent\dgm_agent\swe_bench\predictions_100\hosted_vllm\Qwen\Qwen3.5-35B-A3B-FP8_0\django__django-13279.md
+2026-05-29 14:15:21,566 - ThreadPoolExecutor-3_1 - INFO - Getting model_patch
+2026-05-29 14:15:21,663 - ThreadPoolExecutor-3_1 - INFO - Container output: 
+2026-05-29 14:15:21,767 - ThreadPoolExecutor-3_1 - INFO - Attempting to stop container sweb.eval.django__django-13279.20260529_140333_615446...
+2026-05-29 14:15:37,225 - ThreadPoolExecutor-3_1 - INFO - Attempting to remove container sweb.eval.django__django-13279.20260529_140333_615446...
+2026-05-29 14:15:38,488 - ThreadPoolExecutor-3_1 - INFO - Container sweb.eval.django__django-13279.20260529_140333_615446 removed.
+2026-05-29 14:15:38,525 - ThreadPoolExecutor-3_1 - INFO - No existing container with name sweb.eval.sphinx-doc__sphinx-10466.20260529_141538_518158 found.
+2026-05-29 14:15:38,625 - ThreadPoolExecutor-3_1 - INFO - Environment image sweb.env.py.x86_64.764c21123474adcba1e003:latest found for sphinx-doc__sphinx-10466
+Building instance image sweb.eval.x86_64.sphinx-doc__sphinx-10466:latest for sphinx-doc__sphinx-10466
+2026-05-29 14:17:07,487 - ThreadPoolExecutor-3_1 - INFO - Creating container for sphinx-doc__sphinx-10466...
+2026-05-29 14:17:07,663 - ThreadPoolExecutor-3_1 - INFO - Container for sphinx-doc__sphinx-10466 created: 5f3c673dec3b3a58f5acfc19e78b38360c5586f2e5c1525996bd35ea0e1fc47b
+2026-05-29 14:17:07,911 - ThreadPoolExecutor-3_1 - INFO - Working directory set to: D:\kh4ng\Data_agent\dgm_agent
+2026-05-29 14:17:07,995 - ThreadPoolExecutor-3_1 - INFO - Copying coding_agent.py to container at /dgm/coding_agent.py
+2026-05-29 14:17:08,003 - ThreadPoolExecutor-3_1 - INFO - Successfully copied coding_agent.py to container
+2026-05-29 14:17:08,092 - ThreadPoolExecutor-3_1 - INFO - Copying requirements.txt to container at /dgm/requirements.txt
+2026-05-29 14:17:08,100 - ThreadPoolExecutor-3_1 - INFO - Successfully copied requirements.txt to container
+2026-05-29 14:17:08,189 - ThreadPoolExecutor-3_1 - INFO - Copying pytest.ini to container at /dgm/pytest.ini
+2026-05-29 14:17:08,205 - ThreadPoolExecutor-3_1 - INFO - Successfully copied pytest.ini to container
+2026-05-29 14:17:08,307 - ThreadPoolExecutor-3_1 - INFO - Copying tools to container at /dgm/tools
+2026-05-29 14:17:08,320 - ThreadPoolExecutor-3_1 - INFO - Successfully copied tools to container
+2026-05-29 14:17:08,412 - ThreadPoolExecutor-3_1 - INFO - Copying utils to container at /dgm/utils
+2026-05-29 14:17:08,424 - ThreadPoolExecutor-3_1 - INFO - Successfully copied utils to container
+2026-05-29 14:17:08,544 - ThreadPoolExecutor-3_1 - INFO - Copying tests to container at /dgm/tests
+2026-05-29 14:17:08,555 - ThreadPoolExecutor-3_1 - INFO - Successfully copied tests to container
+2026-05-29 14:17:08,665 - ThreadPoolExecutor-3_1 - INFO - Copying prompts to container at /dgm/prompts
+2026-05-29 14:17:08,696 - ThreadPoolExecutor-3_1 - INFO - Successfully copied prompts to container
+2026-05-29 14:17:08,800 - ThreadPoolExecutor-3_1 - INFO - Copying llm.py to container at /dgm/llm.py
+2026-05-29 14:17:08,809 - ThreadPoolExecutor-3_1 - INFO - Successfully copied llm.py to container
+2026-05-29 14:17:08,915 - ThreadPoolExecutor-3_1 - INFO - Copying llm_withtools.py to container at /dgm/llm_withtools.py
+2026-05-29 14:17:08,924 - ThreadPoolExecutor-3_1 - INFO - Successfully copied llm_withtools.py to container
+2026-05-29 14:17:08,924 - ThreadPoolExecutor-3_1 - INFO - Setting up environment
+2026-05-29 14:17:09,025 - ThreadPoolExecutor-3_1 - INFO - Copying D:\kh4ng\Data_agent\dgm_agent\swe_bench\predictions_100\hosted_vllm\Qwen\Qwen3.5-35B-A3B-FP8_0\sphinx-doc__sphinx-10466_eval.sh to container at /eval.sh
+2026-05-29 14:17:09,034 - ThreadPoolExecutor-3_1 - INFO - Successfully copied D:\kh4ng\Data_agent\dgm_agent\swe_bench\predictions_100\hosted_vllm\Qwen\Qwen3.5-35B-A3B-FP8_0\sphinx-doc__sphinx-10466_eval.sh to container
+2026-05-29 14:17:15,582 - ThreadPoolExecutor-3_1 - INFO - Container output: + source /opt/miniconda3/bin/activate
+++ _CONDA_ROOT=/opt/miniconda3
+++ . /opt/miniconda3/etc/profile.d/conda.sh
++++ export CONDA_EXE=/opt/miniconda3/bin/conda
++++ CONDA_EXE=/opt/miniconda3/bin/conda
++++ export _CE_M=
++++ _CE_M=
++++ export _CE_CONDA=
++++ _CE_CONDA=
++++ export CONDA_PYTHON_EXE=/opt/miniconda3/bin/python
++++ CONDA_PYTHON_EXE=/opt/miniconda3/bin/python
++++ '[' -z '' ']'
++++ export CONDA_SHLVL=0
++++ CONDA_SHLVL=0
++++ '[' -n '' ']'
++++++ dirname /opt/miniconda3/bin/conda
+++++ dirname /opt/miniconda3/bin
++++ PATH=/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
++++ export PATH
++++ '[' -z '' ']'
++++ PS1=
+++ conda activate
+++ local cmd=activate
+++ case "$cmd" in
+++ __conda_activate activate
+++ '[' -n '' ']'
+++ local ask_conda
++++ PS1=
++++ __conda_exe shell.posix activate
++++ /opt/miniconda3/bin/conda shell.posix activate
+++ ask_conda='PS1='\''(base) '\''
+export PATH='\''/opt/miniconda3/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'\''
+export CONDA_PREFIX='\''/opt/miniconda3'\''
+export CONDA_SHLVL='\''1'\''
+export CONDA_DEFAULT_ENV='\''base'\''
+export CONDA_PROMPT_MODIFIER='\''(base) '\''
+export CONDA_EXE='\''/opt/miniconda3/bin/conda'\''
+export _CE_M='\'''\''
+export _CE_CONDA='\'''\''
+export CONDA_PYTHON_EXE='\''/opt/miniconda3/bin/python'\'''
+++ eval 'PS1='\''(base) '\''
+export PATH='\''/opt/miniconda3/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'\''
+export CONDA_PREFIX='\''/opt/miniconda3'\''
+export CONDA_SHLVL='\''1'\''
+export CONDA_DEFAULT_ENV='\''base'\''
+export CONDA_PROMPT_MODIFIER='\''(base) '\''
+export CONDA_EXE='\''/opt/miniconda3/bin/conda'\''
+export _CE_M='\'''\''
+export _CE_CONDA='\'''\''
+export CONDA_PYTHON_EXE='\''/opt/miniconda3/bin/python'\'''
++++ PS1='(base) '
++++ export PATH=/opt/miniconda3/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
++++ PATH=/opt/miniconda3/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
++++ export CONDA_PREFIX=/opt/miniconda3
++++ CONDA_PREFIX=/opt/miniconda3
++++ export CONDA_SHLVL=1
++++ CONDA_SHLVL=1
++++ export CONDA_DEFAULT_ENV=base
++++ CONDA_DEFAULT_ENV=base
++++ export 'CONDA_PROMPT_MODIFIER=(base) '
++++ CONDA_PROMPT_MODIFIER='(base) '
++++ export CONDA_EXE=/opt/miniconda3/bin/conda
++++ CONDA_EXE=/opt/miniconda3/bin/conda
++++ export _CE_M=
++++ _CE_M=
++++ export _CE_CONDA=
++++ _CE_CONDA=
++++ export CONDA_PYTHON_EXE=/opt/miniconda3/bin/python
++++ CONDA_PYTHON_EXE=/opt/miniconda3/bin/python
+++ __conda_hashr
+++ '[' -n '' ']'
+++ '[' -n '' ']'
+++ hash -r
++ conda activate testbed
++ local cmd=activate
++ case "$cmd" in
++ __conda_activate activate testbed
++ '[' -n '' ']'
++ local ask_conda
+++ PS1='(base) '
+++ __conda_exe shell.posix activate testbed
+++ /opt/miniconda3/bin/conda shell.posix activate testbed
++ ask_conda='PS1='\''(testbed) '\''
+export PATH='\''/opt/miniconda3/envs/testbed/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'\''
+export CONDA_PREFIX='\''/opt/miniconda3/envs/testbed'\''
+export CONDA_SHLVL='\''2'\''
+export CONDA_DEFAULT_ENV='\''testbed'\''
+export CONDA_PROMPT_MODIFIER='\''(testbed) '\''
+export CONDA_PREFIX_1='\''/opt/miniconda3'\''
+export CONDA_EXE='\''/opt/miniconda3/bin/conda'\''
+export _CE_M='\'''\''
+export _CE_CONDA='\'''\''
+export CONDA_PYTHON_EXE='\''/opt/miniconda3/bin/python'\'''
++ eval 'PS1='\''(testbed) '\''
+export PATH='\''/opt/miniconda3/envs/testbed/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'\''
+export CONDA_PREFIX='\''/opt/miniconda3/envs/testbed'\''
+export CONDA_SHLVL='\''2'\''
+export CONDA_DEFAULT_ENV='\''testbed'\''
+export CONDA_PROMPT_MODIFIER='\''(testbed) '\''
+export CONDA_PREFIX_1='\''/opt/miniconda3'\''
+export CONDA_EXE='\''/opt/miniconda3/bin/conda'\''
+export _CE_M='\'''\''
+export _CE_CONDA='\'''\''
+export CONDA_PYTHON_EXE='\''/opt/miniconda3/bin/python'\'''
+++ PS1='(testbed) '
+++ export PATH=/opt/miniconda3/envs/testbed/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+++ PATH=/opt/miniconda3/envs/testbed/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+++ export CONDA_PREFIX=/opt/miniconda3/envs/testbed
+++ CONDA_PREFIX=/opt/miniconda3/envs/testbed
+++ export CONDA_SHLVL=2
+++ CONDA_SHLVL=2
+++ export CONDA_DEFAULT_ENV=testbed
+++ CONDA_DEFAULT_ENV=testbed
+++ export 'CONDA_PROMPT_MODIFIER=(testbed) '
+++ CONDA_PROMPT_MODIFIER='(testbed) '
+++ export CONDA_PREFIX_1=/opt/miniconda3
+++ CONDA_PREFIX_1=/opt/miniconda3
+++ export CONDA_EXE=/opt/miniconda3/bin/conda
+++ CONDA_EXE=/opt/miniconda3/bin/conda
+++ export _CE_M=
+++ _CE_M=
+++ export _CE_CONDA=
+++ _CE_CONDA=
+++ export CONDA_PYTHON_EXE=/opt/miniconda3/bin/python
+++ CONDA_PYTHON_EXE=/opt/miniconda3/bin/python
++ __conda_hashr
++ '[' -n '' ']'
++ '[' -n '' ']'
++ hash -r
++ cd /testbed
++ git config --global --add safe.directory /testbed
++ cd /testbed
++ git status
+On branch master
+nothing to commit, working tree clean
++ git show
+commit 8319c0684d9fbbe730c5d6a8575dfc0a03b2e967
+Author: SWE-bench <setup@swebench.config>
+Date:   Fri May 29 07:16:45 2026 +0000
+
+    SWE-bench
+
+diff --git a/tox.ini b/tox.ini
+index 105a02597..90ada0821 100644
+--- a/tox.ini
++++ b/tox.ini
+@@ -29,7 +29,7 @@ setenv =
+     PYTHONWARNINGS = all
+     PYTEST_ADDOPTS = {env:PYTEST_ADDOPTS:} --color yes
+ commands=
+-    python -X dev -X warn_default_encoding -m pytest --durations 25 {posargs}
++    python -X dev -X warn_default_encoding -m pytest -rA --durations 25 {posargs}
+ 
+ [testenv:du-latest]
+ commands =
++ git -c core.fileMode=false diff cab2d93076d0cca7c53fac885f927dde3e2a5fec
+diff --git a/tox.ini b/tox.ini
+index 105a02597..90ada0821 100644
+--- a/tox.ini
++++ b/tox.ini
+@@ -29,7 +29,7 @@ setenv =
+     PYTHONWARNINGS = all
+     PYTEST_ADDOPTS = {env:PYTEST_ADDOPTS:} --color yes
+ commands=
+-    python -X dev -X warn_default_encoding -m pytest --durations 25 {posargs}
++    python -X dev -X warn_default_encoding -m pytest -rA --durations 25 {posargs}
+ 
+ [testenv:du-latest]
+ commands =
++ source /opt/miniconda3/bin/activate
+++ _CONDA_ROOT=/opt/miniconda3
+++ . /opt/miniconda3/etc/profile.d/conda.sh
++++ export CONDA_EXE=/opt/miniconda3/bin/conda
++++ CONDA_EXE=/opt/miniconda3/bin/conda
++++ export _CE_M=
++++ _CE_M=
++++ export _CE_CONDA=
++++ _CE_CONDA=
++++ export CONDA_PYTHON_EXE=/opt/miniconda3/bin/python
++++ CONDA_PYTHON_EXE=/opt/miniconda3/bin/python
++++ '[' -z x ']'
+++ conda activate
+++ local cmd=activate
+++ case "$cmd" in
+++ __conda_activate activate
+++ '[' -n '' ']'
+++ local ask_conda
++++ PS1='(testbed) '
++++ __conda_exe shell.posix activate
++++ /opt/miniconda3/bin/conda shell.posix activate
+++ ask_conda='PS1='\''(base) '\''
+export PATH='\''/opt/miniconda3/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'\''
+export CONDA_PREFIX='\''/opt/miniconda3'\''
+export CONDA_SHLVL='\''3'\''
+export CONDA_DEFAULT_ENV='\''base'\''
+export CONDA_PROMPT_MODIFIER='\''(base) '\''
+export CONDA_PREFIX_2='\''/opt/miniconda3/envs/testbed'\''
+export CONDA_EXE='\''/opt/miniconda3/bin/conda'\''
+export _CE_M='\'''\''
+export _CE_CONDA='\'''\''
+export CONDA_PYTHON_EXE='\''/opt/miniconda3/bin/python'\'''
+++ eval 'PS1='\''(base) '\''
+export PATH='\''/opt/miniconda3/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'\''
+export CONDA_PREFIX='\''/opt/miniconda3'\''
+export CONDA_SHLVL='\''3'\''
+export CONDA_DEFAULT_ENV='\''base'\''
+export CONDA_PROMPT_MODIFIER='\''(base) '\''
+export CONDA_PREFIX_2='\''/opt/miniconda3/envs/testbed'\''
+export CONDA_EXE='\''/opt/miniconda3/bin/conda'\''
+export _CE_M='\'''\''
+export _CE_CONDA='\'''\''
+export CONDA_PYTHON_EXE='\''/opt/miniconda3/bin/python'\'''
++++ PS1='(base) '
++++ export PATH=/opt/miniconda3/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
++++ PATH=/opt/miniconda3/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
++++ export CONDA_PREFIX=/opt/miniconda3
++++ CONDA_PREFIX=/opt/miniconda3
++++ export CONDA_SHLVL=3
++++ CONDA_SHLVL=3
++++ export CONDA_DEFAULT_ENV=base
++++ CONDA_DEFAULT_ENV=base
++++ export 'CONDA_PROMPT_MODIFIER=(base) '
++++ CONDA_PROMPT_MODIFIER='(base) '
++++ export CONDA_PREFIX_2=/opt/miniconda3/envs/testbed
++++ CONDA_PREFIX_2=/opt/miniconda3/envs/testbed
++++ export CONDA_EXE=/opt/miniconda3/bin/conda
++++ CONDA_EXE=/opt/miniconda3/bin/conda
++++ export _CE_M=
++++ _CE_M=
++++ export _CE_CONDA=
++++ _CE_CONDA=
++++ export CONDA_PYTHON_EXE=/opt/miniconda3/bin/python
++++ CONDA_PYTHON_EXE=/opt/miniconda3/bin/python
+++ __conda_hashr
+++ '[' -n '' ']'
+++ '[' -n '' ']'
+++ hash -r
++ conda activate testbed
++ local cmd=activate
++ case "$cmd" in
++ __conda_activate activate testbed
++ '[' -n '' ']'
++ local ask_conda
+++ PS1='(base) '
+++ __conda_exe shell.posix activate testbed
+++ /opt/miniconda3/bin/conda shell.posix activate testbed
++ ask_conda='PS1='\''(testbed) '\''
+export PATH='\''/opt/miniconda3/envs/testbed/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'\''
+export CONDA_PREFIX='\''/opt/miniconda3/envs/testbed'\''
+export CONDA_SHLVL='\''4'\''
+export CONDA_DEFAULT_ENV='\''testbed'\''
+export CONDA_PROMPT_MODIFIER='\''(testbed) '\''
+export CONDA_PREFIX_3='\''/opt/miniconda3'\''
+export CONDA_EXE='\''/opt/miniconda3/bin/conda'\''
+export _CE_M='\'''\''
+export _CE_CONDA='\'''\''
+export CONDA_PYTHON_EXE='\''/opt/miniconda3/bin/python'\'''
++ eval 'PS1='\''(testbed) '\''
+export PATH='\''/opt/miniconda3/envs/testbed/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'\''
+export CONDA_PREFIX='\''/opt/miniconda3/envs/testbed'\''
+export CONDA_SHLVL='\''4'\''
+export CONDA_DEFAULT_ENV='\''testbed'\''
+export CONDA_PROMPT_MODIFIER='\''(testbed) '\''
+export CONDA_PREFIX_3='\''/opt/miniconda3'\''
+export CONDA_EXE='\''/opt/miniconda3/bin/conda'\''
+export _CE_M='\'''\''
+export _CE_CONDA='\'''\''
+export CONDA_PYTHON_EXE='\''/opt/miniconda3/bin/python'\'''
+++ PS1='(testbed) '
+++ export PATH=/opt/miniconda3/envs/testbed/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+++ PATH=/opt/miniconda3/envs/testbed/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+++ export CONDA_PREFIX=/opt/miniconda3/envs/testbed
+++ CONDA_PREFIX=/opt/miniconda3/envs/testbed
+++ export CONDA_SHLVL=4
+++ CONDA_SHLVL=4
+++ export CONDA_DEFAULT_ENV=testbed
+++ CONDA_DEFAULT_ENV=testbed
+++ export 'CONDA_PROMPT_MODIFIER=(testbed) '
+++ CONDA_PROMPT_MODIFIER='(testbed) '
+++ export CONDA_PREFIX_3=/opt/miniconda3
+++ CONDA_PREFIX_3=/opt/miniconda3
+++ export CONDA_EXE=/opt/miniconda3/bin/conda
+++ CONDA_EXE=/opt/miniconda3/bin/conda
+++ export _CE_M=
+++ _CE_M=
+++ export _CE_CONDA=
+++ _CE_CONDA=
+++ export CONDA_PYTHON_EXE=/opt/miniconda3/bin/python
+++ CONDA_PYTHON_EXE=/opt/miniconda3/bin/python
++ __conda_hashr
++ '[' -n '' ']'
++ '[' -n '' ']'
++ hash -r
++ python -m pip install -e '.[test]'
+Obtaining file:///testbed
+  Installing build dependencies: started
+  Installing build dependencies: finished with status 'done'
+  Checking if build backend supports build_editable: started
+  Checking if build backend supports build_editable: finished with status 'done'
+  Getting requirements to build editable: started
+  Getting requirements to build editable: finished with status 'done'
+  Preparing editable metadata (pyproject.toml): started
+  Preparing editable metadata (pyproject.toml): finished with status 'done'
+Requirement already satisfied: sphinxcontrib-applehelp in /opt/miniconda3/envs/testbed/lib/python3.9/site-packages (from Sphinx==5.0.0b1.dev20260529) (2.0.0)
+Requirement already satisfied: sphinxcontrib-devhelp in /opt/miniconda3/envs/testbed/lib/python3.9/site-packages (from Sphinx==5.0.0b1.dev20260529) (2.0.0)
+Requirement already satisfied: sphinxcontrib-jsmath in /opt/miniconda3/envs/testbed/lib/python3.9/site-packages (from Sphinx==5.0.0b1.dev20260529) (1.0.1)
+Requirement already satisfied: sphinxcontrib-htmlhelp>=2.0.0 in /opt/miniconda3/envs/testbed/lib/python3.9/site-packages (from Sphinx==5.0.0b1.dev20260529) (2.1.0)
+Requirement already satisfied: sphinxcontrib-serializinghtml>=1.1.5 in /opt/miniconda3/envs/testbed/lib/python3.9/site-packages (from Sphinx==5.0.0b1.dev20260529) (2.0.0)
+Requirement already satisfied: sphinxcontrib-qthelp in /opt/miniconda3/envs/testbed/lib/python3.9/site-packages (from Sphinx==5.0.0b1.dev20260529) (2.0.0)
+Requirement already satisfied: Jinja2>=2.3 in /opt/miniconda3/envs/testbed/lib/python3.9/site-packages (from Sphinx==5.0.0b1.dev20260529) (3.0.3)
+Requirement already satisfied: Pygments>=2.0 in /opt/miniconda3/envs/testbed/lib/python3.9/site-packages (from Sphinx==5.0.0b1.dev20260529) (2.20.0)
+Requirement already satisfied: docutils<0.19,>=0.14 in /opt/miniconda3/envs/testbed/lib/python3.9/site-packages (from Sphinx==5.0.0b1.dev20260529) (0.18.1)
+Requirement already satisfied: snowballstemmer>=1.1 in /opt/miniconda3/envs/testbed/lib/python3.9/site-packages (from Sphinx==5.0.0b1.dev20260529) (3.1.0)
+Requirement already satisfied: babel>=1.3 in /opt/miniconda3/envs/testbed/lib/python3.9/site-packages (from Sphinx==5.0.0b1.dev20260529) (2.18.0)
+Requirement already satisfied: alabaster<0.8,>=0.7 in /opt/miniconda3/envs/testbed/lib/python3.9/site-packages (from Sphinx==5.0.0b1.dev20260529) (0.7.16)
+Requirement already satisfied: imagesize in /opt/miniconda3/envs/testbed/lib/python3.9/site-packages (from Sphinx==5.0.0b1.dev20260529) (1.5.0)
+Requirement already satisfied: requests>=2.5.0 in /opt/miniconda3/envs/testbed/lib/python3.9/site-packages (from Sphinx==5.0.0b1.dev20260529) (2.32.5)
+Requirement already satisfied: packaging in /opt/miniconda3/envs/testbed/lib/python3.9/site-packages (from Sphinx==5.0.0b1.dev20260529) (26.2)
+Requirement already satisfied: importlib-metadata>=4.4 in /opt/miniconda3/envs/testbed/lib/python3.9/site-packages (from Sphinx==5.0.0b1.dev20260529) (8.7.1)
+Requirement already satisfied: pytest>=4.6 in /opt/miniconda3/envs/testbed/lib/python3.9/site-packages (from Sphinx==5.0.0b1.dev20260529) (8.4.2)
+Requirement already satisfied: html5lib in /opt/miniconda3/envs/testbed/lib/python3.9/site-packages (from Sphinx==5.0.0b1.dev20260529) (1.1)
+Requirement already satisfied: cython in /opt/miniconda3/envs/testbed/lib/python3.9/site-packages (from Sphinx==5.0.0b1.dev20260529) (3.2.5)
+Requirement already satisfied: zipp>=3.20 in /opt/miniconda3/envs/testbed/lib/python3.9/site-packages (from importlib-metadata>=4.4->Sphinx==5.0.0b1.dev20260529) (3.23.1)
+Requirement already satisfied: MarkupSafe>=2.0 in /opt/miniconda3/envs/testbed/lib/python3.9/site-packages (from Jinja2>=2.3->Sphinx==5.0.0b1.dev20260529) (3.0.3)
+Requirement already satisfied: exceptiongroup>=1 in /opt/miniconda3/envs/testbed/lib/python3.9/site-packages (from pytest>=4.6->Sphinx==5.0.0b1.dev20260529) (1.3.1)
+Requirement already satisfied: iniconfig>=1 in /opt/miniconda3/envs/testbed/lib/python3.9/site-packages (from pytest>=4.6->Sphinx==5.0.0b1.dev20260529) (2.1.0)
+Requirement already satisfied: pluggy<2,>=1.5 in /opt/miniconda3/envs/testbed/lib/python3.9/site-packages (from pytest>=4.6->Sphinx==5.0.0b1.dev20260529) (1.6.0)
+Requirement already satisfied: tomli>=1 in /opt/miniconda3/envs/testbed/lib/python3.9/site-packages (from pytest>=4.6->Sphinx==5.0.0b1.dev20260529) (2.4.1)
+Requirement already satisfied: typing-extensions>=4.6.0 in /opt/miniconda3/envs/testbed/lib/python3.9/site-packages (from exceptiongroup>=1->pytest>=4.6->Sphinx==5.0.0b1.dev20260529) (4.15.0)
+Requirement already satisfied: charset_normalizer<4,>=2 in /opt/miniconda3/envs/testbed/lib/python3.9/site-packages (from requests>=2.5.0->Sphinx==5.0.0b1.dev20260529) (3.4.7)
+Requirement already satisfied: idna<4,>=2.5 in /opt/miniconda3/envs/testbed/lib/python3.9/site-packages (from requests>=2.5.0->Sphinx==5.0.0b1.dev20260529) (3.17)
+Requirement already satisfied: urllib3<3,>=1.21.1 in /opt/miniconda3/envs/testbed/lib/python3.9/site-packages (from requests>=2.5.0->Sphinx==5.0.0b1.dev20260529) (2.6.3)
+Requirement already satisfied: certifi>=2017.4.17 in /opt/miniconda3/envs/testbed/lib/python3.9/site-packages (from requests>=2.5.0->Sphinx==5.0.0b1.dev20260529) (2026.5.20)
+Requirement already satisfied: six>=1.9 in /opt/miniconda3/envs/testbed/lib/python3.9/site-packages (from html5lib->Sphinx==5.0.0b1.dev20260529) (1.17.0)
+Requirement already satisfied: webencodings in /opt/miniconda3/envs/testbed/lib/python3.9/site-packages (from html5lib->Sphinx==5.0.0b1.dev20260529) (0.5.1)
+Building wheels for collected packages: Sphinx
+  Building editable for Sphinx (pyproject.toml): started
+  Building editable for Sphinx (pyproject.toml): finished with status 'done'
+  Created wheel for Sphinx: filename=sphinx-5.0.0b1.dev20260529-0.editable-py3-none-any.whl size=8454 sha256=7637fb6c69bee75136bd7c8a7d6dadfcd12fc4afe7d30725faf863a70ca984b7
+  Stored in directory: /tmp/pip-ephem-wheel-cache-a7vphhzh/wheels/7d/66/67/70d1ee2124ccf21d601c352e25cdca10f611f7c8b3f9ffb9e4
+Successfully built Sphinx
+Installing collected packages: Sphinx
+  Attempting uninstall: Sphinx
+    Found existing installation: Sphinx 5.0.0b1.dev20260529
+    Uninstalling Sphinx-5.0.0b1.dev20260529:
+      Successfully uninstalled Sphinx-5.0.0b1.dev20260529
+Successfully installed Sphinx-5.0.0b1.dev20260529
+WARNING: Running pip as the 'root' user can result in broken permissions and conflicting behaviour with the system package manager, possibly rendering your system unusable. It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv. Use the --root-user-action option if you know what you are doing and want to suppress this warning.
++ git checkout cab2d93076d0cca7c53fac885f927dde3e2a5fec tests/test_build_gettext.py
+Updated 0 paths from 04de92458
++ git apply -v -
+Checking patch tests/test_build_gettext.py...
+Applied patch tests/test_build_gettext.py cleanly.
++ : '>>>>> Start Test Output'
++ tox --current-env -epy39 -v -- tests/test_build_gettext.py
+py39: commands[0]> python -X dev -X warn_default_encoding -m pytest -rA --durations 25 tests/test_build_gettext.py
+[1m============================= test session starts ==============================[0m
+platform linux -- Python 3.9.25, pytest-8.4.2, pluggy-1.6.0
+cachedir: .tox/py39/.pytest_cache
+libraries: Sphinx-5.0.0b1, docutils-0.18.1
+base tempdir: /tmp/pytest-of-root/pytest-0
+rootdir: /testbed
+configfile: setup.cfg
+collected 8 items
+
+tests/test_build_gettext.py [31mF[0m[32m.[0m[33ms[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[31m                                     [100%][0m
+
+=================================== FAILURES ===================================
+[31m[1m_______________________ test_Catalog_duplicated_message ________________________[0m
+
+    [0m[94mdef[39;49;00m[90m [39;49;00m[92mtest_Catalog_duplicated_message[39;49;00m():[90m[39;49;00m
+        catalog = Catalog()[90m[39;49;00m
+        catalog.add([33m'[39;49;00m[33mhello[39;49;00m[33m'[39;49;00m, MsgOrigin([33m'[39;49;00m[33m/path/to/filename[39;49;00m[33m'[39;49;00m, [94m1[39;49;00m))[90m[39;49;00m
+        catalog.add([33m'[39;49;00m[33mhello[39;49;00m[33m'[39;49;00m, MsgOrigin([33m'[39;49;00m[33m/path/to/filename[39;49;00m[33m'[39;49;00m, [94m1[39;49;00m))[90m[39;49;00m
+        catalog.add([33m'[39;49;00m[33mhello[39;49;00m[33m'[39;49;00m, MsgOrigin([33m'[39;49;00m[33m/path/to/filename[39;49;00m[33m'[39;49;00m, [94m2[39;49;00m))[90m[39;49;00m
+        catalog.add([33m'[39;49;00m[33mhello[39;49;00m[33m'[39;49;00m, MsgOrigin([33m'[39;49;00m[33m/path/to/yetanother[39;49;00m[33m'[39;49;00m, [94m1[39;49;00m))[90m[39;49;00m
+        catalog.add([33m'[39;49;00m[33mworld[39;49;00m[33m'[39;49;00m, MsgOrigin([33m'[39;49;00m[33m/path/to/filename[39;49;00m[33m'[39;49;00m, [94m1[39;49;00m))[90m[39;49;00m
+    [90m[39;49;00m
+        [94massert[39;49;00m [96mlen[39;49;00m([96mlist[39;49;00m(catalog)) == [94m2[39;49;00m[90m[39;49;00m
+    [90m[39;49;00m
+        msg1, msg2 = [96mlist[39;49;00m(catalog)[90m[39;49;00m
+        [94massert[39;49;00m msg1.text == [33m'[39;49;00m[33mhello[39;49;00m[33m'[39;49;00m[90m[39;49;00m
+>       [94massert[39;49;00m msg1.locations == [([33m'[39;49;00m[33m/path/to/filename[39;49;00m[33m'[39;49;00m, [94m1[39;49;00m),[90m[39;49;00m
+                                  ([33m'[39;49;00m[33m/path/to/filename[39;49;00m[33m'[39;49;00m, [94m2[39;49;00m),[90m[39;49;00m
+                                  ([33m'[39;49;00m[33m/path/to/yetanother[39;49;00m[33m'[39;49;00m, [94m1[39;49;00m)][90m[39;49;00m
+[1m[31mE       AssertionError: assert [('/path/to/f...tanother', 1)] == [('/path/to/f...tanother', 1)][0m
+[1m[31mE         [0m
+[1m[31mE         At index 1 diff: [0m([33m'[39;49;00m[33m/path/to/filename[39;49;00m[33m'[39;49;00m, [94m1[39;49;00m)[90m[39;49;00m != [0m([33m'[39;49;00m[33m/path/to/filename[39;49;00m[33m'[39;49;00m, [94m2[39;49;00m)[90m[39;49;00m[0m
+[1m[31mE         Left contains one more item: [0m([33m'[39;49;00m[33m/path/to/yetanother[39;49;00m[33m'[39;49;00m, [94m1[39;49;00m)[90m[39;49;00m[0m
+[1m[31mE         Use -v to get more diff[0m
+
+[1m[31mtests/test_build_gettext.py[0m:27: AssertionError
+==================================== PASSES ====================================
+--------------------------- Captured stdout teardown ---------------------------
+# testroot: root
+# builder: gettext
+# srcdir: /tmp/pytest-of-root/pytest-0/root-gettext
+# outdir: /tmp/pytest-of-root/pytest-0/root-gettext/_build/gettext
+# status: 
+[01mRunning Sphinx v5.0.0b1[39;49;00m
+[01mbuilding [gettext]: [39;49;00mtargets for 3 template files
+[01mreading templates... [39;49;00m[ 33%] [35m/tmp/pytest-of-root/pytest-0/root-gettext/_templates/contentssb.html[39;49;00m[01mreading templates... [39;49;00m[ 66%] [35m/tmp/pytest-of-root/pytest-0/root-gettext/_templates/customsb.html[39;49;00m[01mreading templates... [39;49;00m[100%] [35m/tmp/pytest-of-root/pytest-0/root-gettext/_templates/layout.html[39;49;00m
+[01mbuilding [gettext]: [39;49;00mall source files
+[01mupdating environment: [39;49;00m[new config] 15 added, 0 changed, 0 removed
+[01mreading sources... [39;49;00m[  6%] [35mautodoc[39;49;00m                                              [01mreading sources... [39;49;00m[ 13%] [35mbom[39;49;00m                                                  [01mreading sources... [39;49;00m[ 20%] [35mextapi[39;49;00m                                               [01mreading sources... [39;49;00m[ 26%] [35mextensions[39;49;00m                                           [01mreading sources... [39;49;00m[ 33%] [35mfootnote[39;49;00m                                             [01mreading sources... [39;49;00m[ 40%] [35mimages[39;49;00m                                               [01mreading sources... [39;49;00m[ 46%] [35mincludes[39;49;00m                                             [01mreading sources... [39;49;00m[ 53%] [35mindex[39;49;00m                                                [01mreading sources... [39;49;00m[ 60%] [35mlists[39;49;00m                                                [01mreading sources... [39;49;00m[ 66%] [35mmarkup[39;49;00m                                               [01mreading sources... [39;49;00m[ 73%] [35mmath[39;49;00m                                                 [01mreading sources... [39;49;00m[ 80%] [35mobjects[39;49;00m                                              [01mreading sources... [39;49;00m[ 86%] [35motherext[39;49;00m                                             [01mreading sources... [39;49;00m[ 93%] [35msubdir/images[39;49;00m                                        [01mreading sources... [39;49;00m[100%] [35msubdir/includes[39;49;00m                                      
+[01mlooking for now-outdated files... [39;49;00mnone found
+[01mpickling environment... [39;49;00mdone
+[01mchecking consistency... [39;49;00mdone
+[01mpreparing documents... [39;49;00mdone
+[01mwriting output... [39;49;00m[  6%] [32mautodoc[39;49;00m                                               [01mwriting output... [39;49;00m[ 13%] [32mbom[39;49;00m                                                   [01mwriting output... [39;49;00m[ 20%] [32mextapi[39;49;00m                                                [01mwriting output... [39;49;00m[ 26%] [32mextensions[39;49;00m                                            [01mwriting output... [39;49;00m[ 33%] [32mfootnote[39;49;00m                                              [01mwriting output... [39;49;00m[ 40%] [32mimages[39;49;00m                                                [01mwriting output... [39;49;00m[ 46%] [32mincludes[39;49;00m                                              [01mwriting output... [39;49;00m[ 53%] [32mindex[39;49;00m                                                 [01mwriting output... [39;49;00m[ 60%] [32mlists[39;49;00m                                                 [01mwriting output... [39;49;00m[ 66%] [32mmarkup[39;49;00m                                                [01mwriting output... [39;49;00m[ 73%] [32mmath[39;49;00m                                                  [01mwriting output... [39;49;00m[ 80%] [32mobjects[39;49;00m                                               [01mwriting output... [39;49;00m[ 86%] [32motherext[39;49;00m                                              [01mwriting output... [39;49;00m[ 93%] [32msubdir/images[39;49;00m                                         [01mwriting output... [39;49;00m[100%] [32msubdir/includes[39;49;00m                                       
+[01mwriting message catalogs... [39;49;00m[  7%] [32mautodoc[39;49;00m                                     [01mwriting message catalogs... [39;49;00m[ 14%] [32mbom[39;49;00m                                         [01mwriting message catalogs... [39;49;00m[ 21%] [32mextapi[39;49;00m                                      [01mwriting message catalogs... [39;49;00m[ 28%] [32mextensions[39;49;00m                                  [01mwriting message catalogs... [39;49;00m[ 35%] [32mfootnote[39;49;00m                                    [01mwriting message catalogs... [39;49;00m[ 42%] [32mimages[39;49;00m                                      [01mwriting message catalogs... [39;49;00m[ 50%] [32mincludes[39;49;00m                                    [01mwriting message catalogs... [39;49;00m[ 57%] [32mindex[39;49;00m                                       [01mwriting message catalogs... [39;49;00m[ 64%] [32mlists[39;49;00m                                       [01mwriting message catalogs... [39;49;00m[ 71%] [32mmarkup[39;49;00m                                      [01mwriting message catalogs... [39;49;00m[ 78%] [32mmath[39;49;00m                                        [01mwriting message catalogs... [39;49;00m[ 85%] [32mobjects[39;49;00m                                     [01mwriting message catalogs... [39;49;00m[ 92%] [32motherext[39;49;00m                                    [01mwriting message catalogs... [39;49;00m[100%] [32msubdir[39;49;00m                                      
+
+# warning: 
+[91m/tmp/pytest-of-root/pytest-0/root-gettext/autodoc_target.py:docstring of autodoc_target.Class:1: WARNING: duplicate object description of autodoc_target.Class, other instance in autodoc, use :noindex: for one of them[39;49;00m
+[91m/tmp/pytest-of-root/pytest-0/root-gettext/autodoc_target.py:docstring of autodoc_target.Class.attr:1: WARNING: duplicate object description of autodoc_target.Class.attr, other instance in autodoc, use :noindex: for one of them[39;49;00m
+[91m/tmp/pytest-of-root/pytest-0/root-gettext/autodoc_target.py:docstring of autodoc_target.Class.descr:1: WARNING: duplicate object description of autodoc_target.Class.descr, other instance in autodoc, use :noindex: for one of them[39;49;00m
+[91m/tmp/pytest-of-root/pytest-0/root-gettext/autodoc_target.py:docstring of autodoc_target.Class.docattr:1: WARNING: duplicate object description of autodoc_target.Class.docattr, other instance in autodoc, use :noindex: for one of them[39;49;00m
+[91m/tmp/pytest-of-root/pytest-0/root-gettext/autodoc_target.py:docstring of autodoc_target.Class.excludemeth:1: WARNING: duplicate object description of autodoc_target.Class.excludemeth, other instance in autodoc, use :noindex: for one of them[39;49;00m
+[91m/tmp/pytest-of-root/pytest-0/root-gettext/autodoc_target.py:docstring of autodoc_target.Class.inst_attr_comment:1: WARNING: duplicate object description of autodoc_target.Class.inst_attr_comment, other instance in autodoc, use :noindex: for one of them[39;49;00m
+[91m/tmp/pytest-of-root/pytest-0/root-gettext/autodoc_target.py:docstring of autodoc_target.Class.inst_attr_inline:1: WARNING: duplicate object description of autodoc_target.Class.inst_attr_inline, other instance in autodoc, use :noindex: for one of them[39;49;00m
+[91m/tmp/pytest-of-root/pytest-0/root-gettext/autodoc_target.py:docstring of autodoc_target.Class.inst_attr_string:1: WARNING: duplicate object description of autodoc_target.Class.inst_attr_string, other instance in autodoc, use :noindex: for one of them[39;49;00m
+[91m/tmp/pytest-of-root/pytest-0/root-gettext/autodoc_target.py:docstring of autodoc_target.Class.mdocattr:1: WARNING: duplicate object description of autodoc_target.Class.mdocattr, other instance in autodoc, use :noindex: for one of them[39;49;00m
+[91m/tmp/pytest-of-root/pytest-0/root-gettext/autodoc_target.py:docstring of autodoc_target.Class.meth:1: WARNING: duplicate object description of autodoc_target.Class.meth, other instance in autodoc, use :noindex: for one of them[39;49;00m
+[91m/tmp/pytest-of-root/pytest-0/root-gettext/autodoc_target.py:docstring of autodoc_target.Class.moore:1: WARNING: duplicate object description of autodoc_target.Class.moore, other instance in autodoc, use :noindex: for one of them[39;49;00m
+[91m/tmp/pytest-of-root/pytest-0/root-gettext/autodoc_target.py:docstring of autodoc_target.Class.prop:1: WARNING: duplicate object description of autodoc_target.Class.prop, other instance in autodoc, use :noindex: for one of them[39;49;00m
+[91m/tmp/pytest-of-root/pytest-0/root-gettext/autodoc_target.py:docstring of autodoc_target.Class.skipmeth:1: WARNING: duplicate object description of autodoc_target.Class.skipmeth, other instance in autodoc, use :noindex: for one of them[39;49;00m
+[91m/tmp/pytest-of-root/pytest-0/root-gettext/autodoc_target.py:docstring of autodoc_target.Class.udocattr:1: WARNING: duplicate object description of autodoc_target.Class.udocattr, other instance in autodoc, use :noindex: for one of them[39;49;00m
+[91m/tmp/pytest-of-root/pytest-0/root-gettext/autodoc_target.py:docstring of autodoc_target.Class.docattr:1: WARNING: duplicate object description of autodoc_target.Class.docattr, other instance in autodoc, use :noindex: for one of them[39;49;00m
+[91m/tmp/pytest-of-root/pytest-0/root-gettext/autodoc_target.py:docstring of autodoc_target.InstAttCls:1: WARNING: duplicate object description of autodoc_target.InstAttCls, other instance in autodoc, use :noindex: for one of them[39;49;00m
+[91m/tmp/pytest-of-root/pytest-0/root-gettext/autodoc_target.py:docstring of autodoc_target.InstAttCls.ca1:1: WARNING: duplicate object description of autodoc_target.InstAttCls.ca1, other instance in autodoc, use :noindex: for one of them[39;49;00m
+[91m/tmp/pytest-of-root/pytest-0/root-gettext/autodoc_target.py:docstring of autodoc_target.InstAttCls.ia1:1: WARNING: duplicate object description of autodoc_target.InstAttCls.ia1, other instance in autodoc, use :noindex: for one of them[39;49;00m
+[91m/tmp/pytest-of-root/pytest-0/root-gettext/objects.txt:143: WARNING: Unparseable C cross-reference: 'SphinxType *'
+Invalid C declaration: Expected end of definition. [error at 11]
+  SphinxType *
+  -----------^[39;49;00m
+
+--------------------------- Captured stdout teardown ---------------------------
+# testroot: root
+# builder: gettext
+# srcdir: /tmp/pytest-of-root/pytest-0/gettext
+# outdir: /tmp/pytest-of-root/pytest-0/gettext/_build/gettext
+# status: 
+[01mRunning Sphinx v5.0.0b1[39;49;00m
+[01mbuilding [gettext]: [39;49;00mtargets for 1 template files
+[01mreading templates... [39;49;00m[100%] [35m/tmp/pytest-of-root/pytest-0/gettext/_templates/contents.html[39;49;00m
+[01mupdating environment: [39;49;00m[new config] 29 added, 0 changed, 0 removed
+[01mreading sources... [39;49;00m[  3%] [35madmonitions[39;49;00m                                          [01mreading sources... [39;49;00m[  6%] [35mbom[39;49;00m                                                  [01mreading sources... [39;49;00m[ 10%] [35mdefinition_terms[39;49;00m                                     [01mreading sources... [39;49;00m[ 13%] [35mdocfields[39;49;00m                                            [01mreading sources... [39;49;00m[ 17%] [35mexternal_links[39;49;00m                                       [01mreading sources... [39;49;00m[ 20%] [35mfigure[39;49;00m                                               [01mreading sources... [39;49;00m[ 24%] [35mfootnote[39;49;00m                                             [01mreading sources... [39;49;00m[ 27%] [35mglossary_terms[39;49;00m                                       [01mreading sources... [39;49;00m[ 31%] [35mglossary_terms_inconsistency[39;49;00m                         [01mreading sources... [39;49;00m[ 34%] [35mindex[39;49;00m                                                [01mreading sources... [39;49;00m[ 37%] [35mindex_entries[39;49;00m                                        [01mreading sources... [39;49;00m[ 41%] [35mlabel_target[39;49;00m                                         [01mreading sources... [39;49;00m[ 44%] [35mliteralblock[39;49;00m                                         [01mreading sources... [39;49;00m[ 48%] [35mnoqa[39;49;00m                                                 [01mreading sources... [39;49;00m[ 51%] [35monly[39;49;00m                                                 [01mreading sources... [39;49;00m[ 55%] [35mraw[39;49;00m                                                  [01mreading sources... [39;49;00m[ 58%] [35mrefs[39;49;00m                                                 [01mreading sources... [39;49;00m[ 62%] [35mrefs_inconsistency[39;49;00m                                   [01mreading sources... [39;49;00m[ 65%] [35mrefs_python_domain[39;49;00m                                   [01mreading sources... [39;49;00m[ 68%] [35mrole_xref[39;49;00m                                            [01mreading sources... [39;49;00m[ 72%] [35mrubric[39;49;00m                                               [01mreading sources... [39;49;00m[ 75%] [35msection[39;49;00m                                              [01mreading sources... [39;49;00m[ 79%] [35mseealso[39;49;00m                                              [01mreading sources... [39;49;00m[ 82%] [35msubdir/index[39;49;00m                                         [01mreading sources... [39;49;00m[ 86%] [35mtable[39;49;00m                                                [01mreading sources... [39;49;00m[ 89%] [35mtoctree[39;49;00m                                              [01mreading sources... [39;49;00m[ 93%] [35mtopic[39;49;00m                                                [01mreading sources... [39;49;00m[ 96%] [35mversionchange[39;49;00m                                        [01mreading sources... [39;49;00m[100%] [35mwarnings[39;49;00m                                             
+[01mlooking for now-outdated files... [39;49;00mnone found
+[01mpickling environment... [39;49;00mdone
+[01mchecking consistency... [39;49;00mdone
+[01mpreparing documents... [39;49;00mdone
+[01mwriting output... [39;49;00m[  3%] [32madmonitions[39;49;00m                                           [01mwriting output... [39;49;00m[  6%] [32mbom[39;49;00m                                                   [01mwriting output... [39;49;00m[ 10%] [32mdefinition_terms[39;49;00m                                      [01mwriting output... [39;49;00m[ 13%] [32mdocfields[39;49;00m                                             [01mwriting output... [39;49;00m[ 17%] [32mexternal_links[39;49;00m                                        [01mwriting output... [39;49;00m[ 20%] [32mfigure[39;49;00m                                                [01mwriting output... [39;49;00m[ 24%] [32mfootnote[39;49;00m                                              [01mwriting output... [39;49;00m[ 27%] [32mglossary_terms[39;49;00m                                        [01mwriting output... [39;49;00m[ 31%] [32mglossary_terms_inconsistency[39;49;00m                          [01mwriting output... [39;49;00m[ 34%] [32mindex[39;49;00m                                                 [01mwriting output... [39;49;00m[ 37%] [32mindex_entries[39;49;00m                                         [01mwriting output... [39;49;00m[ 41%] [32mlabel_target[39;49;00m                                          [01mwriting output... [39;49;00m[ 44%] [32mliteralblock[39;49;00m                                          [01mwriting output... [39;49;00m[ 48%] [32mnoqa[39;49;00m                                                  [01mwriting output... [39;49;00m[ 51%] [32monly[39;49;00m                                                  [01mwriting output... [39;49;00m[ 55%] [32mraw[39;49;00m                                                   [01mwriting output... [39;49;00m[ 58%] [32mrefs[39;49;00m                                                  [01mwriting output... [39;49;00m[ 62%] [32mrefs_inconsistency[39;49;00m                                    [01mwriting output... [39;49;00m[ 65%] [32mrefs_python_domain[39;49;00m                                    [01mwriting output... [39;49;00m[ 68%] [32mrole_xref[39;49;00m                                             [01mwriting output... [39;49;00m[ 72%] [32mrubric[39;49;00m                                                [01mwriting output... [39;49;00m[ 75%] [32msection[39;49;00m                                               [01mwriting output... [39;49;00m[ 79%] [32mseealso[39;49;00m                                               [01mwriting output... [39;49;00m[ 82%] [32msubdir/index[39;49;00m                                          [01mwriting output... [39;49;00m[ 86%] [32mtable[39;49;00m                                                 [01mwriting output... [39;49;00m[ 89%] [32mtoctree[39;49;00m                                               [01mwriting output... [39;49;00m[ 93%] [32mtopic[39;49;00m                                                 [01mwriting output... [39;49;00m[ 96%] [32mversionchange[39;49;00m                                         [01mwriting output... [39;49;00m[100%] [32mwarnings[39;49;00m                                              
+[01mwriting message catalogs... [39;49;00m[  3%] [32msphinx[39;49;00m                                      [01mwriting message catalogs... [39;49;00m[  6%] [32madmonitions[39;49;00m                                 [01mwriting message catalogs... [39;49;00m[ 10%] [32mbom[39;49;00m                                         [01mwriting message catalogs... [39;49;00m[ 13%] [32mdefinition_terms[39;49;00m                            [01mwriting message catalogs... [39;49;00m[ 16%] [32mdocfields[39;49;00m                                   [01mwriting message catalogs... [39;49;00m[ 20%] [32mexternal_links[39;49;00m                              [01mwriting message catalogs... [39;49;00m[ 23%] [32mfigure[39;49;00m                                      [01mwriting message catalogs... [39;49;00m[ 26%] [32mfootnote[39;49;00m                                    [01mwriting message catalogs... [39;49;00m[ 30%] [32mglossary_terms[39;49;00m                              [01mwriting message catalogs... [39;49;00m[ 33%] [32mglossary_terms_inconsistency[39;49;00m                [01mwriting message catalogs... [39;49;00m[ 36%] [32mindex[39;49;00m                                       [01mwriting message catalogs... [39;49;00m[ 40%] [32mindex_entries[39;49;00m                               [01mwriting message catalogs... [39;49;00m[ 43%] [32mlabel_target[39;49;00m                                [01mwriting message catalogs... [39;49;00m[ 46%] [32mliteralblock[39;49;00m                                [01mwriting message catalogs... [39;49;00m[ 50%] [32mnoqa[39;49;00m                                        [01mwriting message catalogs... [39;49;00m[ 53%] [32monly[39;49;00m                                        [01mwriting message catalogs... [39;49;00m[ 56%] [32mraw[39;49;00m                                         [01mwriting message catalogs... [39;49;00m[ 60%] [32mrefs[39;49;00m                                        [01mwriting message catalogs... [39;49;00m[ 63%] [32mrefs_inconsistency[39;49;00m                          [01mwriting message catalogs... [39;49;00m[ 66%] [32mrefs_python_domain[39;49;00m                          [01mwriting message catalogs... [39;49;00m[ 70%] [32mrole_xref[39;49;00m                                   [01mwriting message catalogs... [39;49;00m[ 73%] [32mrubric[39;49;00m                                      [01mwriting message catalogs... [39;49;00m[ 76%] [32msection[39;49;00m                                     [01mwriting message catalogs... [39;49;00m[ 80%] [32mseealso[39;49;00m                                     [01mwriting message catalogs... [39;49;00m[ 83%] [32msubdir/index[39;49;00m                                [01mwriting message catalogs... [39;49;00m[ 86%] [32mtable[39;49;00m                                       [01mwriting message catalogs... [39;49;00m[ 90%] [32mtoctree[39;49;00m                                     [01mwriting message catalogs... [39;49;00m[ 93%] [32mtopic[39;49;00m                                       [01mwriting message catalogs... [39;49;00m[ 96%] [32mversionchange[39;49;00m                               [01mwriting message catalogs... [39;49;00m[100%] [32mwarnings[39;49;00m                                    
+
+# warning: 
+[31m/tmp/pytest-of-root/pytest-0/gettext/label_target.txt:41: ERROR: Duplicate target name, cannot be used as a unique reference: "duplicated sub section".[39;49;00m
+[91m/tmp/pytest-of-root/pytest-0/gettext/literalblock.txt:13: WARNING: Literal block expected; none found.[39;49;00m
+[91m/tmp/pytest-of-root/pytest-0/gettext/admonitions.txt: WARNING: document isn't included in any toctree[39;49;00m
+[91m/tmp/pytest-of-root/pytest-0/gettext/label_target.txt: WARNING: document isn't included in any toctree[39;49;00m
+[91m/tmp/pytest-of-root/pytest-0/gettext/noqa.txt: WARNING: document isn't included in any toctree[39;49;00m
+[91m/tmp/pytest-of-root/pytest-0/gettext/refs_python_domain.txt: WARNING: document isn't included in any toctree[39;49;00m
+[91m/tmp/pytest-of-root/pytest-0/gettext/rubric.txt: WARNING: document isn't included in any toctree[39;49;00m
+[91m/tmp/pytest-of-root/pytest-0/gettext/toctree.txt: WARNING: document isn't included in any toctree[39;49;00m
+
+--------------------------- Captured stdout teardown ---------------------------
+# testroot: root
+# builder: gettext
+# srcdir: /tmp/pytest-of-root/pytest-0/gettext
+# outdir: /tmp/pytest-of-root/pytest-0/gettext/_build/gettext
+# status: 
+[01mRunning Sphinx v5.0.0b1[39;49;00m
+[01mloading pickled environment... [39;49;00mdone
+[01mbuilding [gettext]: [39;49;00mtargets for 1 template files
+[01mreading templates... [39;49;00m[100%] [35m/tmp/pytest-of-root/pytest-0/gettext/_templates/contents.html[39;49;00m
+[01mupdating environment: [39;49;00m[config changed ('gettext_additional_targets')] 29 added, 0 changed, 0 removed
+[01mreading sources... [39;49;00m[  3%] [35madmonitions[39;49;00m                                          [01mreading sources... [39;49;00m[  6%] [35mbom[39;49;00m                                                  [01mreading sources... [39;49;00m[ 10%] [35mdefinition_terms[39;49;00m                                     [01mreading sources... [39;49;00m[ 13%] [35mdocfields[39;49;00m                                            [01mreading sources... [39;49;00m[ 17%] [35mexternal_links[39;49;00m                                       [01mreading sources... [39;49;00m[ 20%] [35mfigure[39;49;00m                                               [01mreading sources... [39;49;00m[ 24%] [35mfootnote[39;49;00m                                             [01mreading sources... [39;49;00m[ 27%] [35mglossary_terms[39;49;00m                                       [01mreading sources... [39;49;00m[ 31%] [35mglossary_terms_inconsistency[39;49;00m                         [01mreading sources... [39;49;00m[ 34%] [35mindex[39;49;00m                                                [01mreading sources... [39;49;00m[ 37%] [35mindex_entries[39;49;00m                                        [01mreading sources... [39;49;00m[ 41%] [35mlabel_target[39;49;00m                                         [01mreading sources... [39;49;00m[ 44%] [35mliteralblock[39;49;00m                                         [01mreading sources... [39;49;00m[ 48%] [35mnoqa[39;49;00m                                                 [01mreading sources... [39;49;00m[ 51%] [35monly[39;49;00m                                                 [01mreading sources... [39;49;00m[ 55%] [35mraw[39;49;00m                                                  [01mreading sources... [39;49;00m[ 58%] [35mrefs[39;49;00m                                                 [01mreading sources... [39;49;00m[ 62%] [35mrefs_inconsistency[39;49;00m                                   [01mreading sources... [39;49;00m[ 65%] [35mrefs_python_domain[39;49;00m                                   [01mreading sources... [39;49;00m[ 68%] [35mrole_xref[39;49;00m                                            [01mreading sources... [39;49;00m[ 72%] [35mrubric[39;49;00m                                               [01mreading sources... [39;49;00m[ 75%] [35msection[39;49;00m                                              [01mreading sources... [39;49;00m[ 79%] [35mseealso[39;49;00m                                              [01mreading sources... [39;49;00m[ 82%] [35msubdir/index[39;49;00m                                         [01mreading sources... [39;49;00m[ 86%] [35mtable[39;49;00m                                                [01mreading sources... [39;49;00m[ 89%] [35mtoctree[39;49;00m                                              [01mreading sources... [39;49;00m[ 93%] [35mtopic[39;49;00m                                                [01mreading sources... [39;49;00m[ 96%] [35mversionchange[39;49;00m                                        [01mreading sources... [39;49;00m[100%] [35mwarnings[39;49;00m                                             
+[01mlooking for now-outdated files... [39;49;00mnone found
+[01mpickling environment... [39;49;00mdone
+[01mchecking consistency... [39;49;00mdone
+[01mpreparing documents... [39;49;00mdone
+[01mwriting output... [39;49;00m[  3%] [32madmonitions[39;49;00m                                           [01mwriting output... [39;49;00m[  6%] [32mbom[39;49;00m                                                   [01mwriting output... [39;49;00m[ 10%] [32mdefinition_terms[39;49;00m                                      [01mwriting output... [39;49;00m[ 13%] [32mdocfields[39;49;00m                                             [01mwriting output... [39;49;00m[ 17%] [32mexternal_links[39;49;00m                                        [01mwriting output... [39;49;00m[ 20%] [32mfigure[39;49;00m                                                [01mwriting output... [39;49;00m[ 24%] [32mfootnote[39;49;00m                                              [01mwriting output... [39;49;00m[ 27%] [32mglossary_terms[39;49;00m                                        [01mwriting output... [39;49;00m[ 31%] [32mglossary_terms_inconsistency[39;49;00m                          [01mwriting output... [39;49;00m[ 34%] [32mindex[39;49;00m                                                 [01mwriting output... [39;49;00m[ 37%] [32mindex_entries[39;49;00m                                         [01mwriting output... [39;49;00m[ 41%] [32mlabel_target[39;49;00m                                          [01mwriting output... [39;49;00m[ 44%] [32mliteralblock[39;49;00m                                          [01mwriting output... [39;49;00m[ 48%] [32mnoqa[39;49;00m                                                  [01mwriting output... [39;49;00m[ 51%] [32monly[39;49;00m                                                  [01mwriting output... [39;49;00m[ 55%] [32mraw[39;49;00m                                                   [01mwriting output... [39;49;00m[ 58%] [32mrefs[39;49;00m                                                  [01mwriting output... [39;49;00m[ 62%] [32mrefs_inconsistency[39;49;00m                                    [01mwriting output... [39;49;00m[ 65%] [32mrefs_python_domain[39;49;00m                                    [01mwriting output... [39;49;00m[ 68%] [32mrole_xref[39;49;00m                                             [01mwriting output... [39;49;00m[ 72%] [32mrubric[39;49;00m                                                [01mwriting output... [39;49;00m[ 75%] [32msection[39;49;00m                                               [01mwriting output... [39;49;00m[ 79%] [32mseealso[39;49;00m                                               [01mwriting output... [39;49;00m[ 82%] [32msubdir/index[39;49;00m                                          [01mwriting output... [39;49;00m[ 86%] [32mtable[39;49;00m                                                 [01mwriting output... [39;49;00m[ 89%] [32mtoctree[39;49;00m                                               [01mwriting output... [39;49;00m[ 93%] [32mtopic[39;49;00m                                                 [01mwriting output... [39;49;00m[ 96%] [32mversionchange[39;49;00m                                         [01mwriting output... [39;49;00m[100%] [32mwarnings[39;49;00m                                              
+[01mwriting message catalogs... [39;49;00m[  3%] [32msphinx[39;49;00m                                      [01mwriting message catalogs... [39;49;00m[  6%] [32madmonitions[39;49;00m                                 [01mwriting message catalogs... [39;49;00m[ 10%] [32mbom[39;49;00m                                         [01mwriting message catalogs... [39;49;00m[ 13%] [32mdefinition_terms[39;49;00m                            [01mwriting message catalogs... [39;49;00m[ 16%] [32mdocfields[39;49;00m                                   [01mwriting message catalogs... [39;49;00m[ 20%] [32mexternal_links[39;49;00m                              [01mwriting message catalogs... [39;49;00m[ 23%] [32mfigure[39;49;00m                                      [01mwriting message catalogs... [39;49;00m[ 26%] [32mfootnote[39;49;00m                                    [01mwriting message catalogs... [39;49;00m[ 30%] [32mglossary_terms[39;49;00m                              [01mwriting message catalogs... [39;49;00m[ 33%] [32mglossary_terms_inconsistency[39;49;00m                [01mwriting message catalogs... [39;49;00m[ 36%] [32mindex[39;49;00m                                       [01mwriting message catalogs... [39;49;00m[ 40%] [32mindex_entries[39;49;00m                               [01mwriting message catalogs... [39;49;00m[ 43%] [32mlabel_target[39;49;00m                                [01mwriting message catalogs... [39;49;00m[ 46%] [32mliteralblock[39;49;00m                                [01mwriting message catalogs... [39;49;00m[ 50%] [32mnoqa[39;49;00m                                        [01mwriting message catalogs... [39;49;00m[ 53%] [32monly[39;49;00m                                        [01mwriting message catalogs... [39;49;00m[ 56%] [32mraw[39;49;00m                                         [01mwriting message catalogs... [39;49;00m[ 60%] [32mrefs[39;49;00m                                        [01mwriting message catalogs... [39;49;00m[ 63%] [32mrefs_inconsistency[39;49;00m                          [01mwriting message catalogs... [39;49;00m[ 66%] [32mrefs_python_domain[39;49;00m                          [01mwriting message catalogs... [39;49;00m[ 70%] [32mrole_xref[39;49;00m                                   [01mwriting message catalogs... [39;49;00m[ 73%] [32mrubric[39;49;00m                                      [01mwriting message catalogs... [39;49;00m[ 76%] [32msection[39;49;00m                                     [01mwriting message catalogs... [39;49;00m[ 80%] [32mseealso[39;49;00m                                     [01mwriting message catalogs... [39;49;00m[ 83%] [32msubdir/index[39;49;00m                                [01mwriting message catalogs... [39;49;00m[ 86%] [32mtable[39;49;00m                                       [01mwriting message catalogs... [39;49;00m[ 90%] [32mtoctree[39;49;00m                                     [01mwriting message catalogs... [39;49;00m[ 93%] [32mtopic[39;49;00m                                       [01mwriting message catalogs... [39;49;00m[ 96%] [32mversionchange[39;49;00m                               [01mwriting message catalogs... [39;49;00m[100%] [32mwarnings[39;49;00m                                    
+
+# warning: 
+[31m/tmp/pytest-of-root/pytest-0/gettext/label_target.txt:41: ERROR: Duplicate target name, cannot be used as a unique reference: "duplicated sub section".[39;49;00m
+[91m/tmp/pytest-of-root/pytest-0/gettext/literalblock.txt:13: WARNING: Literal block expected; none found.[39;49;00m
+[91m/tmp/pytest-of-root/pytest-0/gettext/admonitions.txt: WARNING: document isn't included in any toctree[39;49;00m
+[91m/tmp/pytest-of-root/pytest-0/gettext/label_target.txt: WARNING: document isn't included in any toctree[39;49;00m
+[91m/tmp/pytest-of-root/pytest-0/gettext/noqa.txt: WARNING: document isn't included in any toctree[39;49;00m
+[91m/tmp/pytest-of-root/pytest-0/gettext/refs_python_domain.txt: WARNING: document isn't included in any toctree[39;49;00m
+[91m/tmp/pytest-of-root/pytest-0/gettext/rubric.txt: WARNING: document isn't included in any toctree[39;49;00m
+[91m/tmp/pytest-of-root/pytest-0/gettext/toctree.txt: WARNING: document isn't included in any toctree[39;49;00m
+
+--------------------------- Captured stdout teardown ---------------------------
+# testroot: root
+# builder: gettext
+# srcdir: /tmp/pytest-of-root/pytest-0/gettext
+# outdir: /tmp/pytest-of-root/pytest-0/gettext/_build/gettext
+# status: 
+[01mRunning Sphinx v5.0.0b1[39;49;00m
+[01mloading pickled environment... [39;49;00mdone
+[01mbuilding [gettext]: [39;49;00mtargets for 1 template files
+[01mreading templates... [39;49;00m[100%] [35m/tmp/pytest-of-root/pytest-0/gettext/_templates/contents.html[39;49;00m
+[01mbuilding [gettext]: [39;49;00mall source files
+[01mupdating environment: [39;49;00m[config changed ('gettext_additional_targets')] 29 added, 0 changed, 0 removed
+[01mreading sources... [39;49;00m[  3%] [35madmonitions[39;49;00m                                          [01mreading sources... [39;49;00m[  6%] [35mbom[39;49;00m                                                  [01mreading sources... [39;49;00m[ 10%] [35mdefinition_terms[39;49;00m                                     [01mreading sources... [39;49;00m[ 13%] [35mdocfields[39;49;00m                                            [01mreading sources... [39;49;00m[ 17%] [35mexternal_links[39;49;00m                                       [01mreading sources... [39;49;00m[ 20%] [35mfigure[39;49;00m                                               [01mreading sources... [39;49;00m[ 24%] [35mfootnote[39;49;00m                                             [01mreading sources... [39;49;00m[ 27%] [35mglossary_terms[39;49;00m                                       [01mreading sources... [39;49;00m[ 31%] [35mglossary_terms_inconsistency[39;49;00m                         [01mreading sources... [39;49;00m[ 34%] [35mindex[39;49;00m                                                [01mreading sources... [39;49;00m[ 37%] [35mindex_entries[39;49;00m                                        [01mreading sources... [39;49;00m[ 41%] [35mlabel_target[39;49;00m                                         [01mreading sources... [39;49;00m[ 44%] [35mliteralblock[39;49;00m                                         [01mreading sources... [39;49;00m[ 48%] [35mnoqa[39;49;00m                                                 [01mreading sources... [39;49;00m[ 51%] [35monly[39;49;00m                                                 [01mreading sources... [39;49;00m[ 55%] [35mraw[39;49;00m                                                  [01mreading sources... [39;49;00m[ 58%] [35mrefs[39;49;00m                                                 [01mreading sources... [39;49;00m[ 62%] [35mrefs_inconsistency[39;49;00m                                   [01mreading sources... [39;49;00m[ 65%] [35mrefs_python_domain[39;49;00m                                   [01mreading sources... [39;49;00m[ 68%] [35mrole_xref[39;49;00m                                            [01mreading sources... [39;49;00m[ 72%] [35mrubric[39;49;00m                                               [01mreading sources... [39;49;00m[ 75%] [35msection[39;49;00m                                              [01mreading sources... [39;49;00m[ 79%] [35mseealso[39;49;00m                                              [01mreading sources... [39;49;00m[ 82%] [35msubdir/index[39;49;00m                                         [01mreading sources... [39;49;00m[ 86%] [35mtable[39;49;00m                                                [01mreading sources... [39;49;00m[ 89%] [35mtoctree[39;49;00m                                              [01mreading sources... [39;49;00m[ 93%] [35mtopic[39;49;00m                                                [01mreading sources... [39;49;00m[ 96%] [35mversionchange[39;49;00m                                        [01mreading sources... [39;49;00m[100%] [35mwarnings[39;49;00m                                             
+[01mlooking for now-outdated files... [39;49;00mnone found
+[01mpickling environment... [39;49;00mdone
+[01mchecking consistency... [39;49;00mdone
+[01mpreparing documents... [39;49;00mdone
+[01mwriting output... [39;49;00m[  3%] [32madmonitions[39;49;00m                                           [01mwriting output... [39;49;00m[  6%] [32mbom[39;49;00m                                                   [01mwriting output... [39;49;00m[ 10%] [32mdefinition_terms[39;49;00m                                      [01mwriting output... [39;49;00m[ 13%] [32mdocfields[39;49;00m                                             [01mwriting output... [39;49;00m[ 17%] [32mexternal_links[39;49;00m                                        [01mwriting output... [39;49;00m[ 20%] [32mfigure[39;49;00m                                                [01mwriting output... [39;49;00m[ 24%] [32mfootnote[39;49;00m                                              [01mwriting output... [39;49;00m[ 27%] [32mglossary_terms[39;49;00m                                        [01mwriting output... [39;49;00m[ 31%] [32mglossary_terms_inconsistency[39;49;00m                          [01mwriting output... [39;49;00m[ 34%] [32mindex[39;49;00m                                                 [01mwriting output... [39;49;00m[ 37%] [32mindex_entries[39;49;00m                                         [01mwriting output... [39;49;00m[ 41%] [32mlabel_target[39;49;00m                                          [01mwriting output... [39;49;00m[ 44%] [32mliteralblock[39;49;00m                                          [01mwriting output... [39;49;00m[ 48%] [32mnoqa[39;49;00m                                                  [01mwriting output... [39;49;00m[ 51%] [32monly[39;49;00m                                                  [01mwriting output... [39;49;00m[ 55%] [32mraw[39;49;00m                                                   [01mwriting output... [39;49;00m[ 58%] [32mrefs[39;49;00m                                                  [01mwriting output... [39;49;00m[ 62%] [32mrefs_inconsistency[39;49;00m                                    [01mwriting output... [39;49;00m[ 65%] [32mrefs_python_domain[39;49;00m                                    [01mwriting output... [39;49;00m[ 68%] [32mrole_xref[39;49;00m                                             [01mwriting output... [39;49;00m[ 72%] [32mrubric[39;49;00m                                                [01mwriting output... [39;49;00m[ 75%] [32msection[39;49;00m                                               [01mwriting output... [39;49;00m[ 79%] [32mseealso[39;49;00m                                               [01mwriting output... [39;49;00m[ 82%] [32msubdir/index[39;49;00m                                          [01mwriting output... [39;49;00m[ 86%] [32mtable[39;49;00m                                                 [01mwriting output... [39;49;00m[ 89%] [32mtoctree[39;49;00m                                               [01mwriting output... [39;49;00m[ 93%] [32mtopic[39;49;00m                                                 [01mwriting output... [39;49;00m[ 96%] [32mversionchange[39;49;00m                                         [01mwriting output... [39;49;00m[100%] [32mwarnings[39;49;00m                                              
+[01mwriting message catalogs... [39;49;00m[  3%] [32msphinx[39;49;00m                                      [01mwriting message catalogs... [39;49;00m[  6%] [32madmonitions[39;49;00m                                 [01mwriting message catalogs... [39;49;00m[ 10%] [32mbom[39;49;00m                                         [01mwriting message catalogs... [39;49;00m[ 13%] [32mdefinition_terms[39;49;00m                            [01mwriting message catalogs... [39;49;00m[ 16%] [32mdocfields[39;49;00m                                   [01mwriting message catalogs... [39;49;00m[ 20%] [32mexternal_links[39;49;00m                              [01mwriting message catalogs... [39;49;00m[ 23%] [32mfigure[39;49;00m                                      [01mwriting message catalogs... [39;49;00m[ 26%] [32mfootnote[39;49;00m                                    [01mwriting message catalogs... [39;49;00m[ 30%] [32mglossary_terms[39;49;00m                              [01mwriting message catalogs... [39;49;00m[ 33%] [32mglossary_terms_inconsistency[39;49;00m                [01mwriting message catalogs... [39;49;00m[ 36%] [32mindex[39;49;00m                                       [01mwriting message catalogs... [39;49;00m[ 40%] [32mindex_entries[39;49;00m                               [01mwriting message catalogs... [39;49;00m[ 43%] [32mlabel_target[39;49;00m                                [01mwriting message catalogs... [39;49;00m[ 46%] [32mliteralblock[39;49;00m                                [01mwriting message catalogs... [39;49;00m[ 50%] [32mnoqa[39;49;00m                                        [01mwriting message catalogs... [39;49;00m[ 53%] [32monly[39;49;00m                                        [01mwriting message catalogs... [39;49;00m[ 56%] [32mraw[39;49;00m                                         [01mwriting message catalogs... [39;49;00m[ 60%] [32mrefs[39;49;00m                                        [01mwriting message catalogs... [39;49;00m[ 63%] [32mrefs_inconsistency[39;49;00m                          [01mwriting message catalogs... [39;49;00m[ 66%] [32mrefs_python_domain[39;49;00m                          [01mwriting message catalogs... [39;49;00m[ 70%] [32mrole_xref[39;49;00m                                   [01mwriting message catalogs... [39;49;00m[ 73%] [32mrubric[39;49;00m                                      [01mwriting message catalogs... [39;49;00m[ 76%] [32msection[39;49;00m                                     [01mwriting message catalogs... [39;49;00m[ 80%] [32mseealso[39;49;00m                                     [01mwriting message catalogs... [39;49;00m[ 83%] [32msubdir[39;49;00m                                      [01mwriting message catalogs... [39;49;00m[ 86%] [32mtable[39;49;00m                                       [01mwriting message catalogs... [39;49;00m[ 90%] [32mtoctree[39;49;00m                                     [01mwriting message catalogs... [39;49;00m[ 93%] [32mtopic[39;49;00m                                       [01mwriting message catalogs... [39;49;00m[ 96%] [32mversionchange[39;49;00m                               [01mwriting message catalogs... [39;49;00m[100%] [32mwarnings[39;49;00m                                    
+
+# warning: 
+[31m/tmp/pytest-of-root/pytest-0/gettext/label_target.txt:41: ERROR: Duplicate target name, cannot be used as a unique reference: "duplicated sub section".[39;49;00m
+[91m/tmp/pytest-of-root/pytest-0/gettext/literalblock.txt:13: WARNING: Literal block expected; none found.[39;49;00m
+[91m/tmp/pytest-of-root/pytest-0/gettext/admonitions.txt: WARNING: document isn't included in any toctree[39;49;00m
+[91m/tmp/pytest-of-root/pytest-0/gettext/label_target.txt: WARNING: document isn't included in any toctree[39;49;00m
+[91m/tmp/pytest-of-root/pytest-0/gettext/noqa.txt: WARNING: document isn't included in any toctree[39;49;00m
+[91m/tmp/pytest-of-root/pytest-0/gettext/refs_python_domain.txt: WARNING: document isn't included in any toctree[39;49;00m
+[91m/tmp/pytest-of-root/pytest-0/gettext/rubric.txt: WARNING: document isn't included in any toctree[39;49;00m
+[91m/tmp/pytest-of-root/pytest-0/gettext/toctree.txt: WARNING: document isn't included in any toctree[39;49;00m
+
+--------------------------- Captured stdout teardown ---------------------------
+# testroot: root
+# builder: gettext
+# srcdir: /tmp/pytest-of-root/pytest-0/gettext-template
+# outdir: /tmp/pytest-of-root/pytest-0/gettext-template/_build/gettext
+# status: 
+[01mRunning Sphinx v5.0.0b1[39;49;00m
+[01mbuilding [gettext]: [39;49;00mtargets for 2 template files
+[01mreading templates... [39;49;00m[ 50%] [35m/tmp/pytest-of-root/pytest-0/gettext-template/_templates/template1.html[39;49;00m[01mreading templates... [39;49;00m[100%] [35m/tmp/pytest-of-root/pytest-0/gettext-template/_templates/template2.html[39;49;00m
+[01mbuilding [gettext]: [39;49;00mall source files
+[01mupdating environment: [39;49;00m[new config] 1 added, 0 changed, 0 removed
+[01mreading sources... [39;49;00m[100%] [35mindex[39;49;00m                                                
+[01mlooking for now-outdated files... [39;49;00mnone found
+[01mpickling environment... [39;49;00mdone
+[01mchecking consistency... [39;49;00mdone
+[01mpreparing documents... [39;49;00mdone
+[01mwriting output... [39;49;00m[100%] [32mindex[39;49;00m                                                 
+[01mwriting message catalogs... [39;49;00m[ 50%] [32msphinx[39;49;00m                                      [01mwriting message catalogs... [39;49;00m[100%] [32mindex[39;49;00m                                       
+
+# warning: 
+
+--------------------------- Captured stdout teardown ---------------------------
+# testroot: root
+# builder: gettext
+# srcdir: /tmp/pytest-of-root/pytest-0/root-gettext
+# outdir: /tmp/pytest-of-root/pytest-0/root-gettext/_build/gettext
+# status: 
+[01mRunning Sphinx v5.0.0b1[39;49;00m
+[01mloading pickled environment... [39;49;00mdone
+[01mbuilding [gettext]: [39;49;00mtargets for 3 template files
+[01mreading templates... [39;49;00m[ 33%] [35m/tmp/pytest-of-root/pytest-0/root-gettext/_templates/contentssb.html[39;49;00m[01mreading templates... [39;49;00m[ 66%] [35m/tmp/pytest-of-root/pytest-0/root-gettext/_templates/customsb.html[39;49;00m[01mreading templates... [39;49;00m[100%] [35m/tmp/pytest-of-root/pytest-0/root-gettext/_templates/layout.html[39;49;00m
+[01mbuilding [gettext]: [39;49;00mall source files
+[01mupdating environment: [39;49;00m0 added, 0 changed, 0 removed
+[01mlooking for now-outdated files... [39;49;00mnone found
+[01mpreparing documents... [39;49;00mdone
+[01mwriting output... [39;49;00m[  6%] [32mautodoc[39;49;00m                                               [01mwriting output... [39;49;00m[ 13%] [32mbom[39;49;00m                                                   [01mwriting output... [39;49;00m[ 20%] [32mextapi[39;49;00m                                                [01mwriting output... [39;49;00m[ 26%] [32mextensions[39;49;00m                                            [01mwriting output... [39;49;00m[ 33%] [32mfootnote[39;49;00m                                              [01mwriting output... [39;49;00m[ 40%] [32mimages[39;49;00m                                                [01mwriting output... [39;49;00m[ 46%] [32mincludes[39;49;00m                                              [01mwriting output... [39;49;00m[ 53%] [32mindex[39;49;00m                                                 [01mwriting output... [39;49;00m[ 60%] [32mlists[39;49;00m                                                 [01mwriting output... [39;49;00m[ 66%] [32mmarkup[39;49;00m                                                [01mwriting output... [39;49;00m[ 73%] [32mmath[39;49;00m                                                  [01mwriting output... [39;49;00m[ 80%] [32mobjects[39;49;00m                                               [01mwriting output... [39;49;00m[ 86%] [32motherext[39;49;00m                                              [01mwriting output... [39;49;00m[ 93%] [32msubdir/images[39;49;00m                                         [01mwriting output... [39;49;00m[100%] [32msubdir/includes[39;49;00m                                       
+[01mwriting message catalogs... [39;49;00m[100%] [32mdocumentation[39;49;00m                               
+
+# warning: 
+[91m/tmp/pytest-of-root/pytest-0/root-gettext/objects.txt:143: WARNING: Unparseable C cross-reference: 'SphinxType *'
+Invalid C declaration: Expected end of definition. [error at 11]
+  SphinxType *
+  -----------^[39;49;00m
+
+============================= slowest 25 durations =============================
+0.58s call     tests/test_build_gettext.py::test_build_gettext
+0.36s setup    tests/test_build_gettext.py::test_build_gettext
+0.32s call     tests/test_build_gettext.py::test_gettext_template
+0.31s call     tests/test_build_gettext.py::test_gettext_disable_index_entries
+0.26s call     tests/test_build_gettext.py::test_msgfmt
+0.26s call     tests/test_build_gettext.py::test_gettext_index_entries
+0.17s call     tests/test_build_gettext.py::test_build_single_pot
+0.02s call     tests/test_build_gettext.py::test_Catalog_duplicated_message
+0.02s setup    tests/test_build_gettext.py::test_gettext_index_entries
+0.01s setup    tests/test_build_gettext.py::test_msgfmt
+0.01s setup    tests/test_build_gettext.py::test_build_single_pot
+0.01s setup    tests/test_build_gettext.py::test_gettext_template_msgid_order_in_sphinxpot
+0.01s call     tests/test_build_gettext.py::test_gettext_template_msgid_order_in_sphinxpot
+0.01s setup    tests/test_build_gettext.py::test_gettext_disable_index_entries
+0.01s setup    tests/test_build_gettext.py::test_gettext_template
+
+(9 durations < 0.005s hidden.  Use -vv to show these durations.)
+[36m[1m=========================== short test summary info ============================[0m
+[32mPASSED[0m tests/test_build_gettext.py::[1mtest_build_gettext[0m
+[32mPASSED[0m tests/test_build_gettext.py::[1mtest_gettext_index_entries[0m
+[32mPASSED[0m tests/test_build_gettext.py::[1mtest_gettext_disable_index_entries[0m
+[32mPASSED[0m tests/test_build_gettext.py::[1mtest_gettext_template[0m
+[32mPASSED[0m tests/test_build_gettext.py::[1mtest_gettext_template_msgid_order_in_sphinxpot[0m
+[32mPASSED[0m tests/test_build_gettext.py::[1mtest_build_single_pot[0m
+[33mSKIPPED[0m [1] tests/test_build_gettext.py:59: Skipped
+[31mFAILED[0m tests/test_build_gettext.py::[1mtest_Catalog_duplicated_message[0m - AssertionError: assert [('/path/to/f...tanother', 1)] == [('/path/to/f...ta...
+[31m==================== [31m[1m1 failed[0m, [32m6 passed[0m, [33m1 skipped[0m[31m in 2.46s[0m[31m ====================[0m
+py39: exit 1 (3.34 seconds) /testbed> python -X dev -X warn_default_encoding -m pytest -rA --durations 25 tests/test_build_gettext.py pid=122
+  py39: FAIL code 1 (3.36=setup[0.02]+cmd[3.34] seconds)
+  evaluation failed :( (3.41 seconds)
++ : '>>>>> End Test Output'
++ git checkout cab2d93076d0cca7c53fac885f927dde3e2a5fec tests/test_build_gettext.py
+Updated 1 path from 04de92458
+
+2026-05-29 14:17:15,963 - ThreadPoolExecutor-3_1 - INFO - Container output: 
+2026-05-29 14:17:15,963 - ThreadPoolExecutor-3_1 - INFO - Installing more requirements
+2026-05-29 14:17:50,394 - ThreadPoolExecutor-3_1 - INFO - Running the agent
+2026-05-29 14:47:24,896 - ThreadPoolExecutor-3_1 - INFO - Container output: Using hosted_vllm proxy (https://proxy.onebot.meobeo.ai/v1) with model hosted_vllm/Qwen/Qwen3.5-35B-A3B-FP8.
+
+2026-05-29 14:47:24,896 - ThreadPoolExecutor-3_1 - INFO - Copying output files back to host
+2026-05-29 14:47:25,060 - ThreadPoolExecutor-3_1 - INFO - Copying from container /dgm/sphinx-doc__sphinx-10466.md to local path D:\kh4ng\Data_agent\dgm_agent\swe_bench\predictions_100\hosted_vllm\Qwen\Qwen3.5-35B-A3B-FP8_0\sphinx-doc__sphinx-10466.md
+2026-05-29 14:47:25,072 - ThreadPoolExecutor-3_1 - INFO - Successfully copied from container to D:\kh4ng\Data_agent\dgm_agent\swe_bench\predictions_100\hosted_vllm\Qwen\Qwen3.5-35B-A3B-FP8_0\sphinx-doc__sphinx-10466.md
+2026-05-29 14:47:25,165 - ThreadPoolExecutor-3_1 - INFO - Getting model_patch
+2026-05-29 14:47:25,272 - ThreadPoolExecutor-3_1 - INFO - Container output: diff --git a/sphinx/builders/gettext.py b/sphinx/builders/gettext.py
+index e8bc547b7..eba702123 100644
+--- a/sphinx/builders/gettext.py
++++ b/sphinx/builders/gettext.py
+@@ -32,8 +32,18 @@ class Message:
+     """An entry of translatable message."""
+     def __init__(self, text: str, locations: List[Tuple[str, int]], uuids: List[str]):
+         self.text = text
+-        self.locations = locations
+-        self.uuids = uuids
++        self.locations = self._deduplicate(locations)
++        self.uuids = self._deduplicate(uuids)
++
++    def _deduplicate(self, items: List) -> List:
++        """Remove duplicate items while preserving order."""
++        seen: Set = set()
++        result: List = []
++        for item in items:
++            if item not in seen:
++                seen.add(item)
++                result.append(item)
++        return result
+ 
+ 
+ class Catalog:
+diff --git a/tox.ini b/tox.ini
+index 105a02597..90ada0821 100644
+--- a/tox.ini
++++ b/tox.ini
+@@ -29,7 +29,7 @@ setenv =
+     PYTHONWARNINGS = all
+     PYTEST_ADDOPTS = {env:PYTEST_ADDOPTS:} --color yes
+ commands=
+-    python -X dev -X warn_default_encoding -m pytest --durations 25 {posargs}
++    python -X dev -X warn_default_encoding -m pytest -rA --durations 25 {posargs}
+ 
+ [testenv:du-latest]
+ commands =
+
+2026-05-29 14:47:25,364 - ThreadPoolExecutor-3_1 - INFO - Attempting to stop container sweb.eval.sphinx-doc__sphinx-10466.20260529_141538_518158...
+2026-05-29 14:47:41,116 - ThreadPoolExecutor-3_1 - INFO - Attempting to remove container sweb.eval.sphinx-doc__sphinx-10466.20260529_141538_518158...
+2026-05-29 14:47:42,019 - ThreadPoolExecutor-3_1 - INFO - Container sweb.eval.sphinx-doc__sphinx-10466.20260529_141538_518158 removed.

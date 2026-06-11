@@ -76,7 +76,12 @@ class Proposer:
         with open(config_path, "r", encoding="utf-8") as f:
             config = yaml.safe_load(f)
         
-        api_key = os.environ.get("GROQ_API_KEY", config.get("api_key", ""))
+        api_key_env_var = config.get("api_key_env_var", "")
+        if api_key_env_var and api_key_env_var in os.environ:
+            api_key = os.environ[api_key_env_var]
+        else:
+            api_key = os.environ.get("GROQ_API_KEY", config.get("api_key", "dummy_key"))
+            
         base_url = config.get("base_url_conv_model", "https://api.groq.com/openai/v1")
         model = config.get("conv_model", "llama-3.1-8b-instant")
         

@@ -1,0 +1,454 @@
+2026-05-28 23:23:57,446 - ThreadPoolExecutor-3_0 - INFO - No existing container with name sweb.eval.django__django-10973.20260528_232357_436947 found.
+2026-05-28 23:23:57,484 - ThreadPoolExecutor-3_0 - INFO - Environment image sweb.env.py.x86_64.2baaea72acc974f6c02079:latest found for django__django-10973
+Building instance image sweb.eval.x86_64.django__django-10973:latest for django__django-10973
+2026-05-28 23:27:55,789 - ThreadPoolExecutor-3_0 - INFO - Creating container for django__django-10973...
+2026-05-28 23:27:56,219 - ThreadPoolExecutor-3_0 - INFO - Container for django__django-10973 created: a70c50b793d258b1719c08bcc107f7fb2e8439c798d8748bd024e693b644a0e1
+2026-05-28 23:27:56,504 - ThreadPoolExecutor-3_0 - INFO - Working directory set to: D:\kh4ng\Data_agent\dgm_agent
+2026-05-28 23:27:56,601 - ThreadPoolExecutor-3_0 - INFO - Copying coding_agent.py to container at /dgm/coding_agent.py
+2026-05-28 23:27:56,610 - ThreadPoolExecutor-3_0 - INFO - Successfully copied coding_agent.py to container
+2026-05-28 23:27:56,701 - ThreadPoolExecutor-3_0 - INFO - Copying requirements.txt to container at /dgm/requirements.txt
+2026-05-28 23:27:56,708 - ThreadPoolExecutor-3_0 - INFO - Successfully copied requirements.txt to container
+2026-05-28 23:27:56,789 - ThreadPoolExecutor-3_0 - INFO - Copying pytest.ini to container at /dgm/pytest.ini
+2026-05-28 23:27:56,796 - ThreadPoolExecutor-3_0 - INFO - Successfully copied pytest.ini to container
+2026-05-28 23:27:56,889 - ThreadPoolExecutor-3_0 - INFO - Copying tools to container at /dgm/tools
+2026-05-28 23:27:56,900 - ThreadPoolExecutor-3_0 - INFO - Successfully copied tools to container
+2026-05-28 23:27:56,998 - ThreadPoolExecutor-3_0 - INFO - Copying utils to container at /dgm/utils
+2026-05-28 23:27:57,014 - ThreadPoolExecutor-3_0 - INFO - Successfully copied utils to container
+2026-05-28 23:27:57,135 - ThreadPoolExecutor-3_0 - INFO - Copying tests to container at /dgm/tests
+2026-05-28 23:27:57,152 - ThreadPoolExecutor-3_0 - INFO - Successfully copied tests to container
+2026-05-28 23:27:57,338 - ThreadPoolExecutor-3_0 - INFO - Copying prompts to container at /dgm/prompts
+2026-05-28 23:27:57,383 - ThreadPoolExecutor-3_0 - INFO - Successfully copied prompts to container
+2026-05-28 23:27:57,535 - ThreadPoolExecutor-3_0 - INFO - Copying llm.py to container at /dgm/llm.py
+2026-05-28 23:27:57,546 - ThreadPoolExecutor-3_0 - INFO - Successfully copied llm.py to container
+2026-05-28 23:27:57,648 - ThreadPoolExecutor-3_0 - INFO - Copying llm_withtools.py to container at /dgm/llm_withtools.py
+2026-05-28 23:27:57,656 - ThreadPoolExecutor-3_0 - INFO - Successfully copied llm_withtools.py to container
+2026-05-28 23:27:57,656 - ThreadPoolExecutor-3_0 - INFO - Setting up environment
+2026-05-28 23:27:57,770 - ThreadPoolExecutor-3_0 - INFO - Copying D:\kh4ng\Data_agent\dgm_agent\swe_bench\predictions\hosted_vllm\Qwen\Qwen3.5-35B-A3B-FP8_0\django__django-10973_eval.sh to container at /eval.sh
+2026-05-28 23:27:57,778 - ThreadPoolExecutor-3_0 - INFO - Successfully copied D:\kh4ng\Data_agent\dgm_agent\swe_bench\predictions\hosted_vllm\Qwen\Qwen3.5-35B-A3B-FP8_0\django__django-10973_eval.sh to container
+2026-05-28 23:28:06,177 - ThreadPoolExecutor-3_0 - INFO - Container output: + source /opt/miniconda3/bin/activate
+++ _CONDA_ROOT=/opt/miniconda3
+++ . /opt/miniconda3/etc/profile.d/conda.sh
++++ export CONDA_EXE=/opt/miniconda3/bin/conda
++++ CONDA_EXE=/opt/miniconda3/bin/conda
++++ export _CE_M=
++++ _CE_M=
++++ export _CE_CONDA=
++++ _CE_CONDA=
++++ export CONDA_PYTHON_EXE=/opt/miniconda3/bin/python
++++ CONDA_PYTHON_EXE=/opt/miniconda3/bin/python
++++ '[' -z '' ']'
++++ export CONDA_SHLVL=0
++++ CONDA_SHLVL=0
++++ '[' -n '' ']'
++++++ dirname /opt/miniconda3/bin/conda
+++++ dirname /opt/miniconda3/bin
++++ PATH=/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
++++ export PATH
++++ '[' -z '' ']'
++++ PS1=
+++ conda activate
+++ local cmd=activate
+++ case "$cmd" in
+++ __conda_activate activate
+++ '[' -n '' ']'
+++ local ask_conda
++++ PS1=
++++ __conda_exe shell.posix activate
++++ /opt/miniconda3/bin/conda shell.posix activate
+++ ask_conda='PS1='\''(base) '\''
+export PATH='\''/opt/miniconda3/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'\''
+export CONDA_PREFIX='\''/opt/miniconda3'\''
+export CONDA_SHLVL='\''1'\''
+export CONDA_DEFAULT_ENV='\''base'\''
+export CONDA_PROMPT_MODIFIER='\''(base) '\''
+export CONDA_EXE='\''/opt/miniconda3/bin/conda'\''
+export _CE_M='\'''\''
+export _CE_CONDA='\'''\''
+export CONDA_PYTHON_EXE='\''/opt/miniconda3/bin/python'\'''
+++ eval 'PS1='\''(base) '\''
+export PATH='\''/opt/miniconda3/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'\''
+export CONDA_PREFIX='\''/opt/miniconda3'\''
+export CONDA_SHLVL='\''1'\''
+export CONDA_DEFAULT_ENV='\''base'\''
+export CONDA_PROMPT_MODIFIER='\''(base) '\''
+export CONDA_EXE='\''/opt/miniconda3/bin/conda'\''
+export _CE_M='\'''\''
+export _CE_CONDA='\'''\''
+export CONDA_PYTHON_EXE='\''/opt/miniconda3/bin/python'\'''
++++ PS1='(base) '
++++ export PATH=/opt/miniconda3/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
++++ PATH=/opt/miniconda3/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
++++ export CONDA_PREFIX=/opt/miniconda3
++++ CONDA_PREFIX=/opt/miniconda3
++++ export CONDA_SHLVL=1
++++ CONDA_SHLVL=1
++++ export CONDA_DEFAULT_ENV=base
++++ CONDA_DEFAULT_ENV=base
++++ export 'CONDA_PROMPT_MODIFIER=(base) '
++++ CONDA_PROMPT_MODIFIER='(base) '
++++ export CONDA_EXE=/opt/miniconda3/bin/conda
++++ CONDA_EXE=/opt/miniconda3/bin/conda
++++ export _CE_M=
++++ _CE_M=
++++ export _CE_CONDA=
++++ _CE_CONDA=
++++ export CONDA_PYTHON_EXE=/opt/miniconda3/bin/python
++++ CONDA_PYTHON_EXE=/opt/miniconda3/bin/python
+++ __conda_hashr
+++ '[' -n '' ']'
+++ '[' -n '' ']'
+++ hash -r
++ conda activate testbed
++ local cmd=activate
++ case "$cmd" in
++ __conda_activate activate testbed
++ '[' -n '' ']'
++ local ask_conda
+++ PS1='(base) '
+++ __conda_exe shell.posix activate testbed
+++ /opt/miniconda3/bin/conda shell.posix activate testbed
++ ask_conda='PS1='\''(testbed) '\''
+export PATH='\''/opt/miniconda3/envs/testbed/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'\''
+export CONDA_PREFIX='\''/opt/miniconda3/envs/testbed'\''
+export CONDA_SHLVL='\''2'\''
+export CONDA_DEFAULT_ENV='\''testbed'\''
+export CONDA_PROMPT_MODIFIER='\''(testbed) '\''
+export CONDA_PREFIX_1='\''/opt/miniconda3'\''
+export CONDA_EXE='\''/opt/miniconda3/bin/conda'\''
+export _CE_M='\'''\''
+export _CE_CONDA='\'''\''
+export CONDA_PYTHON_EXE='\''/opt/miniconda3/bin/python'\'''
++ eval 'PS1='\''(testbed) '\''
+export PATH='\''/opt/miniconda3/envs/testbed/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'\''
+export CONDA_PREFIX='\''/opt/miniconda3/envs/testbed'\''
+export CONDA_SHLVL='\''2'\''
+export CONDA_DEFAULT_ENV='\''testbed'\''
+export CONDA_PROMPT_MODIFIER='\''(testbed) '\''
+export CONDA_PREFIX_1='\''/opt/miniconda3'\''
+export CONDA_EXE='\''/opt/miniconda3/bin/conda'\''
+export _CE_M='\'''\''
+export _CE_CONDA='\'''\''
+export CONDA_PYTHON_EXE='\''/opt/miniconda3/bin/python'\'''
+++ PS1='(testbed) '
+++ export PATH=/opt/miniconda3/envs/testbed/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+++ PATH=/opt/miniconda3/envs/testbed/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+++ export CONDA_PREFIX=/opt/miniconda3/envs/testbed
+++ CONDA_PREFIX=/opt/miniconda3/envs/testbed
+++ export CONDA_SHLVL=2
+++ CONDA_SHLVL=2
+++ export CONDA_DEFAULT_ENV=testbed
+++ CONDA_DEFAULT_ENV=testbed
+++ export 'CONDA_PROMPT_MODIFIER=(testbed) '
+++ CONDA_PROMPT_MODIFIER='(testbed) '
+++ export CONDA_PREFIX_1=/opt/miniconda3
+++ CONDA_PREFIX_1=/opt/miniconda3
+++ export CONDA_EXE=/opt/miniconda3/bin/conda
+++ CONDA_EXE=/opt/miniconda3/bin/conda
+++ export _CE_M=
+++ _CE_M=
+++ export _CE_CONDA=
+++ _CE_CONDA=
+++ export CONDA_PYTHON_EXE=/opt/miniconda3/bin/python
+++ CONDA_PYTHON_EXE=/opt/miniconda3/bin/python
++ __conda_hashr
++ '[' -n '' ']'
++ '[' -n '' ']'
++ hash -r
++ cd /testbed
++ sed -i '/en_US.UTF-8/s/^# //g' /etc/locale.gen
++ locale-gen
+Generating locales (this might take a while)...
+  en_US.UTF-8... done
+Generation complete.
++ export LANG=en_US.UTF-8
++ LANG=en_US.UTF-8
++ export LANGUAGE=en_US:en
++ LANGUAGE=en_US:en
++ export LC_ALL=en_US.UTF-8
++ LC_ALL=en_US.UTF-8
++ git config --global --add safe.directory /testbed
++ cd /testbed
++ git status
+On branch main
+nothing to commit, working tree clean
++ git show
+commit 63e3b18bc4afb04fa974fda0ff82264fd8dee2f4
+Author: SWE-bench <setup@swebench.config>
+Date:   Thu May 28 16:27:28 2026 +0000
+
+    SWE-bench
++ git -c core.fileMode=false diff ddb293685235fd09e932805771ae97f72e817181
++ source /opt/miniconda3/bin/activate
+++ _CONDA_ROOT=/opt/miniconda3
+++ . /opt/miniconda3/etc/profile.d/conda.sh
++++ export CONDA_EXE=/opt/miniconda3/bin/conda
++++ CONDA_EXE=/opt/miniconda3/bin/conda
++++ export _CE_M=
++++ _CE_M=
++++ export _CE_CONDA=
++++ _CE_CONDA=
++++ export CONDA_PYTHON_EXE=/opt/miniconda3/bin/python
++++ CONDA_PYTHON_EXE=/opt/miniconda3/bin/python
++++ '[' -z x ']'
+++ conda activate
+++ local cmd=activate
+++ case "$cmd" in
+++ __conda_activate activate
+++ '[' -n '' ']'
+++ local ask_conda
++++ PS1='(testbed) '
++++ __conda_exe shell.posix activate
++++ /opt/miniconda3/bin/conda shell.posix activate
+++ ask_conda='PS1='\''(base) '\''
+export PATH='\''/opt/miniconda3/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'\''
+export CONDA_PREFIX='\''/opt/miniconda3'\''
+export CONDA_SHLVL='\''3'\''
+export CONDA_DEFAULT_ENV='\''base'\''
+export CONDA_PROMPT_MODIFIER='\''(base) '\''
+export CONDA_PREFIX_2='\''/opt/miniconda3/envs/testbed'\''
+export CONDA_EXE='\''/opt/miniconda3/bin/conda'\''
+export _CE_M='\'''\''
+export _CE_CONDA='\'''\''
+export CONDA_PYTHON_EXE='\''/opt/miniconda3/bin/python'\'''
+++ eval 'PS1='\''(base) '\''
+export PATH='\''/opt/miniconda3/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'\''
+export CONDA_PREFIX='\''/opt/miniconda3'\''
+export CONDA_SHLVL='\''3'\''
+export CONDA_DEFAULT_ENV='\''base'\''
+export CONDA_PROMPT_MODIFIER='\''(base) '\''
+export CONDA_PREFIX_2='\''/opt/miniconda3/envs/testbed'\''
+export CONDA_EXE='\''/opt/miniconda3/bin/conda'\''
+export _CE_M='\'''\''
+export _CE_CONDA='\'''\''
+export CONDA_PYTHON_EXE='\''/opt/miniconda3/bin/python'\'''
++++ PS1='(base) '
++++ export PATH=/opt/miniconda3/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
++++ PATH=/opt/miniconda3/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
++++ export CONDA_PREFIX=/opt/miniconda3
++++ CONDA_PREFIX=/opt/miniconda3
++++ export CONDA_SHLVL=3
++++ CONDA_SHLVL=3
++++ export CONDA_DEFAULT_ENV=base
++++ CONDA_DEFAULT_ENV=base
++++ export 'CONDA_PROMPT_MODIFIER=(base) '
++++ CONDA_PROMPT_MODIFIER='(base) '
++++ export CONDA_PREFIX_2=/opt/miniconda3/envs/testbed
++++ CONDA_PREFIX_2=/opt/miniconda3/envs/testbed
++++ export CONDA_EXE=/opt/miniconda3/bin/conda
++++ CONDA_EXE=/opt/miniconda3/bin/conda
++++ export _CE_M=
++++ _CE_M=
++++ export _CE_CONDA=
++++ _CE_CONDA=
++++ export CONDA_PYTHON_EXE=/opt/miniconda3/bin/python
++++ CONDA_PYTHON_EXE=/opt/miniconda3/bin/python
+++ __conda_hashr
+++ '[' -n '' ']'
+++ '[' -n '' ']'
+++ hash -r
++ conda activate testbed
++ local cmd=activate
++ case "$cmd" in
++ __conda_activate activate testbed
++ '[' -n '' ']'
++ local ask_conda
+++ PS1='(base) '
+++ __conda_exe shell.posix activate testbed
+++ /opt/miniconda3/bin/conda shell.posix activate testbed
++ ask_conda='PS1='\''(testbed) '\''
+export PATH='\''/opt/miniconda3/envs/testbed/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'\''
+export CONDA_PREFIX='\''/opt/miniconda3/envs/testbed'\''
+export CONDA_SHLVL='\''4'\''
+export CONDA_DEFAULT_ENV='\''testbed'\''
+export CONDA_PROMPT_MODIFIER='\''(testbed) '\''
+export CONDA_PREFIX_3='\''/opt/miniconda3'\''
+export CONDA_EXE='\''/opt/miniconda3/bin/conda'\''
+export _CE_M='\'''\''
+export _CE_CONDA='\'''\''
+export CONDA_PYTHON_EXE='\''/opt/miniconda3/bin/python'\'''
++ eval 'PS1='\''(testbed) '\''
+export PATH='\''/opt/miniconda3/envs/testbed/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'\''
+export CONDA_PREFIX='\''/opt/miniconda3/envs/testbed'\''
+export CONDA_SHLVL='\''4'\''
+export CONDA_DEFAULT_ENV='\''testbed'\''
+export CONDA_PROMPT_MODIFIER='\''(testbed) '\''
+export CONDA_PREFIX_3='\''/opt/miniconda3'\''
+export CONDA_EXE='\''/opt/miniconda3/bin/conda'\''
+export _CE_M='\'''\''
+export _CE_CONDA='\'''\''
+export CONDA_PYTHON_EXE='\''/opt/miniconda3/bin/python'\'''
+++ PS1='(testbed) '
+++ export PATH=/opt/miniconda3/envs/testbed/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+++ PATH=/opt/miniconda3/envs/testbed/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+++ export CONDA_PREFIX=/opt/miniconda3/envs/testbed
+++ CONDA_PREFIX=/opt/miniconda3/envs/testbed
+++ export CONDA_SHLVL=4
+++ CONDA_SHLVL=4
+++ export CONDA_DEFAULT_ENV=testbed
+++ CONDA_DEFAULT_ENV=testbed
+++ export 'CONDA_PROMPT_MODIFIER=(testbed) '
+++ CONDA_PROMPT_MODIFIER='(testbed) '
+++ export CONDA_PREFIX_3=/opt/miniconda3
+++ CONDA_PREFIX_3=/opt/miniconda3
+++ export CONDA_EXE=/opt/miniconda3/bin/conda
+++ CONDA_EXE=/opt/miniconda3/bin/conda
+++ export _CE_M=
+++ _CE_M=
+++ export _CE_CONDA=
+++ _CE_CONDA=
+++ export CONDA_PYTHON_EXE=/opt/miniconda3/bin/python
+++ CONDA_PYTHON_EXE=/opt/miniconda3/bin/python
++ __conda_hashr
++ '[' -n '' ']'
++ '[' -n '' ']'
++ hash -r
++ python -m pip install -e .
+Obtaining file:///testbed
+Requirement already satisfied: pytz in /opt/miniconda3/envs/testbed/lib/python3.6/site-packages (from Django==3.0.dev20260528162728) (2026.2)
+Requirement already satisfied: sqlparse in /opt/miniconda3/envs/testbed/lib/python3.6/site-packages (from Django==3.0.dev20260528162728) (0.4.4)
+Installing collected packages: Django
+  Attempting uninstall: Django
+    Found existing installation: Django 3.0.dev20190213221133
+    Uninstalling Django-3.0.dev20190213221133:
+      Successfully uninstalled Django-3.0.dev20190213221133
+  Running setup.py develop for Django
+Successfully installed Django-3.0.dev20260528162728
+WARNING: Running pip as the 'root' user can result in broken permissions and conflicting behaviour with the system package manager. It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv
++ git checkout ddb293685235fd09e932805771ae97f72e817181 tests/dbshell/test_postgresql.py
+Updated 0 paths from ada9f96a71
++ git apply -v -
+Checking patch tests/dbshell/test_postgresql.py...
+Applied patch tests/dbshell/test_postgresql.py cleanly.
++ : '>>>>> Start Test Output'
++ ./tests/runtests.py --verbosity 2 --settings=test_sqlite --parallel 1 dbshell.test_postgresql
+test_accent (dbshell.test_postgresql.PostgreSqlDbshellCommandTestCase) ... ERROR
+test_basic (dbshell.test_postgresql.PostgreSqlDbshellCommandTestCase) ... ERROR
+test_column (dbshell.test_postgresql.PostgreSqlDbshellCommandTestCase) ... ERROR
+test_nopass (dbshell.test_postgresql.PostgreSqlDbshellCommandTestCase) ... ERROR
+test_sigint_handler (dbshell.test_postgresql.PostgreSqlDbshellCommandTestCase)
+SIGINT is ignored in Python and passed to psql to abort quries. ... ERROR
+
+======================================================================
+ERROR: test_accent (dbshell.test_postgresql.PostgreSqlDbshellCommandTestCase)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/testbed/tests/dbshell/test_postgresql.py", line 77, in test_accent
+    'port': '444',
+  File "/testbed/tests/dbshell/test_postgresql.py", line 24, in _run_it
+    DatabaseClient.runshell_db(dbinfo)
+  File "/testbed/django/db/backends/postgresql/client.py", line 61, in runshell_db
+    subprocess.check_call(args)
+  File "/opt/miniconda3/envs/testbed/lib/python3.6/subprocess.py", line 306, in check_call
+    retcode = call(*popenargs, **kwargs)
+  File "/opt/miniconda3/envs/testbed/lib/python3.6/subprocess.py", line 287, in call
+    with Popen(*popenargs, **kwargs) as p:
+  File "/opt/miniconda3/envs/testbed/lib/python3.6/subprocess.py", line 729, in __init__
+    restore_signals, start_new_session)
+  File "/opt/miniconda3/envs/testbed/lib/python3.6/subprocess.py", line 1364, in _execute_child
+    raise child_exception_type(errno_num, err_msg, err_filename)
+FileNotFoundError: [Errno 2] No such file or directory: 'psql': 'psql'
+
+======================================================================
+ERROR: test_basic (dbshell.test_postgresql.PostgreSqlDbshellCommandTestCase)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/testbed/tests/dbshell/test_postgresql.py", line 34, in test_basic
+    'port': '444',
+  File "/testbed/tests/dbshell/test_postgresql.py", line 24, in _run_it
+    DatabaseClient.runshell_db(dbinfo)
+  File "/testbed/django/db/backends/postgresql/client.py", line 61, in runshell_db
+    subprocess.check_call(args)
+  File "/opt/miniconda3/envs/testbed/lib/python3.6/subprocess.py", line 306, in check_call
+    retcode = call(*popenargs, **kwargs)
+  File "/opt/miniconda3/envs/testbed/lib/python3.6/subprocess.py", line 287, in call
+    with Popen(*popenargs, **kwargs) as p:
+  File "/opt/miniconda3/envs/testbed/lib/python3.6/subprocess.py", line 729, in __init__
+    restore_signals, start_new_session)
+  File "/opt/miniconda3/envs/testbed/lib/python3.6/subprocess.py", line 1364, in _execute_child
+    raise child_exception_type(errno_num, err_msg, err_filename)
+FileNotFoundError: [Errno 2] No such file or directory: 'psql': 'psql'
+
+======================================================================
+ERROR: test_column (dbshell.test_postgresql.PostgreSqlDbshellCommandTestCase)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/testbed/tests/dbshell/test_postgresql.py", line 61, in test_column
+    'port': '444',
+  File "/testbed/tests/dbshell/test_postgresql.py", line 24, in _run_it
+    DatabaseClient.runshell_db(dbinfo)
+  File "/testbed/django/db/backends/postgresql/client.py", line 61, in runshell_db
+    subprocess.check_call(args)
+  File "/opt/miniconda3/envs/testbed/lib/python3.6/subprocess.py", line 306, in check_call
+    retcode = call(*popenargs, **kwargs)
+  File "/opt/miniconda3/envs/testbed/lib/python3.6/subprocess.py", line 287, in call
+    with Popen(*popenargs, **kwargs) as p:
+  File "/opt/miniconda3/envs/testbed/lib/python3.6/subprocess.py", line 729, in __init__
+    restore_signals, start_new_session)
+  File "/opt/miniconda3/envs/testbed/lib/python3.6/subprocess.py", line 1364, in _execute_child
+    raise child_exception_type(errno_num, err_msg, err_filename)
+FileNotFoundError: [Errno 2] No such file or directory: 'psql': 'psql'
+
+======================================================================
+ERROR: test_nopass (dbshell.test_postgresql.PostgreSqlDbshellCommandTestCase)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/testbed/tests/dbshell/test_postgresql.py", line 47, in test_nopass
+    'port': '444',
+  File "/testbed/tests/dbshell/test_postgresql.py", line 24, in _run_it
+    DatabaseClient.runshell_db(dbinfo)
+  File "/testbed/django/db/backends/postgresql/client.py", line 61, in runshell_db
+    subprocess.check_call(args)
+  File "/opt/miniconda3/envs/testbed/lib/python3.6/subprocess.py", line 306, in check_call
+    retcode = call(*popenargs, **kwargs)
+  File "/opt/miniconda3/envs/testbed/lib/python3.6/subprocess.py", line 287, in call
+    with Popen(*popenargs, **kwargs) as p:
+  File "/opt/miniconda3/envs/testbed/lib/python3.6/subprocess.py", line 729, in __init__
+    restore_signals, start_new_session)
+  File "/opt/miniconda3/envs/testbed/lib/python3.6/subprocess.py", line 1364, in _execute_child
+    raise child_exception_type(errno_num, err_msg, err_filename)
+FileNotFoundError: [Errno 2] No such file or directory: 'psql': 'psql'
+
+======================================================================
+ERROR: test_sigint_handler (dbshell.test_postgresql.PostgreSqlDbshellCommandTestCase)
+SIGINT is ignored in Python and passed to psql to abort quries.
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/testbed/tests/dbshell/test_postgresql.py", line 94, in test_sigint_handler
+    DatabaseClient.runshell_db({})
+  File "/testbed/django/db/backends/postgresql/client.py", line 61, in runshell_db
+    subprocess.check_call(args)
+  File "/opt/miniconda3/envs/testbed/lib/python3.6/subprocess.py", line 306, in check_call
+    retcode = call(*popenargs, **kwargs)
+  File "/opt/miniconda3/envs/testbed/lib/python3.6/subprocess.py", line 287, in call
+    with Popen(*popenargs, **kwargs) as p:
+  File "/opt/miniconda3/envs/testbed/lib/python3.6/subprocess.py", line 729, in __init__
+    restore_signals, start_new_session)
+  File "/opt/miniconda3/envs/testbed/lib/python3.6/subprocess.py", line 1364, in _execute_child
+    raise child_exception_type(errno_num, err_msg, err_filename)
+FileNotFoundError: [Errno 2] No such file or directory: 'psql': 'psql'
+
+----------------------------------------------------------------------
+Ran 5 tests in 0.045s
+
+FAILED (errors=5)
+Testing against Django installed in '/testbed/django'
+Importing application dbshell
+Skipping setup of unused database(s): default, other.
+System check identified no issues (0 silenced).
++ : '>>>>> End Test Output'
++ git checkout ddb293685235fd09e932805771ae97f72e817181 tests/dbshell/test_postgresql.py
+Updated 1 path from ada9f96a71
+
+2026-05-28 23:28:06,275 - ThreadPoolExecutor-3_0 - INFO - Container output: 
+2026-05-28 23:28:06,275 - ThreadPoolExecutor-3_0 - INFO - Installing more requirements
+2026-05-28 23:28:53,172 - ThreadPoolExecutor-3_0 - INFO - Running the agent
+2026-05-28 23:28:56,017 - ThreadPoolExecutor-3_0 - INFO - Container output: Using hosted_vllm proxy (https://proxy.onebot.meobeo.ai/v1) with model hosted_vllm/Qwen/Qwen3.5-35B-A3B-FP8.
+
+2026-05-28 23:28:56,017 - ThreadPoolExecutor-3_0 - INFO - Copying output files back to host
+2026-05-28 23:28:56,183 - ThreadPoolExecutor-3_0 - INFO - Copying from container /dgm/django__django-10973.md to local path D:\kh4ng\Data_agent\dgm_agent\swe_bench\predictions\hosted_vllm\Qwen\Qwen3.5-35B-A3B-FP8_0\django__django-10973.md
+2026-05-28 23:28:56,200 - ThreadPoolExecutor-3_0 - INFO - Successfully copied from container to D:\kh4ng\Data_agent\dgm_agent\swe_bench\predictions\hosted_vllm\Qwen\Qwen3.5-35B-A3B-FP8_0\django__django-10973.md
+2026-05-28 23:28:56,313 - ThreadPoolExecutor-3_0 - INFO - Getting model_patch
+2026-05-28 23:28:56,404 - ThreadPoolExecutor-3_0 - INFO - Container output: 
+2026-05-28 23:28:56,503 - ThreadPoolExecutor-3_0 - INFO - Attempting to stop container sweb.eval.django__django-10973.20260528_232357_436947...
+2026-05-28 23:29:12,373 - ThreadPoolExecutor-3_0 - INFO - Attempting to remove container sweb.eval.django__django-10973.20260528_232357_436947...
+2026-05-28 23:29:13,234 - ThreadPoolExecutor-3_0 - INFO - Container sweb.eval.django__django-10973.20260528_232357_436947 removed.

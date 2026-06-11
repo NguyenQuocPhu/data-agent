@@ -1,0 +1,6 @@
+{
+    "instance_id": "astropy__astropy-14539",
+    "model_name_or_path": "hosted_vllm/Qwen/Qwen3.5-35B-A3B-FP8",
+    "model_patch": "diff --git a/pyproject.toml b/pyproject.toml\nindex b4e9ef838..ff68a7403 100644\n--- a/pyproject.toml\n+++ b/pyproject.toml\n@@ -1,5 +1,5 @@\n [build-system]\n-requires = [\"setuptools\",\n+requires = [\"setuptools==68.0.0\",\n             \"setuptools_scm>=6.2\",\n             \"wheel\",\n             \"cython==0.29.30\",\ndiff --git a/reproduce.py b/reproduce.py\nnew file mode 100644\nindex 000000000..c451eec1c\n--- /dev/null\n+++ b/reproduce.py\n@@ -0,0 +1 @@\n+from astropy.io import fits\n",
+    "proposed_model_patches": []
+}

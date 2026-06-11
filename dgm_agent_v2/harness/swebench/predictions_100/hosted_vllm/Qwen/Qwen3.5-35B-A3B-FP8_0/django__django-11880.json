@@ -1,0 +1,6 @@
+{
+    "instance_id": "django__django-11880",
+    "model_name_or_path": "hosted_vllm/Qwen/Qwen3.5-35B-A3B-FP8",
+    "model_patch": "diff --git a/django/forms/fields.py b/django/forms/fields.py\nindex 03cd8af8d7..171a36187e 100644\n--- a/django/forms/fields.py\n+++ b/django/forms/fields.py\n@@ -200,6 +200,7 @@ class Field:\n         memo[id(self)] = result\n         result.widget = copy.deepcopy(self.widget, memo)\n         result.validators = self.validators[:]\n+        result.error_messages = self.error_messages.copy()\n         return result\n \n \n",
+    "proposed_model_patches": []
+}

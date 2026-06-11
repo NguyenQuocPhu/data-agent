@@ -81,7 +81,16 @@ class RuleLibrary:
             return ""
         
         best_rules = self.rules[:top_k]
-        rule_strings = [f"- {r['rule_text']} (MDL Score: {r['mdl_score']:.2f})" for r in best_rules]
+        rule_strings = []
+        for r in best_rules:
+            try:
+                # Try to parse and format if it's JSON
+                rule_obj = json.loads(r["rule_text"])
+                formatted = f"[{rule_obj.get('Domain', 'General')}] {rule_obj.get('Qualifier', [])} -> {rule_obj.get('Action', [])} (Strength: {rule_obj.get('Strength', 'RECOMMENDED')})"
+                rule_strings.append(f"- {formatted} (MDL Score: {r['mdl_score']:.2f})")
+            except Exception:
+                rule_strings.append(f"- {r['rule_text']} (MDL Score: {r['mdl_score']:.2f})")
+                
         return "\n".join(rule_strings)
 
 
@@ -92,11 +101,15 @@ def extract_rule_from_reflexion(failed_code: str, error_log: str, fixed_code: st
     system_prompt = (
         "You are an expert rule classification specialist for the RIMRULE system. "
         "Your task is to analyze a failed code snippet, its error log, and the successful fixed code, "
-        "and distill a single, highly generalizable, concise rule (heuristic) to prevent this error in the future.\n\n"
+        "and distill a single, highly generalizable rule (heuristic) to prevent this error in the future.\n\n"
         "Guidelines:\n"
-        "- The rule must be very concise (under 20 words if possible).\n"
-        "- The rule must be generalizable (e.g., 'Always #include <vector> when using std::vector in C++').\n"
-        "- Output ONLY the rule text, nothing else. No markdown, no explanations."
+        "- The rule must be represented as a JSON object with exactly 5 fields:\n"
+        "  1. \"Domain\": The programming language (e.g., \"Go\", \"Python\").\n"
+        "  2. \"Qualifier\": List of Enums for the trigger condition (e.g., [\"ARRAY_BOUNDS\", \"FOR_LOOP\"]).\n"
+        "  3. \"Action\": List of Enums for the resolution (e.g., [\"CHECK_LENGTH_BEFORE_INDEX\"]).\n"
+        "  4. \"Strength\": Must be one of [\"MANDATORY\", \"RECOMMENDED\", \"OPTIONAL\"].\n"
+        "  5. \"LanguageFeature\": A string categorizing the feature (e.g., \"RUNTIME_PANIC_PREVENTION\").\n"
+        "- Output ONLY the JSON block, nothing else."
     )
     
     # Rút gọn context để tránh vượt token limit

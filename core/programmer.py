@@ -80,7 +80,7 @@ class Programmer:
         except Exception as e:
             print(f"Error calling chat model: {e}")
             traceback.print_exc()
-            return None
+            yield f"\n\n[LLM ERROR: {e}]\n\n"
 
     def clear(self):
         self.messages = [

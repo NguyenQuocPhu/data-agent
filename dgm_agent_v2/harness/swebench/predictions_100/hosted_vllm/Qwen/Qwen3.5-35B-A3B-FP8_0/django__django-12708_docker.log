@@ -1,0 +1,1007 @@
+2026-05-29 13:37:26,266 - ThreadPoolExecutor-3_0 - INFO - No existing container with name sweb.eval.django__django-12708.20260529_133726_260522 found.
+2026-05-29 13:37:26,304 - ThreadPoolExecutor-3_0 - INFO - Environment image sweb.env.py.x86_64.a18371b03f944585b4f08c:latest found for django__django-12708
+Building instance image sweb.eval.x86_64.django__django-12708:latest for django__django-12708
+2026-05-29 13:39:19,308 - ThreadPoolExecutor-3_0 - INFO - Creating container for django__django-12708...
+2026-05-29 13:39:19,412 - ThreadPoolExecutor-3_0 - INFO - Container for django__django-12708 created: 6993fe221213d4d4decce5e53d9963a96ac6ec752296d2245adcbeaaff63327f
+2026-05-29 13:39:19,671 - ThreadPoolExecutor-3_0 - INFO - Working directory set to: D:\kh4ng\Data_agent\dgm_agent
+2026-05-29 13:39:19,755 - ThreadPoolExecutor-3_0 - INFO - Copying coding_agent.py to container at /dgm/coding_agent.py
+2026-05-29 13:39:19,763 - ThreadPoolExecutor-3_0 - INFO - Successfully copied coding_agent.py to container
+2026-05-29 13:39:19,848 - ThreadPoolExecutor-3_0 - INFO - Copying requirements.txt to container at /dgm/requirements.txt
+2026-05-29 13:39:19,857 - ThreadPoolExecutor-3_0 - INFO - Successfully copied requirements.txt to container
+2026-05-29 13:39:19,956 - ThreadPoolExecutor-3_0 - INFO - Copying pytest.ini to container at /dgm/pytest.ini
+2026-05-29 13:39:19,970 - ThreadPoolExecutor-3_0 - INFO - Successfully copied pytest.ini to container
+2026-05-29 13:39:20,057 - ThreadPoolExecutor-3_0 - INFO - Copying tools to container at /dgm/tools
+2026-05-29 13:39:20,069 - ThreadPoolExecutor-3_0 - INFO - Successfully copied tools to container
+2026-05-29 13:39:20,174 - ThreadPoolExecutor-3_0 - INFO - Copying utils to container at /dgm/utils
+2026-05-29 13:39:20,187 - ThreadPoolExecutor-3_0 - INFO - Successfully copied utils to container
+2026-05-29 13:39:20,303 - ThreadPoolExecutor-3_0 - INFO - Copying tests to container at /dgm/tests
+2026-05-29 13:39:20,316 - ThreadPoolExecutor-3_0 - INFO - Successfully copied tests to container
+2026-05-29 13:39:20,413 - ThreadPoolExecutor-3_0 - INFO - Copying prompts to container at /dgm/prompts
+2026-05-29 13:39:20,423 - ThreadPoolExecutor-3_0 - INFO - Successfully copied prompts to container
+2026-05-29 13:39:20,509 - ThreadPoolExecutor-3_0 - INFO - Copying llm.py to container at /dgm/llm.py
+2026-05-29 13:39:20,517 - ThreadPoolExecutor-3_0 - INFO - Successfully copied llm.py to container
+2026-05-29 13:39:20,601 - ThreadPoolExecutor-3_0 - INFO - Copying llm_withtools.py to container at /dgm/llm_withtools.py
+2026-05-29 13:39:20,610 - ThreadPoolExecutor-3_0 - INFO - Successfully copied llm_withtools.py to container
+2026-05-29 13:39:20,610 - ThreadPoolExecutor-3_0 - INFO - Setting up environment
+2026-05-29 13:39:20,718 - ThreadPoolExecutor-3_0 - INFO - Copying D:\kh4ng\Data_agent\dgm_agent\swe_bench\predictions_100\hosted_vllm\Qwen\Qwen3.5-35B-A3B-FP8_0\django__django-12708_eval.sh to container at /eval.sh
+2026-05-29 13:39:20,729 - ThreadPoolExecutor-3_0 - INFO - Successfully copied D:\kh4ng\Data_agent\dgm_agent\swe_bench\predictions_100\hosted_vllm\Qwen\Qwen3.5-35B-A3B-FP8_0\django__django-12708_eval.sh to container
+2026-05-29 13:39:27,271 - ThreadPoolExecutor-3_0 - INFO - Container output: + source /opt/miniconda3/bin/activate
+++ _CONDA_ROOT=/opt/miniconda3
+++ . /opt/miniconda3/etc/profile.d/conda.sh
++++ export CONDA_EXE=/opt/miniconda3/bin/conda
++++ CONDA_EXE=/opt/miniconda3/bin/conda
++++ export _CE_M=
++++ _CE_M=
++++ export _CE_CONDA=
++++ _CE_CONDA=
++++ export CONDA_PYTHON_EXE=/opt/miniconda3/bin/python
++++ CONDA_PYTHON_EXE=/opt/miniconda3/bin/python
++++ '[' -z '' ']'
++++ export CONDA_SHLVL=0
++++ CONDA_SHLVL=0
++++ '[' -n '' ']'
++++++ dirname /opt/miniconda3/bin/conda
+++++ dirname /opt/miniconda3/bin
++++ PATH=/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
++++ export PATH
++++ '[' -z '' ']'
++++ PS1=
+++ conda activate
+++ local cmd=activate
+++ case "$cmd" in
+++ __conda_activate activate
+++ '[' -n '' ']'
+++ local ask_conda
++++ PS1=
++++ __conda_exe shell.posix activate
++++ /opt/miniconda3/bin/conda shell.posix activate
+++ ask_conda='PS1='\''(base) '\''
+export PATH='\''/opt/miniconda3/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'\''
+export CONDA_PREFIX='\''/opt/miniconda3'\''
+export CONDA_SHLVL='\''1'\''
+export CONDA_DEFAULT_ENV='\''base'\''
+export CONDA_PROMPT_MODIFIER='\''(base) '\''
+export CONDA_EXE='\''/opt/miniconda3/bin/conda'\''
+export _CE_M='\'''\''
+export _CE_CONDA='\'''\''
+export CONDA_PYTHON_EXE='\''/opt/miniconda3/bin/python'\'''
+++ eval 'PS1='\''(base) '\''
+export PATH='\''/opt/miniconda3/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'\''
+export CONDA_PREFIX='\''/opt/miniconda3'\''
+export CONDA_SHLVL='\''1'\''
+export CONDA_DEFAULT_ENV='\''base'\''
+export CONDA_PROMPT_MODIFIER='\''(base) '\''
+export CONDA_EXE='\''/opt/miniconda3/bin/conda'\''
+export _CE_M='\'''\''
+export _CE_CONDA='\'''\''
+export CONDA_PYTHON_EXE='\''/opt/miniconda3/bin/python'\'''
++++ PS1='(base) '
++++ export PATH=/opt/miniconda3/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
++++ PATH=/opt/miniconda3/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
++++ export CONDA_PREFIX=/opt/miniconda3
++++ CONDA_PREFIX=/opt/miniconda3
++++ export CONDA_SHLVL=1
++++ CONDA_SHLVL=1
++++ export CONDA_DEFAULT_ENV=base
++++ CONDA_DEFAULT_ENV=base
++++ export 'CONDA_PROMPT_MODIFIER=(base) '
++++ CONDA_PROMPT_MODIFIER='(base) '
++++ export CONDA_EXE=/opt/miniconda3/bin/conda
++++ CONDA_EXE=/opt/miniconda3/bin/conda
++++ export _CE_M=
++++ _CE_M=
++++ export _CE_CONDA=
++++ _CE_CONDA=
++++ export CONDA_PYTHON_EXE=/opt/miniconda3/bin/python
++++ CONDA_PYTHON_EXE=/opt/miniconda3/bin/python
+++ __conda_hashr
+++ '[' -n '' ']'
+++ '[' -n '' ']'
+++ hash -r
++ conda activate testbed
++ local cmd=activate
++ case "$cmd" in
++ __conda_activate activate testbed
++ '[' -n '' ']'
++ local ask_conda
+++ PS1='(base) '
+++ __conda_exe shell.posix activate testbed
+++ /opt/miniconda3/bin/conda shell.posix activate testbed
++ ask_conda='PS1='\''(testbed) '\''
+export PATH='\''/opt/miniconda3/envs/testbed/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'\''
+export CONDA_PREFIX='\''/opt/miniconda3/envs/testbed'\''
+export CONDA_SHLVL='\''2'\''
+export CONDA_DEFAULT_ENV='\''testbed'\''
+export CONDA_PROMPT_MODIFIER='\''(testbed) '\''
+export CONDA_PREFIX_1='\''/opt/miniconda3'\''
+export CONDA_EXE='\''/opt/miniconda3/bin/conda'\''
+export _CE_M='\'''\''
+export _CE_CONDA='\'''\''
+export CONDA_PYTHON_EXE='\''/opt/miniconda3/bin/python'\'''
++ eval 'PS1='\''(testbed) '\''
+export PATH='\''/opt/miniconda3/envs/testbed/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'\''
+export CONDA_PREFIX='\''/opt/miniconda3/envs/testbed'\''
+export CONDA_SHLVL='\''2'\''
+export CONDA_DEFAULT_ENV='\''testbed'\''
+export CONDA_PROMPT_MODIFIER='\''(testbed) '\''
+export CONDA_PREFIX_1='\''/opt/miniconda3'\''
+export CONDA_EXE='\''/opt/miniconda3/bin/conda'\''
+export _CE_M='\'''\''
+export _CE_CONDA='\'''\''
+export CONDA_PYTHON_EXE='\''/opt/miniconda3/bin/python'\'''
+++ PS1='(testbed) '
+++ export PATH=/opt/miniconda3/envs/testbed/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+++ PATH=/opt/miniconda3/envs/testbed/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+++ export CONDA_PREFIX=/opt/miniconda3/envs/testbed
+++ CONDA_PREFIX=/opt/miniconda3/envs/testbed
+++ export CONDA_SHLVL=2
+++ CONDA_SHLVL=2
+++ export CONDA_DEFAULT_ENV=testbed
+++ CONDA_DEFAULT_ENV=testbed
+++ export 'CONDA_PROMPT_MODIFIER=(testbed) '
+++ CONDA_PROMPT_MODIFIER='(testbed) '
+++ export CONDA_PREFIX_1=/opt/miniconda3
+++ CONDA_PREFIX_1=/opt/miniconda3
+++ export CONDA_EXE=/opt/miniconda3/bin/conda
+++ CONDA_EXE=/opt/miniconda3/bin/conda
+++ export _CE_M=
+++ _CE_M=
+++ export _CE_CONDA=
+++ _CE_CONDA=
+++ export CONDA_PYTHON_EXE=/opt/miniconda3/bin/python
+++ CONDA_PYTHON_EXE=/opt/miniconda3/bin/python
++ __conda_hashr
++ '[' -n '' ']'
++ '[' -n '' ']'
++ hash -r
++ cd /testbed
++ sed -i '/en_US.UTF-8/s/^# //g' /etc/locale.gen
++ locale-gen
+Generating locales (this might take a while)...
+  en_US.UTF-8... done
+Generation complete.
++ export LANG=en_US.UTF-8
++ LANG=en_US.UTF-8
++ export LANGUAGE=en_US:en
++ LANGUAGE=en_US:en
++ export LC_ALL=en_US.UTF-8
++ LC_ALL=en_US.UTF-8
++ git config --global --add safe.directory /testbed
++ cd /testbed
++ git status
+On branch main
+nothing to commit, working tree clean
++ git show
+commit c38c195441a1f5b3025952c04667b76a69f97fe9
+Author: SWE-bench <setup@swebench.config>
+Date:   Fri May 29 06:39:00 2026 +0000
+
+    SWE-bench
++ git -c core.fileMode=false diff 447980e72ac01da1594dd3373a03ba40b7ee6f80
++ source /opt/miniconda3/bin/activate
+++ _CONDA_ROOT=/opt/miniconda3
+++ . /opt/miniconda3/etc/profile.d/conda.sh
++++ export CONDA_EXE=/opt/miniconda3/bin/conda
++++ CONDA_EXE=/opt/miniconda3/bin/conda
++++ export _CE_M=
++++ _CE_M=
++++ export _CE_CONDA=
++++ _CE_CONDA=
++++ export CONDA_PYTHON_EXE=/opt/miniconda3/bin/python
++++ CONDA_PYTHON_EXE=/opt/miniconda3/bin/python
++++ '[' -z x ']'
+++ conda activate
+++ local cmd=activate
+++ case "$cmd" in
+++ __conda_activate activate
+++ '[' -n '' ']'
+++ local ask_conda
++++ PS1='(testbed) '
++++ __conda_exe shell.posix activate
++++ /opt/miniconda3/bin/conda shell.posix activate
+++ ask_conda='PS1='\''(base) '\''
+export PATH='\''/opt/miniconda3/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'\''
+export CONDA_PREFIX='\''/opt/miniconda3'\''
+export CONDA_SHLVL='\''3'\''
+export CONDA_DEFAULT_ENV='\''base'\''
+export CONDA_PROMPT_MODIFIER='\''(base) '\''
+export CONDA_PREFIX_2='\''/opt/miniconda3/envs/testbed'\''
+export CONDA_EXE='\''/opt/miniconda3/bin/conda'\''
+export _CE_M='\'''\''
+export _CE_CONDA='\'''\''
+export CONDA_PYTHON_EXE='\''/opt/miniconda3/bin/python'\'''
+++ eval 'PS1='\''(base) '\''
+export PATH='\''/opt/miniconda3/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'\''
+export CONDA_PREFIX='\''/opt/miniconda3'\''
+export CONDA_SHLVL='\''3'\''
+export CONDA_DEFAULT_ENV='\''base'\''
+export CONDA_PROMPT_MODIFIER='\''(base) '\''
+export CONDA_PREFIX_2='\''/opt/miniconda3/envs/testbed'\''
+export CONDA_EXE='\''/opt/miniconda3/bin/conda'\''
+export _CE_M='\'''\''
+export _CE_CONDA='\'''\''
+export CONDA_PYTHON_EXE='\''/opt/miniconda3/bin/python'\'''
++++ PS1='(base) '
++++ export PATH=/opt/miniconda3/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
++++ PATH=/opt/miniconda3/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
++++ export CONDA_PREFIX=/opt/miniconda3
++++ CONDA_PREFIX=/opt/miniconda3
++++ export CONDA_SHLVL=3
++++ CONDA_SHLVL=3
++++ export CONDA_DEFAULT_ENV=base
++++ CONDA_DEFAULT_ENV=base
++++ export 'CONDA_PROMPT_MODIFIER=(base) '
++++ CONDA_PROMPT_MODIFIER='(base) '
++++ export CONDA_PREFIX_2=/opt/miniconda3/envs/testbed
++++ CONDA_PREFIX_2=/opt/miniconda3/envs/testbed
++++ export CONDA_EXE=/opt/miniconda3/bin/conda
++++ CONDA_EXE=/opt/miniconda3/bin/conda
++++ export _CE_M=
++++ _CE_M=
++++ export _CE_CONDA=
++++ _CE_CONDA=
++++ export CONDA_PYTHON_EXE=/opt/miniconda3/bin/python
++++ CONDA_PYTHON_EXE=/opt/miniconda3/bin/python
+++ __conda_hashr
+++ '[' -n '' ']'
+++ '[' -n '' ']'
+++ hash -r
++ conda activate testbed
++ local cmd=activate
++ case "$cmd" in
++ __conda_activate activate testbed
++ '[' -n '' ']'
++ local ask_conda
+++ PS1='(base) '
+++ __conda_exe shell.posix activate testbed
+++ /opt/miniconda3/bin/conda shell.posix activate testbed
++ ask_conda='PS1='\''(testbed) '\''
+export PATH='\''/opt/miniconda3/envs/testbed/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'\''
+export CONDA_PREFIX='\''/opt/miniconda3/envs/testbed'\''
+export CONDA_SHLVL='\''4'\''
+export CONDA_DEFAULT_ENV='\''testbed'\''
+export CONDA_PROMPT_MODIFIER='\''(testbed) '\''
+export CONDA_PREFIX_3='\''/opt/miniconda3'\''
+export CONDA_EXE='\''/opt/miniconda3/bin/conda'\''
+export _CE_M='\'''\''
+export _CE_CONDA='\'''\''
+export CONDA_PYTHON_EXE='\''/opt/miniconda3/bin/python'\'''
++ eval 'PS1='\''(testbed) '\''
+export PATH='\''/opt/miniconda3/envs/testbed/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'\''
+export CONDA_PREFIX='\''/opt/miniconda3/envs/testbed'\''
+export CONDA_SHLVL='\''4'\''
+export CONDA_DEFAULT_ENV='\''testbed'\''
+export CONDA_PROMPT_MODIFIER='\''(testbed) '\''
+export CONDA_PREFIX_3='\''/opt/miniconda3'\''
+export CONDA_EXE='\''/opt/miniconda3/bin/conda'\''
+export _CE_M='\'''\''
+export _CE_CONDA='\'''\''
+export CONDA_PYTHON_EXE='\''/opt/miniconda3/bin/python'\'''
+++ PS1='(testbed) '
+++ export PATH=/opt/miniconda3/envs/testbed/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+++ PATH=/opt/miniconda3/envs/testbed/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+++ export CONDA_PREFIX=/opt/miniconda3/envs/testbed
+++ CONDA_PREFIX=/opt/miniconda3/envs/testbed
+++ export CONDA_SHLVL=4
+++ CONDA_SHLVL=4
+++ export CONDA_DEFAULT_ENV=testbed
+++ CONDA_DEFAULT_ENV=testbed
+++ export 'CONDA_PROMPT_MODIFIER=(testbed) '
+++ CONDA_PROMPT_MODIFIER='(testbed) '
+++ export CONDA_PREFIX_3=/opt/miniconda3
+++ CONDA_PREFIX_3=/opt/miniconda3
+++ export CONDA_EXE=/opt/miniconda3/bin/conda
+++ CONDA_EXE=/opt/miniconda3/bin/conda
+++ export _CE_M=
+++ _CE_M=
+++ export _CE_CONDA=
+++ _CE_CONDA=
+++ export CONDA_PYTHON_EXE=/opt/miniconda3/bin/python
+++ CONDA_PYTHON_EXE=/opt/miniconda3/bin/python
++ __conda_hashr
++ '[' -n '' ']'
++ '[' -n '' ']'
++ hash -r
++ python -m pip install -e .
+Obtaining file:///testbed
+Requirement already satisfied: asgiref>=3.2 in /opt/miniconda3/envs/testbed/lib/python3.6/site-packages (from Django==3.1) (3.4.1)
+Requirement already satisfied: pytz in /opt/miniconda3/envs/testbed/lib/python3.6/site-packages (from Django==3.1) (2026.2)
+Requirement already satisfied: sqlparse>=0.2.2 in /opt/miniconda3/envs/testbed/lib/python3.6/site-packages (from Django==3.1) (0.4.4)
+Requirement already satisfied: typing-extensions in /opt/miniconda3/envs/testbed/lib/python3.6/site-packages (from asgiref>=3.2->Django==3.1) (4.1.1)
+Installing collected packages: Django
+  Attempting uninstall: Django
+    Found existing installation: Django 3.1
+    Uninstalling Django-3.1:
+      Successfully uninstalled Django-3.1
+  Running setup.py develop for Django
+Successfully installed Django-3.1
+WARNING: Running pip as the 'root' user can result in broken permissions and conflicting behaviour with the system package manager. It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv
++ git checkout 447980e72ac01da1594dd3373a03ba40b7ee6f80 tests/migrations/test_base.py tests/migrations/test_operations.py
+Updated 0 paths from a69c16be00
++ git apply -v -
+Checking patch tests/migrations/test_base.py...
+Checking patch tests/migrations/test_operations.py...
+Applied patch tests/migrations/test_base.py cleanly.
+Applied patch tests/migrations/test_operations.py cleanly.
++ : '>>>>> Start Test Output'
++ ./tests/runtests.py --verbosity 2 --settings=test_sqlite --parallel 1 migrations.test_base migrations.test_operations
+Creating test database for alias 'default' ('file:memorydb_default?mode=memory&cache=shared')...
+Creating test database for alias 'other' ('file:memorydb_other?mode=memory&cache=shared')...
+test_reference_field_by_through_fields (migrations.test_operations.FieldOperationTests) ... ok
+test_references_field_by_from_fields (migrations.test_operations.FieldOperationTests) ... ok
+test_references_field_by_name (migrations.test_operations.FieldOperationTests) ... ok
+test_references_field_by_remote_field_model (migrations.test_operations.FieldOperationTests) ... ok
+test_references_field_by_through (migrations.test_operations.FieldOperationTests) ... ok
+test_references_field_by_to_fields (migrations.test_operations.FieldOperationTests) ... ok
+test_references_model (migrations.test_operations.FieldOperationTests) ... ok
+test_add_binaryfield (migrations.test_operations.OperationTests) ... ok
+test_add_charfield (migrations.test_operations.OperationTests) ... ok
+test_add_constraint (migrations.test_operations.OperationTests) ... ok
+test_add_constraint_combinable (migrations.test_operations.OperationTests) ... ok
+test_add_constraint_percent_escaping (migrations.test_operations.OperationTests) ... ok
+test_add_field (migrations.test_operations.OperationTests) ... ok
+test_add_field_m2m (migrations.test_operations.OperationTests) ... ok
+test_add_field_preserve_default (migrations.test_operations.OperationTests) ... ok
+test_add_index (migrations.test_operations.OperationTests) ... ok
+test_add_index_state_forwards (migrations.test_operations.OperationTests) ... ok
+test_add_or_constraint (migrations.test_operations.OperationTests) ... ok
+test_add_partial_unique_constraint (migrations.test_operations.OperationTests) ... ok
+test_add_textfield (migrations.test_operations.OperationTests) ... ok
+test_alter_field (migrations.test_operations.OperationTests) ... ok
+test_alter_field_m2m (migrations.test_operations.OperationTests) ... ok
+test_alter_field_pk (migrations.test_operations.OperationTests) ... ok
+test_alter_field_pk_fk (migrations.test_operations.OperationTests) ... ok
+test_alter_field_reloads_state_on_fk_target_changes (migrations.test_operations.OperationTests) ... ok
+test_alter_field_reloads_state_on_fk_with_to_field_related_name_target_type_change (migrations.test_operations.OperationTests) ... ok
+test_alter_field_reloads_state_on_fk_with_to_field_target_changes (migrations.test_operations.OperationTests) ... ok
+test_alter_field_reloads_state_on_fk_with_to_field_target_type_change (migrations.test_operations.OperationTests) ... ok
+test_alter_field_with_index (migrations.test_operations.OperationTests) ... ok
+test_alter_fk (migrations.test_operations.OperationTests) ... ok
+test_alter_fk_non_fk (migrations.test_operations.OperationTests) ... ok
+test_alter_index_together (migrations.test_operations.OperationTests) ... ok
+test_alter_index_together_remove (migrations.test_operations.OperationTests) ... ok
+test_alter_index_together_remove_with_unique_together (migrations.test_operations.OperationTests) ... ERROR
+test_alter_model_managers (migrations.test_operations.OperationTests) ... ok
+test_alter_model_managers_emptying (migrations.test_operations.OperationTests) ... ok
+test_alter_model_options (migrations.test_operations.OperationTests) ... ok
+test_alter_model_options_emptying (migrations.test_operations.OperationTests) ... ok
+test_alter_model_table (migrations.test_operations.OperationTests) ... ok
+test_alter_model_table_m2m (migrations.test_operations.OperationTests) ... ok
+test_alter_model_table_none (migrations.test_operations.OperationTests) ... ok
+test_alter_model_table_noop (migrations.test_operations.OperationTests) ... ok
+test_alter_order_with_respect_to (migrations.test_operations.OperationTests) ... ok
+test_alter_unique_together (migrations.test_operations.OperationTests) ... ok
+test_alter_unique_together_remove (migrations.test_operations.OperationTests) ... ok
+test_autofield__bigautofield_foreignfield_growth (migrations.test_operations.OperationTests)
+A field may be migrated from AutoField to BigAutoField. ... ok
+test_column_name_quoting (migrations.test_operations.OperationTests) ... ok
+test_create_model (migrations.test_operations.OperationTests) ... ok
+test_create_model_inheritance (migrations.test_operations.OperationTests) ... ok
+test_create_model_m2m (migrations.test_operations.OperationTests) ... ok
+test_create_model_managers (migrations.test_operations.OperationTests) ... ok
+test_create_model_with_constraint (migrations.test_operations.OperationTests) ... ok
+test_create_model_with_duplicate_base (migrations.test_operations.OperationTests) ... ok
+test_create_model_with_duplicate_field_name (migrations.test_operations.OperationTests) ... ok
+test_create_model_with_duplicate_manager_name (migrations.test_operations.OperationTests) ... ok
+test_create_model_with_partial_unique_constraint (migrations.test_operations.OperationTests) ... ok
+test_create_model_with_unique_after (migrations.test_operations.OperationTests) ... ok
+test_create_proxy_model (migrations.test_operations.OperationTests) ... ok
+test_create_unmanaged_model (migrations.test_operations.OperationTests) ... ok
+test_delete_model (migrations.test_operations.OperationTests) ... ok
+test_delete_mti_model (migrations.test_operations.OperationTests) ... ok
+test_delete_proxy_model (migrations.test_operations.OperationTests) ... ok
+test_model_with_bigautofield (migrations.test_operations.OperationTests) ... ok
+test_remove_constraint (migrations.test_operations.OperationTests) ... ok
+test_remove_field (migrations.test_operations.OperationTests) ... ok
+test_remove_field_m2m (migrations.test_operations.OperationTests) ... ok
+test_remove_field_m2m_with_through (migrations.test_operations.OperationTests) ... ok
+test_remove_fk (migrations.test_operations.OperationTests) ... ok
+test_remove_index (migrations.test_operations.OperationTests) ... ok
+test_remove_index_state_forwards (migrations.test_operations.OperationTests) ... ok
+test_remove_partial_unique_constraint (migrations.test_operations.OperationTests) ... ok
+test_rename_field (migrations.test_operations.OperationTests) ... ok
+test_rename_field_reloads_state_on_fk_target_changes (migrations.test_operations.OperationTests) ... ok
+test_rename_m2m_model_after_rename_field (migrations.test_operations.OperationTests)
+RenameModel renames a many-to-many column after a RenameField. ... ok
+test_rename_m2m_target_model (migrations.test_operations.OperationTests) ... ok
+test_rename_m2m_through_model (migrations.test_operations.OperationTests) ... ok
+test_rename_missing_field (migrations.test_operations.OperationTests) ... ok
+test_rename_model (migrations.test_operations.OperationTests) ... ok
+test_rename_model_state_forwards (migrations.test_operations.OperationTests) ... ok
+test_rename_model_with_m2m (migrations.test_operations.OperationTests) ... ok
+test_rename_model_with_self_referential_fk (migrations.test_operations.OperationTests) ... ok
+test_rename_model_with_self_referential_m2m (migrations.test_operations.OperationTests) ... ok
+test_rename_model_with_superclass_fk (migrations.test_operations.OperationTests) ... ok
+test_rename_referenced_field_state_forward (migrations.test_operations.OperationTests) ... ok
+test_repoint_field_m2m (migrations.test_operations.OperationTests) ... ok
+test_run_python (migrations.test_operations.OperationTests) ... ok
+test_run_python_atomic (migrations.test_operations.OperationTests) ... ok
+test_run_python_noop (migrations.test_operations.OperationTests) ... ok
+test_run_python_related_assignment (migrations.test_operations.OperationTests) ... ok
+test_run_sql (migrations.test_operations.OperationTests) ... ok
+test_run_sql_noop (migrations.test_operations.OperationTests) ... ok
+test_run_sql_params (migrations.test_operations.OperationTests) ... ok
+test_run_sql_params_invalid (migrations.test_operations.OperationTests) ... ok
+test_separate_database_and_state (migrations.test_operations.OperationTests) ... ok
+test_separate_database_and_state2 (migrations.test_operations.OperationTests) ... ok
+test_smallfield_autofield_foreignfield_growth (migrations.test_operations.OperationTests)
+A field may be migrated from SmallAutoField to AutoField. ... ok
+test_smallfield_bigautofield_foreignfield_growth (migrations.test_operations.OperationTests)
+A field may be migrated from SmallAutoField to BigAutoField. ... ok
+test_add_field_ignore_swapped (migrations.test_operations.SwappableOperationTests) ... ok
+test_create_ignore_swapped (migrations.test_operations.SwappableOperationTests) ... ok
+test_delete_ignore_swapped (migrations.test_operations.SwappableOperationTests) ... ok
+test_indexes_ignore_swapped (migrations.test_operations.SwappableOperationTests) ... ok
+test_references_model_mixin (migrations.test_operations.TestCreateModel) ... ok
+
+======================================================================
+ERROR: test_alter_index_together_remove_with_unique_together (migrations.test_operations.OperationTests)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/testbed/django/test/testcases.py", line 1215, in skip_wrapper
+    return test_func(*args, **kwargs)
+  File "/testbed/tests/migrations/test_operations.py", line 1781, in test_alter_index_together_remove_with_unique_together
+    operation.database_forwards(app_label, editor, project_state, new_state)
+  File "/testbed/django/db/migrations/operations/models.py", line 511, in database_forwards
+    getattr(new_model._meta, self.option_name, set()),
+  File "/testbed/django/db/backends/base/schema.py", line 396, in alter_index_together
+    self._delete_composed_index(model, fields, {'index': True}, self.sql_delete_index)
+  File "/testbed/django/db/backends/base/schema.py", line 414, in _delete_composed_index
+    ", ".join(columns),
+ValueError: Found wrong number (2) of constraints for test_alintoremove_wunto_pony(pink, weight)
+
+----------------------------------------------------------------------
+Ran 102 tests in 0.651s
+
+FAILED (errors=1)
+Destroying test database for alias 'default' ('file:memorydb_default?mode=memory&cache=shared')...
+Destroying test database for alias 'other' ('file:memorydb_other?mode=memory&cache=shared')...
+Testing against Django installed in '/testbed/django'
+Importing application migrations
+Operations to perform:
+  Synchronize unmigrated apps: auth, contenttypes, messages, migrations, sessions, staticfiles
+  Apply all migrations: admin, sites
+Synchronizing apps without migrations:
+  Creating tables...
+    Creating table django_content_type
+    Creating table auth_permission
+    Creating table auth_group
+    Creating table auth_user
+    Creating table django_session
+    Creating table migrations_modelwithcustombase
+    Creating table migrations_unmigratedmodel
+    Running deferred SQL...
+Running migrations:
+  Applying admin.0001_initial... OK
+  Applying admin.0002_logentry_remove_auto_add... OK
+  Applying admin.0003_logentry_add_action_flag_choices... OK
+  Applying sites.0001_initial... OK
+  Applying sites.0002_alter_domain_unique... OK
+Operations to perform:
+  Synchronize unmigrated apps: auth, contenttypes, messages, migrations, sessions, staticfiles
+  Apply all migrations: admin, sites
+Synchronizing apps without migrations:
+  Creating tables...
+    Creating table django_content_type
+    Creating table auth_permission
+    Creating table auth_group
+    Creating table auth_user
+    Creating table django_session
+    Creating table migrations_modelwithcustombase
+    Creating table migrations_unmigratedmodel
+    Running deferred SQL...
+Running migrations:
+  Applying admin.0001_initial... OK
+  Applying admin.0002_logentry_remove_auto_add... OK
+  Applying admin.0003_logentry_add_action_flag_choices... OK
+  Applying sites.0001_initial... OK
+  Applying sites.0002_alter_domain_unique... OK
+System check identified no issues (0 silenced).
++ : '>>>>> End Test Output'
++ git checkout 447980e72ac01da1594dd3373a03ba40b7ee6f80 tests/migrations/test_base.py tests/migrations/test_operations.py
+Updated 2 paths from a69c16be00
+
+2026-05-29 13:39:27,376 - ThreadPoolExecutor-3_0 - INFO - Container output: 
+2026-05-29 13:39:27,376 - ThreadPoolExecutor-3_0 - INFO - Installing more requirements
+2026-05-29 13:40:02,170 - ThreadPoolExecutor-3_0 - INFO - Running the agent
+2026-05-29 13:44:04,905 - ThreadPoolExecutor-3_0 - INFO - Container output: Using hosted_vllm proxy (https://proxy.onebot.meobeo.ai/v1) with model hosted_vllm/Qwen/Qwen3.5-35B-A3B-FP8.
+Error in chat_with_agent_manualtools: Error code: 429 - {'error': {'message': 'Rate limit exceeded for api_key: 3ae031977bf6a71438a268f0688ed62828abd6fbd1e7f9f0caf7a8b0e4e9de06. Limit type: requests. Current limit: 40, Remaining: 0. Limit resets at: 2026-05-29 14:45:04 UTC', 'type': 'None', 'param': 'None', 'code': '429'}}
+Traceback (most recent call last):
+  File "/dgm/llm_withtools.py", line 312, in chat_with_agent_manualtools
+    response, new_msg_history = get_response_from_llm(
+                                ^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/miniconda3/lib/python3.11/site-packages/backoff/_sync.py", line 105, in retry
+    ret = target(*args, **kwargs)
+          ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/dgm/llm.py", line 314, in get_response_from_llm
+    response = client.chat.completions.create(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/miniconda3/lib/python3.11/site-packages/openai/_utils/_utils.py", line 298, in wrapper
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/miniconda3/lib/python3.11/site-packages/openai/resources/chat/completions/completions.py", line 1215, in create
+    return self._post(
+           ^^^^^^^^^^^
+  File "/opt/miniconda3/lib/python3.11/site-packages/openai/_base_client.py", line 1332, in post
+    return cast(ResponseT, self.request(cast_to, opts, stream=stream, stream_cls=stream_cls))
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/miniconda3/lib/python3.11/site-packages/openai/_base_client.py", line 1105, in request
+    raise self._make_status_error_from_response(err.response) from None
+openai.RateLimitError: Error code: 429 - {'error': {'message': 'Rate limit exceeded for api_key: 3ae031977bf6a71438a268f0688ed62828abd6fbd1e7f9f0caf7a8b0e4e9de06. Limit type: requests. Current limit: 40, Remaining: 0. Limit resets at: 2026-05-29 14:45:04 UTC', 'type': 'None', 'param': 'None', 'code': '429'}}
+
+
+2026-05-29 13:44:04,905 - ThreadPoolExecutor-3_0 - INFO - Copying output files back to host
+2026-05-29 13:44:05,092 - ThreadPoolExecutor-3_0 - INFO - Copying from container /dgm/django__django-12708.md to local path D:\kh4ng\Data_agent\dgm_agent\swe_bench\predictions_100\hosted_vllm\Qwen\Qwen3.5-35B-A3B-FP8_0\django__django-12708.md
+2026-05-29 13:44:05,102 - ThreadPoolExecutor-3_0 - INFO - Successfully copied from container to D:\kh4ng\Data_agent\dgm_agent\swe_bench\predictions_100\hosted_vllm\Qwen\Qwen3.5-35B-A3B-FP8_0\django__django-12708.md
+2026-05-29 13:44:05,186 - ThreadPoolExecutor-3_0 - INFO - Getting model_patch
+2026-05-29 13:44:05,273 - ThreadPoolExecutor-3_0 - INFO - Container output: 
+2026-05-29 13:44:05,351 - ThreadPoolExecutor-3_0 - INFO - Attempting to stop container sweb.eval.django__django-12708.20260529_133726_260522...
+2026-05-29 13:44:20,795 - ThreadPoolExecutor-3_0 - INFO - Attempting to remove container sweb.eval.django__django-12708.20260529_133726_260522...
+2026-05-29 13:44:21,594 - ThreadPoolExecutor-3_0 - INFO - Container sweb.eval.django__django-12708.20260529_133726_260522 removed.
+2026-05-29 13:44:21,617 - ThreadPoolExecutor-3_0 - INFO - No existing container with name sweb.eval.django__django-12713.20260529_134421_609771 found.
+2026-05-29 13:44:21,647 - ThreadPoolExecutor-3_0 - INFO - Environment image sweb.env.py.x86_64.a18371b03f944585b4f08c:latest found for django__django-12713
+Building instance image sweb.eval.x86_64.django__django-12713:latest for django__django-12713
+2026-05-29 13:45:59,560 - ThreadPoolExecutor-3_0 - INFO - Creating container for django__django-12713...
+2026-05-29 13:45:59,651 - ThreadPoolExecutor-3_0 - INFO - Container for django__django-12713 created: aec55c3192e42323490cd1dcad2122394236b66a75ac41924db404ebd0b5831d
+2026-05-29 13:45:59,887 - ThreadPoolExecutor-3_0 - INFO - Working directory set to: D:\kh4ng\Data_agent\dgm_agent
+2026-05-29 13:45:59,991 - ThreadPoolExecutor-3_0 - INFO - Copying coding_agent.py to container at /dgm/coding_agent.py
+2026-05-29 13:46:00,000 - ThreadPoolExecutor-3_0 - INFO - Successfully copied coding_agent.py to container
+2026-05-29 13:46:00,099 - ThreadPoolExecutor-3_0 - INFO - Copying requirements.txt to container at /dgm/requirements.txt
+2026-05-29 13:46:00,107 - ThreadPoolExecutor-3_0 - INFO - Successfully copied requirements.txt to container
+2026-05-29 13:46:00,205 - ThreadPoolExecutor-3_0 - INFO - Copying pytest.ini to container at /dgm/pytest.ini
+2026-05-29 13:46:00,216 - ThreadPoolExecutor-3_0 - INFO - Successfully copied pytest.ini to container
+2026-05-29 13:46:00,319 - ThreadPoolExecutor-3_0 - INFO - Copying tools to container at /dgm/tools
+2026-05-29 13:46:00,336 - ThreadPoolExecutor-3_0 - INFO - Successfully copied tools to container
+2026-05-29 13:46:00,457 - ThreadPoolExecutor-3_0 - INFO - Copying utils to container at /dgm/utils
+2026-05-29 13:46:00,470 - ThreadPoolExecutor-3_0 - INFO - Successfully copied utils to container
+2026-05-29 13:46:00,586 - ThreadPoolExecutor-3_0 - INFO - Copying tests to container at /dgm/tests
+2026-05-29 13:46:00,596 - ThreadPoolExecutor-3_0 - INFO - Successfully copied tests to container
+2026-05-29 13:46:00,702 - ThreadPoolExecutor-3_0 - INFO - Copying prompts to container at /dgm/prompts
+2026-05-29 13:46:00,713 - ThreadPoolExecutor-3_0 - INFO - Successfully copied prompts to container
+2026-05-29 13:46:00,813 - ThreadPoolExecutor-3_0 - INFO - Copying llm.py to container at /dgm/llm.py
+2026-05-29 13:46:00,825 - ThreadPoolExecutor-3_0 - INFO - Successfully copied llm.py to container
+2026-05-29 13:46:00,938 - ThreadPoolExecutor-3_0 - INFO - Copying llm_withtools.py to container at /dgm/llm_withtools.py
+2026-05-29 13:46:00,946 - ThreadPoolExecutor-3_0 - INFO - Successfully copied llm_withtools.py to container
+2026-05-29 13:46:00,946 - ThreadPoolExecutor-3_0 - INFO - Setting up environment
+2026-05-29 13:46:01,027 - ThreadPoolExecutor-3_0 - INFO - Copying D:\kh4ng\Data_agent\dgm_agent\swe_bench\predictions_100\hosted_vllm\Qwen\Qwen3.5-35B-A3B-FP8_0\django__django-12713_eval.sh to container at /eval.sh
+2026-05-29 13:46:01,035 - ThreadPoolExecutor-3_0 - INFO - Successfully copied D:\kh4ng\Data_agent\dgm_agent\swe_bench\predictions_100\hosted_vllm\Qwen\Qwen3.5-35B-A3B-FP8_0\django__django-12713_eval.sh to container
+2026-05-29 13:46:06,981 - ThreadPoolExecutor-3_0 - INFO - Container output: + source /opt/miniconda3/bin/activate
+++ _CONDA_ROOT=/opt/miniconda3
+++ . /opt/miniconda3/etc/profile.d/conda.sh
++++ export CONDA_EXE=/opt/miniconda3/bin/conda
++++ CONDA_EXE=/opt/miniconda3/bin/conda
++++ export _CE_M=
++++ _CE_M=
++++ export _CE_CONDA=
++++ _CE_CONDA=
++++ export CONDA_PYTHON_EXE=/opt/miniconda3/bin/python
++++ CONDA_PYTHON_EXE=/opt/miniconda3/bin/python
++++ '[' -z '' ']'
++++ export CONDA_SHLVL=0
++++ CONDA_SHLVL=0
++++ '[' -n '' ']'
++++++ dirname /opt/miniconda3/bin/conda
+++++ dirname /opt/miniconda3/bin
++++ PATH=/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
++++ export PATH
++++ '[' -z '' ']'
++++ PS1=
+++ conda activate
+++ local cmd=activate
+++ case "$cmd" in
+++ __conda_activate activate
+++ '[' -n '' ']'
+++ local ask_conda
++++ PS1=
++++ __conda_exe shell.posix activate
++++ /opt/miniconda3/bin/conda shell.posix activate
+++ ask_conda='PS1='\''(base) '\''
+export PATH='\''/opt/miniconda3/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'\''
+export CONDA_PREFIX='\''/opt/miniconda3'\''
+export CONDA_SHLVL='\''1'\''
+export CONDA_DEFAULT_ENV='\''base'\''
+export CONDA_PROMPT_MODIFIER='\''(base) '\''
+export CONDA_EXE='\''/opt/miniconda3/bin/conda'\''
+export _CE_M='\'''\''
+export _CE_CONDA='\'''\''
+export CONDA_PYTHON_EXE='\''/opt/miniconda3/bin/python'\'''
+++ eval 'PS1='\''(base) '\''
+export PATH='\''/opt/miniconda3/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'\''
+export CONDA_PREFIX='\''/opt/miniconda3'\''
+export CONDA_SHLVL='\''1'\''
+export CONDA_DEFAULT_ENV='\''base'\''
+export CONDA_PROMPT_MODIFIER='\''(base) '\''
+export CONDA_EXE='\''/opt/miniconda3/bin/conda'\''
+export _CE_M='\'''\''
+export _CE_CONDA='\'''\''
+export CONDA_PYTHON_EXE='\''/opt/miniconda3/bin/python'\'''
++++ PS1='(base) '
++++ export PATH=/opt/miniconda3/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
++++ PATH=/opt/miniconda3/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
++++ export CONDA_PREFIX=/opt/miniconda3
++++ CONDA_PREFIX=/opt/miniconda3
++++ export CONDA_SHLVL=1
++++ CONDA_SHLVL=1
++++ export CONDA_DEFAULT_ENV=base
++++ CONDA_DEFAULT_ENV=base
++++ export 'CONDA_PROMPT_MODIFIER=(base) '
++++ CONDA_PROMPT_MODIFIER='(base) '
++++ export CONDA_EXE=/opt/miniconda3/bin/conda
++++ CONDA_EXE=/opt/miniconda3/bin/conda
++++ export _CE_M=
++++ _CE_M=
++++ export _CE_CONDA=
++++ _CE_CONDA=
++++ export CONDA_PYTHON_EXE=/opt/miniconda3/bin/python
++++ CONDA_PYTHON_EXE=/opt/miniconda3/bin/python
+++ __conda_hashr
+++ '[' -n '' ']'
+++ '[' -n '' ']'
+++ hash -r
++ conda activate testbed
++ local cmd=activate
++ case "$cmd" in
++ __conda_activate activate testbed
++ '[' -n '' ']'
++ local ask_conda
+++ PS1='(base) '
+++ __conda_exe shell.posix activate testbed
+++ /opt/miniconda3/bin/conda shell.posix activate testbed
++ ask_conda='PS1='\''(testbed) '\''
+export PATH='\''/opt/miniconda3/envs/testbed/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'\''
+export CONDA_PREFIX='\''/opt/miniconda3/envs/testbed'\''
+export CONDA_SHLVL='\''2'\''
+export CONDA_DEFAULT_ENV='\''testbed'\''
+export CONDA_PROMPT_MODIFIER='\''(testbed) '\''
+export CONDA_PREFIX_1='\''/opt/miniconda3'\''
+export CONDA_EXE='\''/opt/miniconda3/bin/conda'\''
+export _CE_M='\'''\''
+export _CE_CONDA='\'''\''
+export CONDA_PYTHON_EXE='\''/opt/miniconda3/bin/python'\'''
++ eval 'PS1='\''(testbed) '\''
+export PATH='\''/opt/miniconda3/envs/testbed/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'\''
+export CONDA_PREFIX='\''/opt/miniconda3/envs/testbed'\''
+export CONDA_SHLVL='\''2'\''
+export CONDA_DEFAULT_ENV='\''testbed'\''
+export CONDA_PROMPT_MODIFIER='\''(testbed) '\''
+export CONDA_PREFIX_1='\''/opt/miniconda3'\''
+export CONDA_EXE='\''/opt/miniconda3/bin/conda'\''
+export _CE_M='\'''\''
+export _CE_CONDA='\'''\''
+export CONDA_PYTHON_EXE='\''/opt/miniconda3/bin/python'\'''
+++ PS1='(testbed) '
+++ export PATH=/opt/miniconda3/envs/testbed/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+++ PATH=/opt/miniconda3/envs/testbed/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+++ export CONDA_PREFIX=/opt/miniconda3/envs/testbed
+++ CONDA_PREFIX=/opt/miniconda3/envs/testbed
+++ export CONDA_SHLVL=2
+++ CONDA_SHLVL=2
+++ export CONDA_DEFAULT_ENV=testbed
+++ CONDA_DEFAULT_ENV=testbed
+++ export 'CONDA_PROMPT_MODIFIER=(testbed) '
+++ CONDA_PROMPT_MODIFIER='(testbed) '
+++ export CONDA_PREFIX_1=/opt/miniconda3
+++ CONDA_PREFIX_1=/opt/miniconda3
+++ export CONDA_EXE=/opt/miniconda3/bin/conda
+++ CONDA_EXE=/opt/miniconda3/bin/conda
+++ export _CE_M=
+++ _CE_M=
+++ export _CE_CONDA=
+++ _CE_CONDA=
+++ export CONDA_PYTHON_EXE=/opt/miniconda3/bin/python
+++ CONDA_PYTHON_EXE=/opt/miniconda3/bin/python
++ __conda_hashr
++ '[' -n '' ']'
++ '[' -n '' ']'
++ hash -r
++ cd /testbed
++ sed -i '/en_US.UTF-8/s/^# //g' /etc/locale.gen
++ locale-gen
+Generating locales (this might take a while)...
+  en_US.UTF-8... done
+Generation complete.
++ export LANG=en_US.UTF-8
++ LANG=en_US.UTF-8
++ export LANGUAGE=en_US:en
++ LANGUAGE=en_US:en
++ export LC_ALL=en_US.UTF-8
++ LC_ALL=en_US.UTF-8
++ git config --global --add safe.directory /testbed
++ cd /testbed
++ git status
+On branch main
+nothing to commit, working tree clean
++ git show
+commit d78c85bc53dd67a632c470ffc33369aab9c118da
+Author: SWE-bench <setup@swebench.config>
+Date:   Fri May 29 06:45:40 2026 +0000
+
+    SWE-bench
++ git -c core.fileMode=false diff 5b884d45ac5b76234eca614d90c83b347294c332
++ source /opt/miniconda3/bin/activate
+++ _CONDA_ROOT=/opt/miniconda3
+++ . /opt/miniconda3/etc/profile.d/conda.sh
++++ export CONDA_EXE=/opt/miniconda3/bin/conda
++++ CONDA_EXE=/opt/miniconda3/bin/conda
++++ export _CE_M=
++++ _CE_M=
++++ export _CE_CONDA=
++++ _CE_CONDA=
++++ export CONDA_PYTHON_EXE=/opt/miniconda3/bin/python
++++ CONDA_PYTHON_EXE=/opt/miniconda3/bin/python
++++ '[' -z x ']'
+++ conda activate
+++ local cmd=activate
+++ case "$cmd" in
+++ __conda_activate activate
+++ '[' -n '' ']'
+++ local ask_conda
++++ PS1='(testbed) '
++++ __conda_exe shell.posix activate
++++ /opt/miniconda3/bin/conda shell.posix activate
+++ ask_conda='PS1='\''(base) '\''
+export PATH='\''/opt/miniconda3/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'\''
+export CONDA_PREFIX='\''/opt/miniconda3'\''
+export CONDA_SHLVL='\''3'\''
+export CONDA_DEFAULT_ENV='\''base'\''
+export CONDA_PROMPT_MODIFIER='\''(base) '\''
+export CONDA_PREFIX_2='\''/opt/miniconda3/envs/testbed'\''
+export CONDA_EXE='\''/opt/miniconda3/bin/conda'\''
+export _CE_M='\'''\''
+export _CE_CONDA='\'''\''
+export CONDA_PYTHON_EXE='\''/opt/miniconda3/bin/python'\'''
+++ eval 'PS1='\''(base) '\''
+export PATH='\''/opt/miniconda3/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'\''
+export CONDA_PREFIX='\''/opt/miniconda3'\''
+export CONDA_SHLVL='\''3'\''
+export CONDA_DEFAULT_ENV='\''base'\''
+export CONDA_PROMPT_MODIFIER='\''(base) '\''
+export CONDA_PREFIX_2='\''/opt/miniconda3/envs/testbed'\''
+export CONDA_EXE='\''/opt/miniconda3/bin/conda'\''
+export _CE_M='\'''\''
+export _CE_CONDA='\'''\''
+export CONDA_PYTHON_EXE='\''/opt/miniconda3/bin/python'\'''
++++ PS1='(base) '
++++ export PATH=/opt/miniconda3/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
++++ PATH=/opt/miniconda3/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
++++ export CONDA_PREFIX=/opt/miniconda3
++++ CONDA_PREFIX=/opt/miniconda3
++++ export CONDA_SHLVL=3
++++ CONDA_SHLVL=3
++++ export CONDA_DEFAULT_ENV=base
++++ CONDA_DEFAULT_ENV=base
++++ export 'CONDA_PROMPT_MODIFIER=(base) '
++++ CONDA_PROMPT_MODIFIER='(base) '
++++ export CONDA_PREFIX_2=/opt/miniconda3/envs/testbed
++++ CONDA_PREFIX_2=/opt/miniconda3/envs/testbed
++++ export CONDA_EXE=/opt/miniconda3/bin/conda
++++ CONDA_EXE=/opt/miniconda3/bin/conda
++++ export _CE_M=
++++ _CE_M=
++++ export _CE_CONDA=
++++ _CE_CONDA=
++++ export CONDA_PYTHON_EXE=/opt/miniconda3/bin/python
++++ CONDA_PYTHON_EXE=/opt/miniconda3/bin/python
+++ __conda_hashr
+++ '[' -n '' ']'
+++ '[' -n '' ']'
+++ hash -r
++ conda activate testbed
++ local cmd=activate
++ case "$cmd" in
++ __conda_activate activate testbed
++ '[' -n '' ']'
++ local ask_conda
+++ PS1='(base) '
+++ __conda_exe shell.posix activate testbed
+++ /opt/miniconda3/bin/conda shell.posix activate testbed
++ ask_conda='PS1='\''(testbed) '\''
+export PATH='\''/opt/miniconda3/envs/testbed/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'\''
+export CONDA_PREFIX='\''/opt/miniconda3/envs/testbed'\''
+export CONDA_SHLVL='\''4'\''
+export CONDA_DEFAULT_ENV='\''testbed'\''
+export CONDA_PROMPT_MODIFIER='\''(testbed) '\''
+export CONDA_PREFIX_3='\''/opt/miniconda3'\''
+export CONDA_EXE='\''/opt/miniconda3/bin/conda'\''
+export _CE_M='\'''\''
+export _CE_CONDA='\'''\''
+export CONDA_PYTHON_EXE='\''/opt/miniconda3/bin/python'\'''
++ eval 'PS1='\''(testbed) '\''
+export PATH='\''/opt/miniconda3/envs/testbed/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'\''
+export CONDA_PREFIX='\''/opt/miniconda3/envs/testbed'\''
+export CONDA_SHLVL='\''4'\''
+export CONDA_DEFAULT_ENV='\''testbed'\''
+export CONDA_PROMPT_MODIFIER='\''(testbed) '\''
+export CONDA_PREFIX_3='\''/opt/miniconda3'\''
+export CONDA_EXE='\''/opt/miniconda3/bin/conda'\''
+export _CE_M='\'''\''
+export _CE_CONDA='\'''\''
+export CONDA_PYTHON_EXE='\''/opt/miniconda3/bin/python'\'''
+++ PS1='(testbed) '
+++ export PATH=/opt/miniconda3/envs/testbed/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+++ PATH=/opt/miniconda3/envs/testbed/bin:/opt/miniconda3/condabin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+++ export CONDA_PREFIX=/opt/miniconda3/envs/testbed
+++ CONDA_PREFIX=/opt/miniconda3/envs/testbed
+++ export CONDA_SHLVL=4
+++ CONDA_SHLVL=4
+++ export CONDA_DEFAULT_ENV=testbed
+++ CONDA_DEFAULT_ENV=testbed
+++ export 'CONDA_PROMPT_MODIFIER=(testbed) '
+++ CONDA_PROMPT_MODIFIER='(testbed) '
+++ export CONDA_PREFIX_3=/opt/miniconda3
+++ CONDA_PREFIX_3=/opt/miniconda3
+++ export CONDA_EXE=/opt/miniconda3/bin/conda
+++ CONDA_EXE=/opt/miniconda3/bin/conda
+++ export _CE_M=
+++ _CE_M=
+++ export _CE_CONDA=
+++ _CE_CONDA=
+++ export CONDA_PYTHON_EXE=/opt/miniconda3/bin/python
+++ CONDA_PYTHON_EXE=/opt/miniconda3/bin/python
++ __conda_hashr
++ '[' -n '' ']'
++ '[' -n '' ']'
++ hash -r
++ python -m pip install -e .
+Obtaining file:///testbed
+Requirement already satisfied: asgiref>=3.2 in /opt/miniconda3/envs/testbed/lib/python3.6/site-packages (from Django==3.1) (3.4.1)
+Requirement already satisfied: pytz in /opt/miniconda3/envs/testbed/lib/python3.6/site-packages (from Django==3.1) (2026.2)
+Requirement already satisfied: sqlparse>=0.2.2 in /opt/miniconda3/envs/testbed/lib/python3.6/site-packages (from Django==3.1) (0.4.4)
+Requirement already satisfied: typing-extensions in /opt/miniconda3/envs/testbed/lib/python3.6/site-packages (from asgiref>=3.2->Django==3.1) (4.1.1)
+Installing collected packages: Django
+  Attempting uninstall: Django
+    Found existing installation: Django 3.1
+    Uninstalling Django-3.1:
+      Successfully uninstalled Django-3.1
+  Running setup.py develop for Django
+Successfully installed Django-3.1
+WARNING: Running pip as the 'root' user can result in broken permissions and conflicting behaviour with the system package manager. It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv
++ git checkout 5b884d45ac5b76234eca614d90c83b347294c332 tests/admin_widgets/tests.py
+Updated 0 paths from ae2fcde4aa
++ git apply -v -
+Checking patch tests/admin_widgets/tests.py...
+Applied patch tests/admin_widgets/tests.py cleanly.
++ : '>>>>> Start Test Output'
++ ./tests/runtests.py --verbosity 2 --settings=test_sqlite --parallel 1 admin_widgets.tests
+Creating test database for alias 'default' ('file:memorydb_default?mode=memory&cache=shared')...
+test_readonly_fields (admin_widgets.tests.AdminFileWidgetTests) ... ok
+test_render (admin_widgets.tests.AdminFileWidgetTests) ... ok
+test_render_required (admin_widgets.tests.AdminFileWidgetTests) ... ok
+test_invalid_target_id (admin_widgets.tests.AdminForeignKeyRawIdWidget) ... ok
+test_label_and_url_for_value_invalid_uuid (admin_widgets.tests.AdminForeignKeyRawIdWidget) ... ok
+test_nonexistent_target_id (admin_widgets.tests.AdminForeignKeyRawIdWidget) ... ok
+test_url_params_from_lookup_dict_any_iterable (admin_widgets.tests.AdminForeignKeyRawIdWidget) ... ok
+test_url_params_from_lookup_dict_callable (admin_widgets.tests.AdminForeignKeyRawIdWidget) ... ok
+test_changelist_ForeignKey (admin_widgets.tests.AdminForeignKeyWidgetChangeList) ... ok
+test_filter_choices_by_request_user (admin_widgets.tests.AdminFormfieldForDBFieldWithRequestTests) ... ok
+test_fk_related_model_not_in_admin (admin_widgets.tests.ForeignKeyRawIdWidgetTest) ... ok
+test_fk_to_self_model_not_in_admin (admin_widgets.tests.ForeignKeyRawIdWidgetTest) ... ok
+test_proper_manager_for_label_lookup (admin_widgets.tests.ForeignKeyRawIdWidgetTest) ... ok
+test_relations_to_non_primary_key (admin_widgets.tests.ForeignKeyRawIdWidgetTest) ... ok
+test_render (admin_widgets.tests.ForeignKeyRawIdWidgetTest) ... ok
+test_m2m_related_model_not_in_admin (admin_widgets.tests.ManyToManyRawIdWidgetTest) ... ok
+test_render (admin_widgets.tests.ManyToManyRawIdWidgetTest) ... ok
+test_attrs (admin_widgets.tests.AdminDateWidgetTest) ... ok
+test_CharField (admin_widgets.tests.AdminFormfieldForDBFieldTests) ... ok
+test_DateField (admin_widgets.tests.AdminFormfieldForDBFieldTests) ... ok
+test_DateTimeField (admin_widgets.tests.AdminFormfieldForDBFieldTests) ... ok
+test_EmailField (admin_widgets.tests.AdminFormfieldForDBFieldTests) ... ok
+test_FileField (admin_widgets.tests.AdminFormfieldForDBFieldTests) ... ok
+test_ForeignKey (admin_widgets.tests.AdminFormfieldForDBFieldTests) ... ok
+test_IntegerField (admin_widgets.tests.AdminFormfieldForDBFieldTests) ... ok
+test_TextField (admin_widgets.tests.AdminFormfieldForDBFieldTests) ... ok
+test_TimeField (admin_widgets.tests.AdminFormfieldForDBFieldTests) ... ok
+test_URLField (admin_widgets.tests.AdminFormfieldForDBFieldTests) ... ok
+test_choices_with_radio_fields (admin_widgets.tests.AdminFormfieldForDBFieldTests) ... ok
+test_field_with_choices (admin_widgets.tests.AdminFormfieldForDBFieldTests) ... ok
+test_filtered_many_to_many (admin_widgets.tests.AdminFormfieldForDBFieldTests) ... ok
+test_formfield_overrides (admin_widgets.tests.AdminFormfieldForDBFieldTests) ... ok
+test_formfield_overrides_for_custom_field (admin_widgets.tests.AdminFormfieldForDBFieldTests) ... ok
+test_formfield_overrides_for_datetime_field (admin_widgets.tests.AdminFormfieldForDBFieldTests) ... ok
+test_formfield_overrides_m2m_filter_widget (admin_widgets.tests.AdminFormfieldForDBFieldTests) ... FAIL
+test_formfield_overrides_widget_instances (admin_widgets.tests.AdminFormfieldForDBFieldTests) ... ok
+test_inheritance (admin_widgets.tests.AdminFormfieldForDBFieldTests) ... ok
+test_m2m_widgets (admin_widgets.tests.AdminFormfieldForDBFieldTests)
+m2m fields help text as it applies to admin app (#9321). ... ok
+test_many_to_many (admin_widgets.tests.AdminFormfieldForDBFieldTests) ... ok
+test_radio_fields_ForeignKey (admin_widgets.tests.AdminFormfieldForDBFieldTests) ... ok
+test_raw_id_ForeignKey (admin_widgets.tests.AdminFormfieldForDBFieldTests) ... ok
+test_raw_id_many_to_many (admin_widgets.tests.AdminFormfieldForDBFieldTests) ... ok
+test_ForeignKey (admin_widgets.tests.AdminRawIdWidgetSeleniumTests) ... skipped 'No browsers specified.'
+test_many_to_many (admin_widgets.tests.AdminRawIdWidgetSeleniumTests) ... skipped 'No browsers specified.'
+test_localization (admin_widgets.tests.AdminSplitDateTimeWidgetTest) ... ok
+test_render (admin_widgets.tests.AdminSplitDateTimeWidgetTest) ... ok
+test_attrs (admin_widgets.tests.AdminTimeWidgetTest) ... ok
+test_get_context_validates_url (admin_widgets.tests.AdminURLWidgetTest) ... ok
+test_render (admin_widgets.tests.AdminURLWidgetTest) ... ok
+test_render_idn (admin_widgets.tests.AdminURLWidgetTest) ... ok
+test_render_quoting (admin_widgets.tests.AdminURLWidgetTest) ... ok
+test_attrs (admin_widgets.tests.AdminUUIDWidgetTests) ... ok
+test_date_time_picker_shortcuts (admin_widgets.tests.DateTimePickerAltTimezoneSeleniumTests) ... skipped 'No browsers specified.'
+test_calendar_no_selected_class (admin_widgets.tests.DateTimePickerSeleniumTests) ... skipped 'No browsers specified.'
+test_calendar_nonday_class (admin_widgets.tests.DateTimePickerSeleniumTests) ... skipped 'No browsers specified.'
+test_calendar_selected_class (admin_widgets.tests.DateTimePickerSeleniumTests) ... skipped 'No browsers specified.'
+test_calendar_show_date_from_input (admin_widgets.tests.DateTimePickerSeleniumTests) ... skipped 'No browsers specified.'
+test_show_hide_date_time_picker_widgets (admin_widgets.tests.DateTimePickerSeleniumTests) ... skipped 'No browsers specified.'
+test_date_time_picker_shortcuts (admin_widgets.tests.DateTimePickerShortcutsSeleniumTests) ... skipped 'No browsers specified.'
+test_render (admin_widgets.tests.FilteredSelectMultipleWidgetTest) ... ok
+test_stacked_render (admin_widgets.tests.FilteredSelectMultipleWidgetTest) ... ok
+test_back_button_bug (admin_widgets.tests.HorizontalVerticalFilterSeleniumTests) ... skipped 'No browsers specified.'
+test_basic (admin_widgets.tests.HorizontalVerticalFilterSeleniumTests) ... skipped 'No browsers specified.'
+test_filter (admin_widgets.tests.HorizontalVerticalFilterSeleniumTests) ... skipped 'No browsers specified.'
+test_refresh_page (admin_widgets.tests.HorizontalVerticalFilterSeleniumTests) ... skipped 'No browsers specified.'
+test_ForeignKey_using_to_field (admin_widgets.tests.RelatedFieldWidgetSeleniumTests) ... skipped 'No browsers specified.'
+test_custom_widget_render (admin_widgets.tests.RelatedFieldWidgetWrapperTests) ... ok
+test_no_can_add_related (admin_widgets.tests.RelatedFieldWidgetWrapperTests) ... ok
+test_on_delete_cascade_rel_cant_delete_related (admin_widgets.tests.RelatedFieldWidgetWrapperTests) ... ok
+test_select_multiple_widget_cant_change_delete_related (admin_widgets.tests.RelatedFieldWidgetWrapperTests) ... ok
+test_widget_delegates_value_omitted_from_data (admin_widgets.tests.RelatedFieldWidgetWrapperTests) ... ok
+test_widget_is_hidden (admin_widgets.tests.RelatedFieldWidgetWrapperTests) ... ok
+test_widget_is_not_hidden (admin_widgets.tests.RelatedFieldWidgetWrapperTests) ... ok
+
+======================================================================
+FAIL: test_formfield_overrides_m2m_filter_widget (admin_widgets.tests.AdminFormfieldForDBFieldTests)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/testbed/tests/admin_widgets/tests.py", line 156, in test_formfield_overrides_m2m_filter_widget
+    self.assertIsInstance(field.widget.widget, forms.CheckboxSelectMultiple)
+AssertionError: <django.contrib.admin.widgets.FilteredSelectMultiple object at 0x7c1b91bc1b70> is not an instance of <class 'django.forms.widgets.CheckboxSelectMultiple'>
+
+----------------------------------------------------------------------
+Ran 73 tests in 0.291s
+
+FAILED (failures=1, skipped=14)
+Destroying test database for alias 'default' ('file:memorydb_default?mode=memory&cache=shared')...
+Testing against Django installed in '/testbed/django'
+Importing application admin_widgets
+Skipping setup of unused database(s): other.
+Operations to perform:
+  Synchronize unmigrated apps: admin_widgets, auth, contenttypes, messages, sessions, staticfiles
+  Apply all migrations: admin, sites
+Synchronizing apps without migrations:
+  Creating tables...
+    Creating table django_content_type
+    Creating table auth_permission
+    Creating table auth_group
+    Creating table auth_user
+    Creating table django_session
+    Creating table admin_widgets_member
+    Creating table admin_widgets_band
+    Creating table admin_widgets_album
+    Creating table admin_widgets_inventory
+    Creating table admin_widgets_event
+    Creating table admin_widgets_car
+    Creating table admin_widgets_cartire
+    Creating table admin_widgets_honeycomb
+    Creating table admin_widgets_bee
+    Creating table admin_widgets_individual
+    Creating table admin_widgets_company
+    Creating table admin_widgets_advisor
+    Creating table admin_widgets_student
+    Creating table admin_widgets_school
+    Creating table admin_widgets_profile
+    Running deferred SQL...
+Running migrations:
+  Applying admin.0001_initial... OK
+  Applying admin.0002_logentry_remove_auto_add... OK
+  Applying admin.0003_logentry_add_action_flag_choices... OK
+  Applying sites.0001_initial... OK
+  Applying sites.0002_alter_domain_unique... OK
+System check identified no issues (0 silenced).
++ : '>>>>> End Test Output'
++ git checkout 5b884d45ac5b76234eca614d90c83b347294c332 tests/admin_widgets/tests.py
+Updated 1 path from ae2fcde4aa
+
+2026-05-29 13:46:07,121 - ThreadPoolExecutor-3_0 - INFO - Container output: 
+2026-05-29 13:46:07,121 - ThreadPoolExecutor-3_0 - INFO - Installing more requirements
+2026-05-29 13:46:42,613 - ThreadPoolExecutor-3_0 - INFO - Running the agent
+2026-05-29 13:55:38,561 - ThreadPoolExecutor-3_0 - INFO - Container output: Using hosted_vllm proxy (https://proxy.onebot.meobeo.ai/v1) with model hosted_vllm/Qwen/Qwen3.5-35B-A3B-FP8.
+
+2026-05-29 13:55:38,561 - ThreadPoolExecutor-3_0 - INFO - Copying output files back to host
+2026-05-29 13:55:38,724 - ThreadPoolExecutor-3_0 - INFO - Copying from container /dgm/django__django-12713.md to local path D:\kh4ng\Data_agent\dgm_agent\swe_bench\predictions_100\hosted_vllm\Qwen\Qwen3.5-35B-A3B-FP8_0\django__django-12713.md
+2026-05-29 13:55:38,739 - ThreadPoolExecutor-3_0 - INFO - Successfully copied from container to D:\kh4ng\Data_agent\dgm_agent\swe_bench\predictions_100\hosted_vllm\Qwen\Qwen3.5-35B-A3B-FP8_0\django__django-12713.md
+2026-05-29 13:55:38,831 - ThreadPoolExecutor-3_0 - INFO - Getting model_patch
+2026-05-29 13:55:38,908 - ThreadPoolExecutor-3_0 - INFO - Container output: 
+2026-05-29 13:55:39,000 - ThreadPoolExecutor-3_0 - INFO - Attempting to stop container sweb.eval.django__django-12713.20260529_134421_609771...
+2026-05-29 13:55:54,349 - ThreadPoolExecutor-3_0 - INFO - Attempting to remove container sweb.eval.django__django-12713.20260529_134421_609771...
+2026-05-29 13:55:55,154 - ThreadPoolExecutor-3_0 - INFO - Container sweb.eval.django__django-12713.20260529_134421_609771 removed.

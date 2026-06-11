@@ -1,0 +1,6 @@
+{
+    "instance_id": "django__django-11964",
+    "model_name_or_path": "hosted_vllm/Qwen/Qwen3.5-35B-A3B-FP8",
+    "model_patch": "diff --git a/django/db/models/enums.py b/django/db/models/enums.py\nindex bbe362a6ab..4a5db27ecf 100644\n--- a/django/db/models/enums.py\n+++ b/django/db/models/enums.py\n@@ -65,11 +65,16 @@ class Choices(enum.Enum, metaclass=ChoicesMeta):\n \n class IntegerChoices(int, Choices):\n     \"\"\"Class for creating enumerated integer choices.\"\"\"\n-    pass\n+\n+    def __str__(self):\n+        return str(self.value)\n \n \n class TextChoices(str, Choices):\n     \"\"\"Class for creating enumerated string choices.\"\"\"\n \n+    def __str__(self):\n+        return self.value\n+\n     def _generate_next_value_(name, start, count, last_values):\n         return name\n",
+    "proposed_model_patches": []
+}
