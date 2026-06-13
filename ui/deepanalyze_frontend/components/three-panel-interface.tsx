@@ -90,6 +90,8 @@ import {
   ChevronLeft,
   Plus,
 } from "lucide-react";
+import { toast as sonnerToast } from "sonner";
+import { BrainCircuit } from "lucide-react";
 import { Tree, NodeApi } from "react-arborist";
 import { useToast } from "@/hooks/use-toast";
 import { FileIcon, defaultStyles } from "react-file-icon";
@@ -110,6 +112,7 @@ import {
   DEFAULT_SYSTEM_PROMPT,
   type UILanguage,
 } from "@/lib/prompt-presets";
+import { PersonaDashboard } from "@/components/persona-dashboard";
 
 interface Message {
   id: string;
@@ -1016,6 +1019,19 @@ export function ThreePanelInterface() {
   const [workspaceSearch, setWorkspaceSearch] = useState("");
   const [selectedWorkspacePath, setSelectedWorkspacePath] = useState("");
   const [uiLanguage, setUiLanguage] = useState<UILanguage>("en");
+  const [isMemorySheetOpen, setIsMemorySheetOpen] = useState(false);
+  const [memoryRules, setMemoryRules] = useState<any[]>([]);
+  const fetchMemoryRules = async () => {
+    try {
+      const res = await fetch(API_URLS.CHAT_COMPLETIONS.replace("/chat/completions", "/memory") + (sessionId ? `?session_id=${sessionId}` : ""));
+      const data = await res.json();
+      if (data.success) {
+        setMemoryRules(data.rules || []);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
   const [systemPrompt, setSystemPrompt] = useState(DEFAULT_SYSTEM_PROMPT);
   const [llmProvider, setLlmProvider] = useState<LlmProvider>("local");
   const [customModelName, setCustomModelName] = useState(DEFAULT_MODEL_NAME);
@@ -1028,17 +1044,17 @@ export function ThreePanelInterface() {
   );
 
   const handleNewChat = () => {
-    setMessages([
-      {
+    const welcome = {
         id: `welcome-${Date.now()}`,
         content: "Hello! I'm DeepAnalyze-8B, your autonomous data science assistant. Upload your data and let's explore it together!",
         sender: "ai",
         timestamp: new Date(),
         localOnly: true,
-      },
-    ]);
+      };
+    setMessages([welcome]);
     const sid = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     localStorage.setItem("sessionId", sid);
+    localStorage.setItem("chat_messages_v1", JSON.stringify([welcome])); // Đè luôn bộ nhớ tạm ngay lập tức
     setSessionId(sid);
   };
 
@@ -1217,11 +1233,13 @@ export function ThreePanelInterface() {
   useEffect(() => {
     try {
       if (typeof window === "undefined") return;
-      const raw = localStorage.getItem(CHAT_STORAGE_KEY);
+      const raw = sessionStorage.getItem(CHAT_STORAGE_KEY);
       if (raw) {
         const arr = JSON.parse(raw) as any[];
         if (Array.isArray(arr) && arr.length) {
-          const restored = arr.map((m) => ({
+          // Truncate on load as well to fix already bloated localStorage
+          const recentArr = arr.slice(-10);
+          const restored = recentArr.map((m) => ({
             ...m,
             timestamp: m.timestamp ? new Date(m.timestamp) : new Date(),
           })) as Message[];
@@ -1250,8 +1268,10 @@ export function ThreePanelInterface() {
       const delay = isTyping ? 1500 : 200;
       saveChatTimerRef.current = window.setTimeout(() => {
         try {
+          // Keep only the last 10 messages to prevent heavy payload load
+          const msgsToSave = messages.slice(-10);
           const data = JSON.stringify(
-            messages.map((m) => ({
+            msgsToSave.map((m) => ({
               ...m,
               timestamp: (m.timestamp instanceof Date
                 ? m.timestamp
@@ -1259,7 +1279,7 @@ export function ThreePanelInterface() {
               ).toISOString(),
             }))
           );
-          localStorage.setItem(CHAT_STORAGE_KEY, data);
+          sessionStorage.setItem(CHAT_STORAGE_KEY, data);
         } catch (e) {
           console.warn("save chat cache failed", e);
         } finally {
@@ -1287,7 +1307,7 @@ export function ThreePanelInterface() {
     setMessages([welcome]);
     try {
       if (typeof window !== "undefined") {
-        localStorage.setItem(CHAT_STORAGE_KEY, JSON.stringify([welcome]));
+        sessionStorage.setItem(CHAT_STORAGE_KEY, JSON.stringify([welcome]));
       }
     } catch { }
     toast({ description: "已清空聊天" });
@@ -3397,7 +3417,42 @@ export function ThreePanelInterface() {
 
   const renderSectionContent = useCallback(
     (content: string) => {
-      return renderMarkdownContent(content, { withinSection: true });
+      let personaJson = null;
+      let cleanContent = content;
+
+      const jsonMatch = content.match(/\[JSON_START_PERSONA\]([\s\S]*?)\[JSON_END_PERSONA\]/);
+      if (jsonMatch) {
+        try {
+          // AI sometimes hallucinates literal newlines in strings, which breaks JSON.parse
+          // We can try to fix it by replacing literal newlines with \\n, but it's tricky.
+          // For now, we just parse and fallback to console.warn to avoid Next.js Error Overlay
+          const rawJson = jsonMatch[1].trim();
+
+          try {
+            personaJson = JSON.parse(rawJson);
+          } catch (e1) {
+            // Attempt to fix unescaped newlines inside strings
+            const fixedJson = rawJson.replace(/\n/g, "\\n")
+              .replace(/\\n\s*\]/g, "\n]")
+              .replace(/\[\s*\\n/g, "[\n")
+              .replace(/\{\s*\\n/g, "{\n")
+              .replace(/\\n\s*\}/g, "\n}")
+              .replace(/,\s*\\n/g, ",\n");
+            personaJson = JSON.parse(fixedJson);
+          }
+          // Use global regex to remove ALL occurrences of the JSON tags from the UI text
+          cleanContent = content.replace(/\[JSON_START_PERSONA\][\s\S]*?\[JSON_END_PERSONA\]/g, "");
+        } catch (e) {
+          console.warn("Failed to parse Persona JSON. Ensure AI uses json.dumps(). Error:", e);
+        }
+      }
+
+      return (
+        <div className="flex flex-col gap-4">
+          {cleanContent.trim() && renderMarkdownContent(cleanContent, { withinSection: true })}
+          {personaJson && <PersonaDashboard data={personaJson} />}
+        </div>
+      );
     },
     [renderMarkdownContent]
   );
@@ -3533,8 +3588,9 @@ export function ThreePanelInterface() {
                   {type}
                 </span>
                 {!isComplete && (
-                  <span className="text-xs text-gray-500 dark:text-gray-400">
-                    {textLabels.sectionGenerating}
+                  <span className="text-xs text-blue-600 dark:text-blue-400 font-medium flex items-center gap-1 animate-pulse">
+                    <RefreshCw className="h-3 w-3 animate-spin" />
+                    {type === "Execute" ? "Đang chạy Sandbox..." : textLabels.sectionGenerating}
                   </span>
                 )}
               </div>
@@ -4949,10 +5005,10 @@ export function ThreePanelInterface() {
       });
       return;
     }
-    
+
     const effectiveMessage = typeof customMessage === "string" ? customMessage : inputValue;
     if (!effectiveMessage.trim() && attachments.length === 0) return;
-    
+
     const baseMessageIndex = messages.length;
     const aiMessageIndex = baseMessageIndex + 1;
 
@@ -5160,6 +5216,17 @@ export function ThreePanelInterface() {
 
             if (deltaContent) {
               accumulatedMessage += deltaContent;
+              const rimruleRegex = /<!-- RIMRULE_LEARNED: (.*?) -->/;
+              const match = accumulatedMessage.match(rimruleRegex);
+              if (match) {
+                const ruleContent = match[1];
+                sonnerToast.success('🧠 RIMRULE: Đã nạp thành công quy tắc chống ảo giác mới vào bộ nhớ!', {
+                  description: ruleContent,
+                  duration: 5000,
+                  style: { background: 'linear-gradient(to right, #0f2027, #203a43, #2c5364)', color: '#fff', border: '1px solid #4ade80' },
+                });
+                accumulatedMessage = accumulatedMessage.replace(rimruleRegex, '');
+              }
               // 仅更新 pending，不直接刷新 UI
               aiPendingContentRef.current = accumulatedMessage;
             }
@@ -5175,6 +5242,17 @@ export function ThreePanelInterface() {
           const deltaContent = json.choices?.[0]?.delta?.content;
           if (deltaContent) {
             accumulatedMessage += deltaContent;
+            const rimruleRegex = /<!-- RIMRULE_LEARNED: (.*?) -->/;
+            const match = accumulatedMessage.match(rimruleRegex);
+            if (match) {
+              const ruleContent = match[1];
+              sonnerToast.success('🧠 RIMRULE: Đã nạp thành công quy tắc chống ảo giác mới vào bộ nhớ!', {
+                description: ruleContent,
+                duration: 5000,
+                style: { background: 'linear-gradient(to right, #0f2027, #203a43, #2c5364)', color: '#fff', border: '1px solid #4ade80' },
+              });
+              accumulatedMessage = accumulatedMessage.replace(rimruleRegex, '');
+            }
             aiPendingContentRef.current = accumulatedMessage;
           }
         } catch (e) { }
@@ -5229,6 +5307,23 @@ export function ThreePanelInterface() {
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
   };
+
+  const renderMemoryButton = (buttonClassName: string) => (
+    <Button
+      variant="outline"
+      size="sm"
+      className={buttonClassName}
+      title="🧠 Ngân Hàng Trí Nhớ (RIMRULE)"
+      onClick={() => {
+        fetchMemoryRules();
+        setIsMemorySheetOpen(true);
+      }}
+      disabled={isTyping}
+    >
+      <BrainCircuit className="h-4 w-4 text-yellow-500 mr-2" />
+      <span className="text-xs font-bold text-yellow-600 dark:text-yellow-400">Kho RIMRULE</span>
+    </Button>
+  );
 
   const renderClearChatButton = (buttonClassName: string) => (
     <AlertDialog>
@@ -5365,6 +5460,7 @@ export function ThreePanelInterface() {
                   {uiLanguage === "zh" ? "\u53d1\u9001" : "Send"}
                 </Button>
               )}
+              {renderMemoryButton("h-10 rounded-full px-3")}
               {renderClearChatButton("h-10 rounded-full px-3")}
             </div>
           </div>
@@ -6041,6 +6137,7 @@ export function ThreePanelInterface() {
                           {uiLanguage === "zh" ? "发送" : "Send"}
                         </Button>
                       )}
+                      {renderMemoryButton("h-10 rounded-full px-3 mr-2")}
                       {renderClearChatButton("h-10 rounded-full px-3")}
                     </div>
                   </div>
@@ -6831,6 +6928,41 @@ export function ThreePanelInterface() {
           </div>
         </DialogContent>
       </Dialog>
+
+      <Sheet open={isMemorySheetOpen} onOpenChange={setIsMemorySheetOpen}>
+        <SheetContent className="w-[400px] sm:w-[540px] border-l border-gray-200 dark:border-gray-800 bg-white dark:bg-[#0c0c0c] flex flex-col h-full overflow-hidden">
+          <SheetHeader className="pb-4 border-b border-gray-100 dark:border-gray-800">
+            <SheetTitle className="flex items-center gap-2">
+              <BrainCircuit className="h-5 w-5 text-yellow-500" />
+              Ngân Hàng Trí Nhớ (RIMRULE)
+            </SheetTitle>
+            <SheetDescription>
+              Các quy tắc được nén tự động qua cơ chế Life-long Learning
+            </SheetDescription>
+          </SheetHeader>
+          <div className="flex-1 overflow-y-auto py-4 space-y-4">
+            {memoryRules.length === 0 ? (
+              <div className="text-center text-sm text-gray-500 mt-10">Chưa có quy tắc nào được nạp.</div>
+            ) : (
+              memoryRules.map((rule: any, idx: number) => (
+                <div key={idx} className="p-4 rounded-lg border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-[#111] space-y-2">
+                  <div className="flex items-start justify-between">
+                    <span className="font-semibold text-sm text-gray-800 dark:text-gray-200">{rule.nl_rule}</span>
+                    <Badge variant="outline" className="text-xs bg-yellow-50 dark:bg-yellow-900/20 text-yellow-600 dark:text-yellow-400 border-yellow-200 dark:border-yellow-800 flex-shrink-0 ml-2">
+                      MDL Optimized
+                    </Badge>
+                  </div>
+                  <div className="flex flex-wrap gap-1 mt-2">
+                    <Badge variant="secondary" className="text-[10px]">{rule.domain}</Badge>
+                    {rule.qualifier?.map((q: string) => <Badge key={q} variant="secondary" className="text-[10px] bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400">{q}</Badge>)}
+                    {rule.action?.map((a: string) => <Badge key={a} variant="secondary" className="text-[10px] bg-green-50 text-green-600 dark:bg-green-900/20 dark:text-green-400">{a}</Badge>)}
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </SheetContent>
+      </Sheet>
     </>
   );
 }

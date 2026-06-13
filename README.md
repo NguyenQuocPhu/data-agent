@@ -75,6 +75,13 @@ LAMBDA/
 
 ## 📜 Changelog / Release Notes
 
+### [v2.2.0] - 2026-06-13: Executive Business Strategy & UI Evolution
+- **Triadic Core Refactoring**: The core architecture has been refactored into a standard Python package `triadic_dgm/`, cleanly separating `engine.py`, `programmer.py`, `verifier.py`, and `kernel.py`. Included `start_saas` scripts and `pyproject.toml` for seamless deployment.
+- **Geography Dominance Prevention**: Upgraded `SemanticVerifier` and Prompts to strictly prohibit the usage of geographical variables (`khu_vuc`, `goi_cuoc`) in the KMeans feature matrix, guaranteeing that personas are generated purely based on empirical behavioral metrics (churn frequency, network drops, support calls).
+- **Executive Business Safeguards**: Added hard constraints mandating `K >= 3` and a minimum Churn Variance of `>= 5%` to ensure meaningful statistical segmentation. Replaced all predictive terminology with "Potential Recoverable Revenue (Scenario-Based)" accompanied by mandatory disclaimers to comply with C-Level and Audit standards.
+- **Semantic Persona Naming**: The Verifier now dynamically rejects meaningless cluster names (e.g., "đặc điểm 0.0") and mandates behavioral semantic naming, identifying anomalies like *Price-sensitive* customers (Good Network + High Churn).
+- **Evolution UI & Memory Persistence**: Patched chat context persistence bugs by migrating to `sessionStorage` and synchronous backend `.clear()`. Introduced a new `PersonaDashboard` React component and a **"Kho RIMRULE" (Memory Bank)** side-sheet in the frontend to visually track and render the Triadic DGM's real-time evolutionary rules via dynamic Toast notifications.
+
 ### [v2.1.0] - 2026-06-11: Data Persona Discovery & Triadic Verifier
 - **Architectural Upgrade**: Deprecated the legacy syntax-only `Inspector` and integrated the `SemanticVerifier`. This new Dual-Axis Verifier implements Triadic DGM (Proposer-Solver-Verifier) by evaluating both syntax and business logic (Epiplexity, Silhouette, Churn rules) before releasing reports.
 - **Auto-K Selection**: K-Means clustering now dynamically tests K from 2 to 6 and automatically selects the optimal number of personas based on the highest Silhouette Score, eliminating hardcoded biases.

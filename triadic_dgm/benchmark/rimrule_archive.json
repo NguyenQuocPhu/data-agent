@@ -1,0 +1,435 @@
+[
+    {
+        "nl_rule": "Khi t\u00ednh to\u00e1n t\u1ef7 l\u1ec7, b\u1eaft bu\u1ed9c ph\u1ea3i x\u1eed l\u00fd d\u1eef li\u1ec7u NaN b\u1eb1ng c\u00e1ch fillna(0) tr\u01b0\u1edbc khi chia \u0111\u1ec3 tr\u00e1nh chia cho 0 ho\u1eb7c null.",
+        "domain": "python",
+        "qualifier": [
+            "runtime_error"
+        ],
+        "action": [
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "coding",
+        "errors_fixed": 4,
+        "token_length": 26,
+        "mdl_score": 0.1538
+    },
+    {
+        "nl_rule": "Lu\u00f4n s\u1eed d\u1ee5ng .copy() khi tr\u00edch xu\u1ea5t m\u1ed9t subset t\u1eeb pandas DataFrame tr\u01b0\u1edbc khi thay \u0111\u1ed5i d\u1eef li\u1ec7u \u0111\u1ec3 tr\u00e1nh c\u1ea3nh b\u00e1o SettingWithCopyWarning.",
+        "domain": "python",
+        "qualifier": [
+            "warning",
+            "pandas"
+        ],
+        "action": [
+            "best_practice"
+        ],
+        "strength": "MUST",
+        "tool_category": "coding",
+        "errors_fixed": 5,
+        "token_length": 23,
+        "mdl_score": 0.2174
+    },
+    {
+        "nl_rule": "\n\n### Ph\u00e2n t\u00edch l\u1ed7i\nL\u1ed7i `KeyError: 'g\u00f3i_cuoc'` x\u1ea3y ra do s\u1ef1 kh\u00f4ng kh\u1edbp gi\u1eefa t\u00ean c\u1ed9t \u0111\u01b0\u1ee3c \u0111\u1ecbnh ngh\u0129a trong m\u00e3 ngu\u1ed3n v\u00e0 t\u00ean c\u1ed9t th\u1ef1c t\u1ebf trong d\u1eef li\u1ec7u \u0111\u00e3 t\u1ea3i v\u1ec1. C\u1ee5 th\u1ec3, m\u00e3 ngu\u1ed3n s\u1eed d\u1ee5ng `'g\u00f3i_cuoc'` (c\u00f3 d\u1ea5u), trong khi d\u1eef li\u1ec7u th\u1ef1c t\u1ebf ch\u1ee9a `'goi_cuoc'` (kh\u00f4ng d\u1ea5u). Ngo\u00e0i ra, c\u00f3 nguy c\u01a1 cao c\u00e1c t\u00ean c\u1ed9t kh\u00e1c (v\u00ed d\u1ee5: `khu_v\u1ee5c` so v\u1edbi `khu_vuc`) c\u0169ng b\u1ecb sai l\u1ec7ch t\u01b0\u01a1ng t\u1ef1, d\u1eabn \u0111\u1ebfn l\u1ed7i t\u01b0\u01a1ng t\u1ef1 \u1edf c\u00e1c b\u01b0\u1edbc sau.\n\n### H\u01b0\u1edbng d\u1eabn s\u1eeda l\u1ed7i (Generalizable Fix Instructions)\n\n1.  **Ki\u1ec3m tra Schema d\u1eef li\u1ec7u:** Ngay sau khi t\u1ea3i d\u1eef li\u1ec7u, h\u00e3y in ra danh s\u00e1ch c\u00e1c c\u1ed9t th\u1ef1c t\u1ebf (`data.columns`) \u0111\u1ec3 x\u00e1c \u0111\u1ecbnh ch\u00ednh t\u1ea3, k\u00fd t\u1ef1 \u0111\u1eb7c bi\u1ec7t v\u00e0 d\u1ea5u c\u00e2u c\u1ee7a t\u1eebng c\u1ed9t.\n2.  **Chu\u1ea9n h\u00f3a t\u00ean c\u1ed9t:** \u0110\u1ea3m b\u1ea3o t\u1ea5t c\u1ea3 c\u00e1c tham chi\u1ebfu \u0111\u1ebfn c\u1ed9t trong m\u00e3 ngu\u1ed3n kh\u1edbp ch\u00ednh x\u00e1c 100% v\u1edbi t\u00ean c\u1ed9t trong d\u1eef li\u1ec7u (bao g\u1ed3m c\u1ea3 d\u1ea5u ti\u1ebfng Vi\u1ec7t, kho\u1ea3ng tr\u1eafng v\u00e0 ch\u1eef hoa/th\u01b0\u1eddng). N\u1ebfu kh\u00f4ng kh\u1edbp, h\u00e3y th\u1ef1c hi\u1ec7n m\u1ed9t trong hai c\u00e1ch:\n    *   \u0110\u1ed5i t\u00ean c\u1ed9t trong DataFrame ngay sau khi t\u1ea3i \u0111\u1ec3 kh\u1edbp v\u1edbi m\u00e3 ngu\u1ed3n.\n    *   Ho\u1eb7c c\u1eadp nh\u1eadt t\u1ea5t c\u1ea3 c\u00e1c tham chi\u1ebfu trong m\u00e3 ngu\u1ed3n \u0111\u1ec3 kh\u1edbp v\u1edbi t\u00ean c\u1ed9t th\u1ef1c t\u1ebf.\n3.  **Ki\u1ec3m tra t\u00ednh nh\u1ea5t qu\u00e1n:** Duy\u1ec7t qua to\u00e0n b\u1ed9 m\u00e3 \u0111\u1ec3 \u0111\u1ea3m b\u1ea3o kh\u00f4ng c\u00f2n tham chi\u1ebfu n\u00e0o \u0111\u1ebfn t\u00ean c\u1ed9t c\u0169 ho\u1eb7c t\u00ean c\u1ed9t b\u1ecb sai ch\u00ednh t\u1ea3 \u1edf c\u00e1c b\u01b0\u1edbc x\u1eed l\u00fd sau (nh\u01b0 `groupby`, `apply`, `plot`).\n4.  **Th\u00eam b\u01b0\u1edbc x\u00e1c th\u1ef1c:** Tr\u01b0\u1edbc khi th\u1ef1c hi\u1ec7n c\u00e1c t\u00e1c v\u1ee5 ph\u00e2n t\u00edch ph\u1ee9c t\u1ea1p, th\u00eam m\u1ed9t b\u01b0\u1edbc ki\u1ec3m tra \u0111\u1ec3 \u0111\u1ea3m b\u1ea3o t\u1ea5t c\u1ea3 c\u00e1c c\u1ed9t b\u1eaft bu\u1ed9c (required columns) \u0111\u1ec1u t\u1ed3n t\u1ea1i trong DataFrame, n\u1ebfu kh\u00f4ng th\u00ec d\u1eebng v\u00e0 b\u00e1o l\u1ed7i r\u00f5 r\u00e0ng.",
+        "domain": "python",
+        "qualifier": [
+            "runtime_error"
+        ],
+        "action": [
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "coding",
+        "errors_fixed": 1,
+        "token_length": 296,
+        "mdl_score": 0.0034
+    },
+    {
+        "nl_rule": "\n\n### Ph\u00e2n t\u00edch l\u1ed7i\nL\u1ed7i `InvalidParameterError` x\u1ea3y ra do tham s\u1ed1 `stop_words` trong h\u00e0m kh\u1edfi t\u1ea1o `TfidfVectorizer` \u0111\u01b0\u1ee3c g\u00e1n gi\u00e1 tr\u1ecb chu\u1ed7i `'vietnamese'`. Th\u01b0 vi\u1ec7n scikit-learn hi\u1ec7n t\u1ea1i ch\u1ec9 h\u1ed7 tr\u1ee3 c\u00e1c gi\u00e1 tr\u1ecb chu\u1ed7i c\u00f3 s\u1eb5n cho tham s\u1ed1 n\u00e0y (v\u00ed d\u1ee5: `'english'`) ho\u1eb7c y\u00eau c\u1ea7u m\u1ed9t danh s\u00e1ch (list) c\u00e1c t\u1eeb d\u1eebng c\u1ee5 th\u1ec3. Vi\u1ec7c s\u1eed d\u1ee5ng t\u00ean t\u00f9y ch\u1ec9nh kh\u00f4ng \u0111\u01b0\u1ee3c \u0111\u1ecbnh ngh\u0129a s\u1eb5n trong th\u01b0 vi\u1ec7n s\u1ebd vi ph\u1ea1m r\u00e0ng bu\u1ed9c tham s\u1ed1 v\u00e0 g\u00e2y l\u1ed7i kh\u1edfi t\u1ea1o.\n\n### H\u01b0\u1edbng d\u1eabn s\u1eeda l\u1ed7i (Generalizable Fix Instructions)\n\n1.  **X\u00e1c th\u1ef1c tham s\u1ed1 kh\u1edfi t\u1ea1o:** Tr\u01b0\u1edbc khi kh\u1edfi t\u1ea1o c\u00e1c \u0111\u1ed1i t\u01b0\u1ee3ng t\u1eeb th\u01b0 vi\u1ec7n machine learning, h\u00e3y ki\u1ec3m tra t\u00e0i li\u1ec7u ch\u00ednh th\u1ee9c \u0111\u1ec3 x\u00e1c \u0111\u1ecbnh danh s\u00e1ch c\u00e1c gi\u00e1 tr\u1ecb h\u1ee3p l\u1ec7 cho c\u00e1c tham s\u1ed1 c\u1ea5u h\u00ecnh (\u0111\u1eb7c bi\u1ec7t l\u00e0 c\u00e1c tham s\u1ed1 chu\u1ed7i nh\u01b0 `stop_words`).\n2.  **S\u1eed d\u1ee5ng gi\u00e1 tr\u1ecb chu\u1ea9n ho\u1eb7c danh s\u00e1ch t\u00f9y ch\u1ec9nh:** Kh\u00f4ng s\u1eed d\u1ee5ng c\u00e1c t\u00ean t\u00f9y ch\u1ec9nh cho c\u00e1c tham s\u1ed1 h\u1ec7 th\u1ed1ng n\u1ebfu kh\u00f4ng \u0111\u01b0\u1ee3c h\u1ed7 tr\u1ee3 s\u1eb5n. Thay v\u00e0o \u0111\u00f3, h\u00e3y s\u1eed d\u1ee5ng c\u00e1c gi\u00e1 tr\u1ecb m\u1eb7c \u0111\u1ecbnh c\u00f3 s\u1eb5n ho\u1eb7c chu\u1ea9n b\u1ecb m\u1ed9t danh s\u00e1ch (list) c\u00e1c gi\u00e1 tr\u1ecb c\u1ee5 th\u1ec3 \u0111\u1ec3 truy\u1ec1n v\u00e0o tham s\u1ed1.\n3.  **Ki\u1ec3m tra t\u01b0\u01a1ng th\u00edch phi\u00ean b\u1ea3n:** \u0110\u1ea3m b\u1ea3o m\u00e3 ngu\u1ed3n t\u01b0\u01a1ng th\u00edch v\u1edbi phi\u00ean b\u1ea3n th\u01b0 vi\u1ec7n \u0111ang c\u00e0i \u0111\u1eb7t, v\u00ec c\u00e1c r\u00e0ng bu\u1ed9c tham s\u1ed1 v\u00e0 gi\u00e1 tr\u1ecb h\u1ee3p l\u1ec7 c\u00f3 th\u1ec3 thay \u0111\u1ed5i gi\u1eefa c\u00e1c phi\u00ean b\u1ea3n.\n4.  **X\u1eed l\u00fd ngo\u1ea1i l\u1ec7 tham s\u1ed1:** Th\u00eam c\u01a1 ch\u1ebf ki\u1ec3m tra ho\u1eb7c b\u1eaft l\u1ed7i (`try-except`) khi kh\u1edfi t\u1ea1o c\u00e1c \u0111\u1ed1i t\u01b0\u1ee3ng \u0111\u1ec3 ph\u00e1t hi\u1ec7n s\u1edbm c\u00e1c l\u1ed7i tham s\u1ed1 kh\u00f4ng h\u1ee3p l\u1ec7 tr\u01b0\u1edbc khi th\u1ef1c thi logic ch\u00ednh.",
+        "domain": "python",
+        "qualifier": [
+            "runtime_error"
+        ],
+        "action": [
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "coding",
+        "errors_fixed": 2,
+        "token_length": 280,
+        "mdl_score": 0.0071
+    },
+    {
+        "nl_rule": "\n\n### Ph\u00e2n t\u00edch l\u1ed7i\n\nL\u1ed7i `KeyError` x\u1ea3y ra do tham chi\u1ebfu \u0111\u1ebfn c\u00e1c c\u1ed9t kh\u00f4ng t\u1ed3n t\u1ea1i trong DataFrame. Code t\u1ea1o c\u1ed9t `'cluster'` duy nh\u1ea5t \u1edf B\u01b0\u1edbc 5, nh\u01b0ng \u1edf B\u01b0\u1edbc 7 l\u1ea1i c\u1ed1 truy c\u1eadp c\u00e1c c\u1ed9t `'cluster_0'`, `'cluster_1'`, ... ch\u01b0a \u0111\u01b0\u1ee3c t\u1ea1o.\n\n### H\u01b0\u1edbng d\u1eabn s\u1eeda l\u1ed7i (Generalizable Fix Instructions)\n\n1. **X\u00e1c th\u1ef1c s\u1ef1 t\u1ed3n t\u1ea1i c\u1ee7a c\u1ed9t tr\u01b0\u1edbc khi truy c\u1eadp:** Tr\u01b0\u1edbc khi s\u1eed d\u1ee5ng c\u00e1c c\u1ed9t trong DataFrame, h\u00e3y ki\u1ec3m tra xem c\u00e1c c\u1ed9t \u0111\u00f3 c\u00f3 th\u1ef1c s\u1ef1 t\u1ed3n t\u1ea1i trong `data.columns` hay kh\u00f4ng b\u1eb1ng c\u00e1ch s\u1eed d\u1ee5ng `if col in data.columns`.\n\n2. **S\u1eed d\u1ee5ng h\u00e0m One-Hot Encoding \u0111\u00fang c\u00e1ch:** Khi c\u1ea7n chuy\u1ec3n \u0111\u1ed5i bi\u1ebfn ph\u00e2n lo\u1ea1i th\u00e0nh nhi\u1ec1u c\u1ed9t nh\u1ecb ph\u00e2n, h\u00e3y s\u1eed d\u1ee5ng `pd.get_dummies()` tr\u00ean c\u1ed9t g\u1ed1c thay v\u00ec c\u1ed1 g\u1eafng t\u1ea1o c\u00e1c c\u1ed9t t\u00ean ri\u00eang l\u1ebb th\u1ee7 c\u00f4ng.\n\n3. **\u0110\u1ed3ng b\u1ed9 h\u00f3a t\u00ean c\u1ed9t gi\u1eefa c\u00e1c b\u01b0\u1edbc:** \u0110\u1ea3m b\u1ea3o t\u00ean c\u1ed9t \u0111\u01b0\u1ee3c t\u1ea1o \u1edf b\u01b0\u1edbc tr\u01b0\u1edbc (v\u00ed d\u1ee5: B\u01b0\u1edbc 5) kh\u1edbp v\u1edbi t\u00ean c\u1ed9t \u0111\u01b0\u1ee3c tham chi\u1ebfu \u1edf b\u01b0\u1edbc sau (v\u00ed d\u1ee5: B\u01b0\u1edbc 7).\n\n4. **Ki\u1ec3m tra c\u1ea5u tr\u00fac DataFrame sau m\u1ed7i b\u01b0\u1edbc bi\u1ebfn \u0111\u1ed5i:** S\u1eed d\u1ee5ng `print(data.columns)` ho\u1eb7c `display(data.head())` sau m\u1ed7i b\u01b0\u1edbc quan tr\u1ecdng \u0111\u1ec3 x\u00e1c nh\u1eadn c\u1ea5u tr\u00fac d\u1eef li\u1ec7u tr\u01b0\u1edbc khi ti\u1ebfp t\u1ee5c.\n\n5. **S\u1eed d\u1ee5ng ph\u01b0\u01a1ng ph\u00e1p chu\u1ea9n cho bi\u1ebfn ph\u00e2n lo\u1ea1i:** Khi l\u00e0m vi\u1ec7c v\u1edbi bi\u1ebfn ph\u00e2n lo\u1ea1i cho c\u00e1c m\u00f4 h\u00ecnh ML, h\u00e3y s\u1eed d\u1ee5ng `pd.get_dummies()` ho\u1eb7c `OneHotEncoder` thay v\u00ec t\u1ea1o c\u1ed9t th\u1ee7 c\u00f4ng.",
+        "domain": "python",
+        "qualifier": [
+            "runtime_error"
+        ],
+        "action": [
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "coding",
+        "errors_fixed": 1,
+        "token_length": 237,
+        "mdl_score": 0.0042
+    },
+    {
+        "nl_rule": "\n\n### Ph\u00e2n t\u00edch l\u1ed7i\n\nL\u1ed7i `ValueError: could not convert string to float` x\u1ea3y ra khi th\u1ef1c hi\u1ec7n ph\u00e9p t\u00ednh t\u01b0\u01a1ng quan (`corr()`) tr\u00ean c\u00e1c c\u1ed9t ch\u1ee9a d\u1eef li\u1ec7u kh\u00f4ng ph\u1ea3i s\u1ed1. Danh s\u00e1ch c\u1ed9t \u0111\u01b0\u1ee3c ch\u1ec9 \u0111\u1ecbnh th\u1ee7 c\u00f4ng bao g\u1ed3m m\u1ed9t c\u1ed9t ph\u00e2n lo\u1ea1i (ki\u1ec3u chu\u1ed7i/string) thay v\u00ec ch\u1ec9 c\u00e1c c\u1ed9t s\u1ed1, khi\u1ebfn h\u00e0m th\u1ed1ng k\u00ea kh\u00f4ng th\u1ec3 chuy\u1ec3n \u0111\u1ed5i d\u1eef li\u1ec7u sang \u0111\u1ecbnh d\u1ea1ng s\u1ed1 \u0111\u1ec3 t\u00ednh to\u00e1n.\n\n### H\u01b0\u1edbng d\u1eabn s\u1eeda l\u1ed7i (Generalizable Fix Instructions)\n\n1.  **X\u00e1c th\u1ef1c ki\u1ec3u d\u1eef li\u1ec7u tr\u01b0\u1edbc khi x\u1eed l\u00fd:** Tr\u01b0\u1edbc khi th\u1ef1c hi\u1ec7n c\u00e1c h\u00e0m th\u1ed1ng k\u00ea y\u00eau c\u1ea7u d\u1eef li\u1ec7u s\u1ed1, h\u00e3y ki\u1ec3m tra ki\u1ec3u d\u1eef li\u1ec7u c\u1ee7a c\u00e1c c\u1ed9t m\u1ee5c ti\u00eau \u0111\u1ec3 \u0111\u1ea3m b\u1ea3o ch\u00fang l\u00e0 s\u1ed1 (integer/float) thay v\u00ec chu\u1ed7i ho\u1eb7c \u0111\u1ed1i t\u01b0\u1ee3ng.\n2.  **L\u1ecdc c\u1ed9t t\u1ef1 \u0111\u1ed9ng thay v\u00ec th\u1ee7 c\u00f4ng:** S\u1eed d\u1ee5ng ph\u01b0\u01a1ng th\u1ee9c c\u1ee7a DataFrame \u0111\u1ec3 t\u1ef1 \u0111\u1ed9ng ch\u1ecdn c\u00e1c c\u1ed9t c\u00f3 ki\u1ec3u d\u1eef li\u1ec7u s\u1ed1 cho c\u00e1c ph\u00e9p t\u00ednh to\u00e1n h\u1ecdc, tr\u00e1nh vi\u1ec7c li\u1ec7t k\u00ea t\u00ean c\u1ed9t th\u1ee7 c\u00f4ng c\u00f3 th\u1ec3 v\u00f4 t\u00ecnh bao g\u1ed3m c\u1ea3 d\u1eef li\u1ec7u ph\u00e2n lo\u1ea1i.\n3.  **X\u1eed l\u00fd ri\u00eang d\u1eef li\u1ec7u ph\u00e2n lo\u1ea1i:** T\u00e1ch bi\u1ec7t d\u1eef li\u1ec7u ph\u00e2n lo\u1ea1i (categorical) kh\u1ecfi d\u1eef li\u1ec7u s\u1ed1, ho\u1eb7c m\u00e3 h\u00f3a ch\u00fang th\u00e0nh s\u1ed1 tr\u01b0\u1edbc khi \u0111\u01b0a v\u00e0o c\u00e1c h\u00e0m t\u00ednh to\u00e1n y\u00eau c\u1ea7u gi\u00e1 tr\u1ecb s\u1ed1.\n4.  **Ki\u1ec3m tra schema d\u1eef li\u1ec7u:** Lu\u00f4n xem l\u1ea1i c\u1ea5u tr\u00fac d\u1eef li\u1ec7u (data types) sau khi t\u1ea3i d\u1eef li\u1ec7u \u0111\u1ec3 x\u00e1c nh\u1eadn c\u00e1c c\u1ed9t ph\u00f9 h\u1ee3p v\u1edbi c\u00e1c b\u01b0\u1edbc ph\u00e2n t\u00edch ti\u1ebfp theo tr\u01b0\u1edbc khi ch\u1ea1y c\u00e1c h\u00e0m x\u1eed l\u00fd.",
+        "domain": "python",
+        "qualifier": [
+            "runtime_error"
+        ],
+        "action": [
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "coding",
+        "errors_fixed": 1,
+        "token_length": 255,
+        "mdl_score": 0.0039
+    },
+    {
+        "nl_rule": "\n\n### Ph\u00e2n t\u00edch l\u1ed7i\nL\u1ed7i `NameError` x\u1ea3y ra do m\u00e3 ngu\u1ed3n c\u1ed1 g\u1eafng s\u1eed d\u1ee5ng t\u00ean c\u00e1c c\u1ed9t d\u1eef li\u1ec7u (v\u00ed d\u1ee5: `thang_su_dung`, `cuoc_hang_thang`) nh\u01b0 c\u00e1c bi\u1ebfn Python \u0111\u1ed9c l\u1eadp trong chu\u1ed7i f-string. Tuy nhi\u00ean, c\u00e1c t\u00ean n\u00e0y ch\u1ec9 t\u1ed3n t\u1ea1i d\u01b0\u1edbi d\u1ea1ng kh\u00f3a trong DataFrame v\u00e0 ch\u01b0a \u0111\u01b0\u1ee3c \u0111\u1ecbnh ngh\u0129a trong ph\u1ea1m vi bi\u1ebfn c\u1ee7a script, d\u1eabn \u0111\u1ebfn vi\u1ec7c tr\u00ecnh th\u00f4ng d\u1ecbch kh\u00f4ng th\u1ec3 t\u00ecm th\u1ea5y ch\u00fang.\n\n### H\u01b0\u1edbng d\u1eabn s\u1eeda l\u1ed7i (Generalizable Fix Instructions)\n\n1.  **Ki\u1ec3m tra ph\u1ea1m vi bi\u1ebfn (Scope Verification):** Tr\u01b0\u1edbc khi s\u1eed d\u1ee5ng b\u1ea5t k\u1ef3 bi\u1ebfn n\u00e0o trong bi\u1ec3u th\u1ee9c chu\u1ed7i, h\u00e3y x\u00e1c minh xem bi\u1ebfn \u0111\u00f3 \u0111\u00e3 \u0111\u01b0\u1ee3c \u0111\u1ecbnh ngh\u0129a trong ph\u1ea1m vi hi\u1ec7n t\u1ea1i hay ch\u01b0a. N\u1ebfu d\u1eef li\u1ec7u n\u1eb1m trong c\u1ea5u tr\u00fac b\u1ea3ng (DataFrame), kh\u00f4ng \u0111\u01b0\u1ee3c truy c\u1eadp tr\u1ef1c ti\u1ebfp b\u1eb1ng t\u00ean c\u1ed9t m\u00e0 kh\u00f4ng c\u00f3 ti\u1ec1n t\u1ed1 \u0111\u1ed1i t\u01b0\u1ee3ng.\n2.  **Truy c\u1eadp d\u1eef li\u1ec7u t\u01b0\u1eddng minh:** Khi x\u00e2y d\u1ef1ng chu\u1ed7i t\u1eeb d\u1eef li\u1ec7u b\u1ea3ng, h\u00e3y lu\u00f4n tham chi\u1ebfu \u0111\u1ebfn c\u1ed9t th\u00f4ng qua \u0111\u1ed1i t\u01b0\u1ee3ng ch\u1ee9a d\u1eef li\u1ec7u (v\u00ed d\u1ee5: `data['t\u00ean_c\u1ed9t']`) thay v\u00ec gi\u1ea3 \u0111\u1ecbnh t\u00ean c\u1ed9t l\u00e0 m\u1ed9t bi\u1ebfn to\u00e0n c\u1ee5c.\n3.  **S\u1eed d\u1ee5ng ph\u01b0\u01a1ng th\u1ee9c vectorized:** \u01afu ti\u00ean s\u1eed d\u1ee5ng c\u00e1c ph\u01b0\u01a1ng th\u1ee9c x\u1eed l\u00fd chu\u1ed7i c\u1ee7a th\u01b0 vi\u1ec7n d\u1eef li\u1ec7u (nh\u01b0 pandas string methods) ho\u1eb7c h\u00e0m format ch\u1ea5p nh\u1eadn Series \u0111\u1ec3 tr\u00e1nh vi\u1ec7c ph\u1ea3i tr\u00edch xu\u1ea5t t\u1eebng bi\u1ebfn ri\u00eang l\u1ebb.\n4.  **X\u00e1c th\u1ef1c c\u1ea5u tr\u00fac d\u1eef li\u1ec7u:** Th\u00eam b\u01b0\u1edbc ki\u1ec3m tra s\u1ef1 t\u1ed3n t\u1ea1i c\u1ee7a c\u00e1c c\u1ed9t c\u1ea7n thi\u1ebft trong t\u1eadp d\u1eef li\u1ec7u tr\u01b0\u1edbc khi th\u1ef1c hi\u1ec7n c\u00e1c thao t\u00e1c x\u1eed l\u00fd v\u0103n b\u1ea3n \u0111\u1ec3 \u0111\u1ea3m b\u1ea3o t\u00ednh nh\u1ea5t qu\u00e1n c\u1ee7a d\u1eef li\u1ec7u \u0111\u1ea7u v\u00e0o.",
+        "domain": "python",
+        "qualifier": [
+            "runtime_error"
+        ],
+        "action": [
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "coding",
+        "errors_fixed": 1,
+        "token_length": 266,
+        "mdl_score": 0.0038
+    },
+    {
+        "nl_rule": "\n\n### Ph\u00e2n t\u00edch l\u1ed7i\nL\u1ed7i `TypeError: unsupported format string passed to Series.__format__` x\u1ea3y ra v\u00ec ph\u01b0\u01a1ng th\u1ee9c `.format()` c\u1ee7a chu\u1ed7i Python kh\u00f4ng h\u1ed7 tr\u1ee3 t\u1ef1 \u0111\u1ed9ng l\u1eb7p qua c\u00e1c ph\u1ea7n t\u1eed c\u1ee7a \u0111\u1ed1i t\u01b0\u1ee3ng `Series` pandas. Khi truy\u1ec1n m\u1ed9t Series v\u00e0o c\u00e1c tham s\u1ed1 c\u1ee7a `.format()`, Python c\u1ed1 g\u1eafng \u0111\u1ecbnh d\u1ea1ng to\u00e0n b\u1ed9 Series nh\u01b0 m\u1ed9t \u0111\u1ed1i t\u01b0\u1ee3ng \u0111\u01a1n l\u1ebb thay v\u00ec t\u1eebng gi\u00e1 tr\u1ecb h\u00e0ng, d\u1eabn \u0111\u1ebfn l\u1ed7i kh\u00f4ng t\u01b0\u01a1ng th\u00edch ki\u1ec3u d\u1eef li\u1ec7u.\n\n### H\u01b0\u1edbng d\u1eabn s\u1eeda l\u1ed7i (Generalizable Fix Instructions)\n\n1.  **Tr\u00e1nh \u0111\u1ecbnh d\u1ea1ng chu\u1ed7i tr\u1ef1c ti\u1ebfp v\u1edbi Series:** Kh\u00f4ng s\u1eed d\u1ee5ng c\u00e1c ph\u01b0\u01a1ng th\u1ee9c \u0111\u1ecbnh d\u1ea1ng chu\u1ed7i c\u1ee7a Python (nh\u01b0 `.format()`, f-strings) tr\u1ef1c ti\u1ebfp v\u1edbi c\u00e1c c\u1ed9t DataFrame/Series l\u00e0m tham s\u1ed1, v\u00ec ch\u00fang kh\u00f4ng h\u1ed7 tr\u1ee3 t\u1ef1 \u0111\u1ed9ng duy\u1ec7t qua t\u1eebng h\u00e0ng.\n2.  **S\u1eed d\u1ee5ng x\u1eed l\u00fd theo h\u00e0ng (Row-wise Processing):** Khi c\u1ea7n k\u1ebft h\u1ee3p nhi\u1ec1u c\u1ed9t \u0111\u1ec3 t\u1ea1o chu\u1ed7i m\u1edbi, h\u00e3y s\u1eed d\u1ee5ng h\u00e0m `apply()` v\u1edbi tham s\u1ed1 `axis=1` \u0111\u1ec3 duy\u1ec7t qua t\u1eebng h\u00e0ng ri\u00eang bi\u1ec7t, ho\u1eb7c s\u1eed d\u1ee5ng c\u00e1c h\u00e0m chu\u1ed7i vectorized c\u1ee7a th\u01b0 vi\u1ec7n (v\u00ed d\u1ee5: `str.cat()`) \u0111\u01b0\u1ee3c thi\u1ebft k\u1ebf cho thao t\u00e1c c\u1ed9t.\n3.  **X\u1eed l\u00fd gi\u00e1 tr\u1ecb thi\u1ebfu tr\u01b0\u1edbc khi \u0111\u1ecbnh d\u1ea1ng:** \u0110\u1ea3m b\u1ea3o c\u00e1c gi\u00e1 tr\u1ecb NaN trong c\u00e1c c\u1ed9t tham gia t\u1ea1o chu\u1ed7i \u0111\u01b0\u1ee3c x\u1eed l\u00fd (v\u00ed d\u1ee5: thay th\u1ebf b\u1eb1ng chu\u1ed7i r\u1ed7ng) tr\u01b0\u1edbc khi th\u1ef1c hi\u1ec7n thao t\u00e1c \u0111\u1ecbnh d\u1ea1ng \u0111\u1ec3 tr\u00e1nh l\u1ed7i \u0111\u1ecbnh d\u1ea1ng kh\u00f4ng mong mu\u1ed1n.\n4.  **Ki\u1ec3m tra ki\u1ec3u d\u1eef li\u1ec7u \u0111\u1ea7u v\u00e0o:** X\u00e1c nh\u1eadn r\u1eb1ng c\u00e1c \u0111\u1ed1i t\u01b0\u1ee3ng \u0111\u01b0\u1ee3c truy\u1ec1n v\u00e0o h\u00e0m \u0111\u1ecbnh d\u1ea1ng chu\u1ed7i l\u00e0 gi\u00e1 tr\u1ecb v\u00f4 h\u01b0\u1edbng (scalar) ho\u1eb7c \u0111\u01b0\u1ee3c x\u1eed l\u00fd qua v\u00f2ng l\u1eb7p h\u00e0ng, thay v\u00ec l\u00e0 to\u00e0n b\u1ed9 c\u1ed9t d\u1eef li\u1ec7u.",
+        "domain": "python",
+        "qualifier": [
+            "runtime_error"
+        ],
+        "action": [
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "coding",
+        "errors_fixed": 1,
+        "token_length": 273,
+        "mdl_score": 0.0037
+    },
+    {
+        "nl_rule": "Semantic check failed: The output displays the Decision Tree structure but the section 'RULE DETAILS WITH SUPPORT & CHURN' is empty. The code must calculate and print the number of samples (Support) and the average Churn Rate for each specific rule/leaf node in the Decision Tree output, not just the tree structure itself. Update the code to iterate through the tree nodes and print these metrics.",
+        "domain": "python",
+        "qualifier": [
+            "semantic_error",
+            "business_logic"
+        ],
+        "action": [
+            "add_metrics",
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "data_analysis",
+        "errors_fixed": 1,
+        "token_length": 66,
+        "mdl_score": 0.0152
+    },
+    {
+        "nl_rule": "\n\n### Error Analysis & Fix Instructions\n\n**Diagnosis:**\nThe execution error `AttributeError: 'Series' object has no attribute 'nonzero'` occurs because the code attempts to index a `scipy.sparse` matrix directly using a pandas `Series` as a boolean mask. The sparse matrix library's internal indexing validation expects a NumPy array or list of indices, not a pandas Series object, leading to a type incompatibility during the validation process.\n\n**Fix Instructions:**\n\n1.  **Locate the Sparse Matrix Indexing:** Identify the specific operation where the vectorized sparse matrix is being subsetted using a boolean condition derived from the main DataFrame.\n2.  **Convert Boolean Mask:** Before applying the boolean condition to the sparse matrix, explicitly convert the boolean mask from a pandas Series to a NumPy array.\n3.  **Apply Converted Index:** Use the converted NumPy array for the matrix indexing operation to ensure compatibility with the sparse matrix library's internal validation logic.\n4.  **Verify Subsequent Operations:** Ensure that any subsequent calculations relying on the subsetted matrix (such as distance calculations) proceed correctly with the new array type.",
+        "domain": "python",
+        "qualifier": [
+            "runtime_error"
+        ],
+        "action": [
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "coding",
+        "errors_fixed": 1,
+        "token_length": 170,
+        "mdl_score": 0.0059
+    },
+    {
+        "nl_rule": "\n\n## Fix Instructions\n\n### Root Cause Analysis\nThe error occurs because the recursive tree traversal function incorrectly accesses the DecisionTree tree structure. The `node` parameter represents the entire tree object (`tree_model.tree_`), not a single node. The code attempts to use `node.feature` as an index into `node.children_left`, but this creates an array comparison that returns multiple boolean values instead of a single boolean.\n\n### Generalized Fix Steps\n\n1. **Correct Tree Node Access Pattern**\n   - When traversing a DecisionTree, use the tree's attribute arrays with a node index, not the node object itself\n   - Access feature index as: `tree_attribute_array[node_index]` where `node_index` is the current node position\n   - Leaf nodes are identified by checking if the feature index equals `-2` (not `-1`)\n\n2. **Fix Recursive Traversal Logic**\n   - Pass the current node index as an integer parameter instead of the entire tree structure\n   - Use the node index to access all tree attributes: `children_left[node_index]`, `children_right[node_index]`, `feature[node_index]`, `threshold[node_index]`\n   - When reaching a leaf node (feature index == -2), calculate support and churn rate for that rule path\n\n3. **Handle Boolean Mask Operations**\n   - When combining multiple rules (parent_rules list), ensure each rule is a boolean Series\n   - Use `&` operator correctly between boolean Series, not between arrays\n   - Validate that mask operations return a single boolean value before using in `if` statements\n\n4. **Calculate Leaf Node Metrics**\n   - For each leaf node, apply all parent rules to filter the dataset\n   - Count samples (support) using `mask.sum()`\n   - Calculate churn rate using `df.loc[mask, target_column].mean()`\n   - Handle edge case where support equals 0 to avoid division errors\n\n5. **Return Structured Results**\n   - Collect rule details in a list with clear structure (rule description, support count, churn rate)\n   - Print or display these metrics after tree traversal completes\n\n### Prevention Guidelines\n- Always verify DecisionTree tree structure attributes before accessing them\n- Use node indices (integers) to traverse tree arrays, not the tree object itself\n- Check for leaf node condition using the correct sentinel value (`-2` for sklearn DecisionTrees)\n- Ensure boolean operations on pandas Series return single values before conditional checks",
+        "domain": "python",
+        "qualifier": [
+            "runtime_error"
+        ],
+        "action": [
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "coding",
+        "errors_fixed": 1,
+        "token_length": 346,
+        "mdl_score": 0.0029
+    },
+    {
+        "nl_rule": "Semantic check failed: The execution output displays the header for 'DECISION TREE RULE DETAILS' but fails to print any data rows. The requirement mandates that the output must contain Decision Tree rules with explicit Support count and Churn Rate for each rule. Please debug the `analyze_tree_rules_corrected` function to ensure it correctly traverses the tree and populates the `rule_details` list with valid metrics before printing.",
+        "domain": "python",
+        "qualifier": [
+            "semantic_error",
+            "business_logic"
+        ],
+        "action": [
+            "add_metrics",
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "data_analysis",
+        "errors_fixed": 1,
+        "token_length": 64,
+        "mdl_score": 0.0156
+    },
+    {
+        "nl_rule": "Semantic check failed: The provided execution output is truncated and does not display the 'DECISION TREE RULE DETAILS' table containing Support and Churn Rate per rule as required by Criterion 1. Although the code logic exists to generate this table and save it to CSV, the visible console output fails to verify this requirement. Ensure the full execution log is captured or verify that the `traverse_tree_and_collect_rules` function completes and prints the summary table successfully.",
+        "domain": "python",
+        "qualifier": [
+            "semantic_error",
+            "business_logic"
+        ],
+        "action": [
+            "add_metrics",
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "data_analysis",
+        "errors_fixed": 1,
+        "token_length": 74,
+        "mdl_score": 0.0135
+    },
+    {
+        "nl_rule": "Semantic check failed: The provided execution output is truncated and does not display the Decision Tree rule details table (Step 6.2) containing Support and Churn Rate metrics. Please ensure the code completes Step 6.2 and the full output is captured, as the requirement mandates explicit Support and Churn Rate for each rule in the output.",
+        "domain": "python",
+        "qualifier": [
+            "semantic_error",
+            "business_logic"
+        ],
+        "action": [
+            "add_metrics",
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "data_analysis",
+        "errors_fixed": 1,
+        "token_length": 55,
+        "mdl_score": 0.0182
+    },
+    {
+        "nl_rule": "\n\n**Analysis:**\nThe execution failed because the dataset identifier provided in the function call does not match any entry in the system's configuration index. The `ValueError` explicitly states that the specific ID is not found, indicating a mismatch between the requested resource and the available registry.\n\n**Fix Instructions:**\n1.  Inspect the configuration or index file to retrieve the complete list of valid dataset identifiers registered in the system.\n2.  Update the argument passed to the data loading function to match one of the confirmed valid identifiers from the index.\n3.  Verify that the physical file path associated with the selected identifier exists in the workspace directory before execution.",
+        "domain": "python",
+        "qualifier": [
+            "runtime_error"
+        ],
+        "action": [
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "coding",
+        "errors_fixed": 1,
+        "token_length": 107,
+        "mdl_score": 0.0093
+    },
+    {
+        "nl_rule": "\n\n**Analysis:**\nThe execution error is an `ImportError` caused by importing `TfidfVectorizer` from the incorrect module (`sklearn.preprocessing`). This class belongs to `sklearn.feature_extraction.text`. The `StandardScaler` is correctly located in `sklearn.preprocessing`.\n\n**Fix Instructions:**\n1.  **Identify the Import Statement:** Locate the line at the top of the script where `StandardScaler` and `TfidfVectorizer` are imported together.\n2.  **Separate the Imports:** Split the import statement into two distinct lines.\n3.  **Correct the Module Path:** Change the import source for the text vectorization component to `sklearn.feature_extraction.text`.\n4.  **Retain Preprocessing Import:** Ensure the preprocessing component remains imported from `sklearn.preprocessing`.\n5.  **Verify Syntax:** Confirm that both classes are now imported from their respective correct modules before execution.",
+        "domain": "python",
+        "qualifier": [
+            "runtime_error"
+        ],
+        "action": [
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "coding",
+        "errors_fixed": 1,
+        "token_length": 108,
+        "mdl_score": 0.0093
+    },
+    {
+        "nl_rule": "\n\n### Error Analysis\nThe execution failed due to an `InvalidParameterError` raised during the initialization of the text vectorization component. The `stop_words` argument was set to `'vietnamese'`, which is not a supported built-in value in the current version of the scikit-learn library (valid options are typically `'english'`, a custom list, or `None`). This indicates a mismatch between the code's assumptions about library capabilities and the actual environment constraints.\n\n### Fix Instructions\n1.  **Validate Library Parameters:** Before executing the pipeline, review the initialization arguments of the text vectorization component against the library's official documentation to ensure all values are supported by the installed version.\n2.  **Replace Unsupported Identifiers:** Modify the `stop_words` argument to use a valid configuration, such as setting it to `None`, selecting a supported built-in language, or providing a custom list of stop words.\n3.  **Ensure Type Compliance:** If custom stop words are required, ensure they are passed as a list object rather than a string identifier to satisfy the library's type validation constraints.\n4.  **Enforce Compatibility Checks:** Implement a pre-execution check or code review step for all third-party library initializations to verify parameter compatibility with the specific environment version, preventing similar `InvalidParameterError` exceptions in the future.",
+        "domain": "python",
+        "qualifier": [
+            "runtime_error"
+        ],
+        "action": [
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "coding",
+        "errors_fixed": 1,
+        "token_length": 197,
+        "mdl_score": 0.0051
+    },
+    {
+        "nl_rule": "\n\n**Diagnosis:** The error `IndexError: single positional indexer is out-of-bounds` occurs because the code uses global indices (derived from the full dataset) with positional indexing (`.iloc`) on a filtered subset dataframe. The subset's positional indices range from 0 to its length, while the global indices range from 0 to the full dataset's length. Additionally, the logic selects the closest samples globally rather than within the specific cluster.\n\n**Fix Instructions:**\n\n1.  **Align Indexing Method:** When retrieving rows using indices calculated from the full dataset on a filtered subset, switch from positional indexing (`.iloc`) to label-based indexing (`.loc`) to align with the preserved original indices, or access the rows directly from the original full dataset.\n2.  **Validate Cluster Membership:** Before selecting the top N closest samples, filter the candidate indices to ensure they belong to the current cluster group, preventing the retrieval of rows from other clusters.",
+        "domain": "python",
+        "qualifier": [
+            "runtime_error"
+        ],
+        "action": [
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "coding",
+        "errors_fixed": 1,
+        "token_length": 144,
+        "mdl_score": 0.0069
+    },
+    {
+        "nl_rule": "Semantic check failed: C\u1ea5u tr\u00fac d\u1eef li\u1ec7u kh\u00f4ng c\u00f3 t\u00ednh ph\u00e2n c\u1ee5m (Silhouette 0.093 < 0.15). D\u1eebng vi\u1ec7c t\u1ea1o Persona gi\u1ea3.",
+        "domain": "python",
+        "qualifier": [
+            "semantic_error",
+            "business_logic"
+        ],
+        "action": [
+            "add_metrics",
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "data_analysis",
+        "errors_fixed": 1,
+        "token_length": 21,
+        "mdl_score": 0.0476
+    },
+    {
+        "nl_rule": "\n\n1. **Locate the Text Vectorization Configuration**: Identify the initialization step where the text vectorization component is created.\n2. **Inspect Stop Word Parameter**: Find the parameter designated for filtering stop words within this component.\n3. **Validate Parameter Value**: Check the assigned value against the library's supported constraints (e.g., allowed strings, lists, or None).\n4. **Replace Invalid Value**: Substitute the unsupported language string with `None` to disable stop word removal or provide a valid list of strings that matches the library's requirements.\n5. **Ensure Type Compliance**: Verify that the parameter type strictly adheres to the library's validation rules before execution to prevent `InvalidParameterError`.",
+        "domain": "python",
+        "qualifier": [
+            "runtime_error"
+        ],
+        "action": [
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "coding",
+        "errors_fixed": 1,
+        "token_length": 101,
+        "mdl_score": 0.0099
+    },
+    {
+        "nl_rule": "\n\n1. **Identify Premature Conversion**: Locate the step where the target variable is extracted from the dataframe and immediately converted to a NumPy array using `.values` before any index alignment operations.\n\n2. **Preserve Pandas Structure**: Remove the `.values` conversion at the extraction stage to ensure the target variable remains a pandas Series, thereby retaining access to the `.index` attribute required for alignment.\n\n3. **Align Indices First**: Perform index alignment between the feature dataframe and the target variable using the feature dataframe's index to select corresponding target values, ensuring both structures share the same index.\n\n4. **Convert for Training**: Convert the aligned target variable to a NumPy array only after the alignment is finalized and immediately before passing it to the model training function.",
+        "domain": "python",
+        "qualifier": [
+            "runtime_error"
+        ],
+        "action": [
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "coding",
+        "errors_fixed": 1,
+        "token_length": 122,
+        "mdl_score": 0.0082
+    },
+    {
+        "nl_rule": "\n\n**Instruction:**\n\nBefore training the machine learning model, validate the feature matrix to ensure all columns are numeric or properly encoded (e.g., One-Hot, Label Encoding). Explicitly drop any identifier columns (e.g., IDs, Customer IDs) that are not predictive features to prevent type conversion errors during model fitting.",
+        "domain": "python",
+        "qualifier": [
+            "runtime_error"
+        ],
+        "action": [
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "coding",
+        "errors_fixed": 1,
+        "token_length": 46,
+        "mdl_score": 0.0217
+    },
+    {
+        "nl_rule": "\n\n1. **Validate Configuration:** Verify that the dataset identifier provided in the function call is correctly registered in the system's index configuration.\n2. **Correct Identifier:** If the identifier is missing, update the input argument to match the exact registered name defined in the index.\n3. **Refactor Loading Logic:** If the identifier-based approach is unavailable, modify the loading mechanism to accept direct file paths instead of abstract IDs.\n4. **Pre-execution Check:** Ensure the target data file physically exists in the workspace directory before invoking the loading function.",
+        "domain": "python",
+        "qualifier": [
+            "runtime_error"
+        ],
+        "action": [
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "coding",
+        "errors_fixed": 1,
+        "token_length": 85,
+        "mdl_score": 0.0118
+    },
+    {
+        "nl_rule": "\n\n1. **Validate Resource Availability:** Before invoking the data loading function, verify that the requested data source or identifier exists within the available registry or directory structure.\n2. **Implement Exception Handling:** Encapsulate the data retrieval logic within a try-except block to gracefully catch and manage errors when resources are missing or invalid.\n3. **Refine Fallback Strategy:** Ensure that fallback mechanisms explicitly check for valid alternatives rather than assuming a default dataset is present without verification.\n4. **Provide Diagnostic Feedback:** If the loading process fails, output a clear error message describing the specific reason (e.g., missing identifier) to assist in troubleshooting.",
+        "domain": "python",
+        "qualifier": [
+            "runtime_error"
+        ],
+        "action": [
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "coding",
+        "errors_fixed": 1,
+        "token_length": 99,
+        "mdl_score": 0.0101
+    },
+    {
+        "nl_rule": "\n\n### Error Analysis\nThe execution failed with a `FileNotFoundError` because the script attempted to load a CSV file from a specific absolute path that does not exist in the current runtime environment. This indicates a mismatch between the configured file path and the actual file system state, or that the upstream data generation step was not completed.\n\n### Fix Instructions\n1.  **Validate Path Configuration:** Verify that the file path string accurately reflects the directory structure of the current execution environment, accounting for differences between local, containerized, or cloud setups.\n2.  **Verify Data Pipeline:** Ensure the upstream process responsible for generating the input CSV file has completed successfully before this analysis script is executed.\n3.  **Implement Existence Checks:** Add logic to verify the file's existence prior to attempting to load it, preventing abrupt termination and allowing for graceful error handling.\n4.  **Externalize Configuration:** Avoid hardcoding absolute paths; use configuration files or environment variables to manage file locations for better portability across different systems.",
+        "domain": "python",
+        "qualifier": [
+            "runtime_error"
+        ],
+        "action": [
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "coding",
+        "errors_fixed": 1,
+        "token_length": 162,
+        "mdl_score": 0.0062
+    },
+    {
+        "nl_rule": "\n\n### Error Analysis\nThe execution failed with a `ValueError: could not convert string to float: 'goi_vang'`. This occurs because the `DecisionTreeClassifier` requires numerical input for the feature matrix (`X_tree`), but the selected feature columns include categorical string data (e.g., `goi_cuoc`, `khu_vuc`) that has not been encoded.\n\n### Fix Instructions\n1.  **Identify Categorical Features:** Scan the feature matrix columns to detect any containing non-numeric data types (strings or categories) before model training.\n2.  **Apply Encoding Transformation:** Convert all identified categorical columns into numerical representations using an appropriate encoding method (e.g., One-Hot Encoding or Label Encoding).\n3.  **Update Model Input:** Ensure the resulting encoded numerical matrix is passed to the model's `fit` method, replacing the raw DataFrame containing string values.",
+        "domain": "python",
+        "qualifier": [
+            "runtime_error"
+        ],
+        "action": [
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "coding",
+        "errors_fixed": 1,
+        "token_length": 118,
+        "mdl_score": 0.0085
+    },
+    {
+        "nl_rule": "\n\n**Analysis:**\nThe `KeyError` occurs because the code generates persona names in a separate list (`personas`) but fails to merge this information back into the main DataFrame (`data`). Consequently, the `persona_name` column does not exist in the dataset when the script attempts to display a preview.\n\n**Fix Instructions:**\n1. **Integrate Derived Labels:** After generating the persona metadata list, construct a mapping that associates each cluster identifier with its corresponding persona name.\n2. **Update Primary Dataset:** Apply this mapping to the main dataset to populate a new column containing the persona names for all records.\n3. **Verify Existence:** Ensure this new column exists in the dataset before executing any subsequent operations that attempt to access it.",
+        "domain": "python",
+        "qualifier": [
+            "runtime_error"
+        ],
+        "action": [
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "coding",
+        "errors_fixed": 1,
+        "token_length": 114,
+        "mdl_score": 0.0088
+    },
+    {
+        "nl_rule": "Semantic check failed: \u26a0 Data Leakage: Bi\u1ebfn m\u1ee5c ti\u00eau `RMDT` \u0111ang \u0111\u01b0\u1ee3c d\u00f9ng l\u00e0m feature cho thu\u1eadt to\u00e1n ph\u00e2n c\u1ee5m. B\u1eaeT BU\u1ed8C ph\u1ea3i drop `RMDT` kh\u1ecfi t\u1eadp d\u1eef li\u1ec7u hu\u1ea5n luy\u1ec7n KMeans!",
+        "domain": "python",
+        "qualifier": [
+            "semantic_error",
+            "business_logic"
+        ],
+        "action": [
+            "add_metrics",
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "data_analysis",
+        "errors_fixed": 2,
+        "token_length": 32,
+        "mdl_score": 0.0625
+    }
+]

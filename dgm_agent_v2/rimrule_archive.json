@@ -1,52 +1,6 @@
 [
     {
-        "nl_rule": "Khi t\u00ednh to\u00e1n t\u1ef7 l\u1ec7, b\u1eaft bu\u1ed9c ph\u1ea3i x\u1eed l\u00fd d\u1eef li\u1ec7u NaN b\u1eb1ng c\u00e1ch fillna(0) tr\u01b0\u1edbc khi chia \u0111\u1ec3 tr\u00e1nh chia cho 0 ho\u1eb7c null.",
-        "domain": "python",
-        "qualifier": [
-            "runtime_error"
-        ],
-        "action": [
-            "fix_logic"
-        ],
-        "strength": "MUST",
-        "tool_category": "coding",
-        "errors_fixed": 4,
-        "token_length": 26,
-        "mdl_score": 0.1538
-    },
-    {
-        "nl_rule": "Lu\u00f4n s\u1eed d\u1ee5ng .copy() khi tr\u00edch xu\u1ea5t m\u1ed9t subset t\u1eeb pandas DataFrame tr\u01b0\u1edbc khi thay \u0111\u1ed5i d\u1eef li\u1ec7u \u0111\u1ec3 tr\u00e1nh c\u1ea3nh b\u00e1o SettingWithCopyWarning.",
-        "domain": "python",
-        "qualifier": [
-            "warning",
-            "pandas"
-        ],
-        "action": [
-            "best_practice"
-        ],
-        "strength": "MUST",
-        "tool_category": "coding",
-        "errors_fixed": 5,
-        "token_length": 23,
-        "mdl_score": 0.2174
-    },
-    {
-        "nl_rule": "\n\n### Ph\u00e2n t\u00edch l\u1ed7i\nL\u1ed7i `KeyError: 'g\u00f3i_cuoc'` x\u1ea3y ra do s\u1ef1 kh\u00f4ng kh\u1edbp gi\u1eefa t\u00ean c\u1ed9t \u0111\u01b0\u1ee3c \u0111\u1ecbnh ngh\u0129a trong m\u00e3 ngu\u1ed3n v\u00e0 t\u00ean c\u1ed9t th\u1ef1c t\u1ebf trong d\u1eef li\u1ec7u \u0111\u00e3 t\u1ea3i v\u1ec1. C\u1ee5 th\u1ec3, m\u00e3 ngu\u1ed3n s\u1eed d\u1ee5ng `'g\u00f3i_cuoc'` (c\u00f3 d\u1ea5u), trong khi d\u1eef li\u1ec7u th\u1ef1c t\u1ebf ch\u1ee9a `'goi_cuoc'` (kh\u00f4ng d\u1ea5u). Ngo\u00e0i ra, c\u00f3 nguy c\u01a1 cao c\u00e1c t\u00ean c\u1ed9t kh\u00e1c (v\u00ed d\u1ee5: `khu_v\u1ee5c` so v\u1edbi `khu_vuc`) c\u0169ng b\u1ecb sai l\u1ec7ch t\u01b0\u01a1ng t\u1ef1, d\u1eabn \u0111\u1ebfn l\u1ed7i t\u01b0\u01a1ng t\u1ef1 \u1edf c\u00e1c b\u01b0\u1edbc sau.\n\n### H\u01b0\u1edbng d\u1eabn s\u1eeda l\u1ed7i (Generalizable Fix Instructions)\n\n1.  **Ki\u1ec3m tra Schema d\u1eef li\u1ec7u:** Ngay sau khi t\u1ea3i d\u1eef li\u1ec7u, h\u00e3y in ra danh s\u00e1ch c\u00e1c c\u1ed9t th\u1ef1c t\u1ebf (`data.columns`) \u0111\u1ec3 x\u00e1c \u0111\u1ecbnh ch\u00ednh t\u1ea3, k\u00fd t\u1ef1 \u0111\u1eb7c bi\u1ec7t v\u00e0 d\u1ea5u c\u00e2u c\u1ee7a t\u1eebng c\u1ed9t.\n2.  **Chu\u1ea9n h\u00f3a t\u00ean c\u1ed9t:** \u0110\u1ea3m b\u1ea3o t\u1ea5t c\u1ea3 c\u00e1c tham chi\u1ebfu \u0111\u1ebfn c\u1ed9t trong m\u00e3 ngu\u1ed3n kh\u1edbp ch\u00ednh x\u00e1c 100% v\u1edbi t\u00ean c\u1ed9t trong d\u1eef li\u1ec7u (bao g\u1ed3m c\u1ea3 d\u1ea5u ti\u1ebfng Vi\u1ec7t, kho\u1ea3ng tr\u1eafng v\u00e0 ch\u1eef hoa/th\u01b0\u1eddng). N\u1ebfu kh\u00f4ng kh\u1edbp, h\u00e3y th\u1ef1c hi\u1ec7n m\u1ed9t trong hai c\u00e1ch:\n    *   \u0110\u1ed5i t\u00ean c\u1ed9t trong DataFrame ngay sau khi t\u1ea3i \u0111\u1ec3 kh\u1edbp v\u1edbi m\u00e3 ngu\u1ed3n.\n    *   Ho\u1eb7c c\u1eadp nh\u1eadt t\u1ea5t c\u1ea3 c\u00e1c tham chi\u1ebfu trong m\u00e3 ngu\u1ed3n \u0111\u1ec3 kh\u1edbp v\u1edbi t\u00ean c\u1ed9t th\u1ef1c t\u1ebf.\n3.  **Ki\u1ec3m tra t\u00ednh nh\u1ea5t qu\u00e1n:** Duy\u1ec7t qua to\u00e0n b\u1ed9 m\u00e3 \u0111\u1ec3 \u0111\u1ea3m b\u1ea3o kh\u00f4ng c\u00f2n tham chi\u1ebfu n\u00e0o \u0111\u1ebfn t\u00ean c\u1ed9t c\u0169 ho\u1eb7c t\u00ean c\u1ed9t b\u1ecb sai ch\u00ednh t\u1ea3 \u1edf c\u00e1c b\u01b0\u1edbc x\u1eed l\u00fd sau (nh\u01b0 `groupby`, `apply`, `plot`).\n4.  **Th\u00eam b\u01b0\u1edbc x\u00e1c th\u1ef1c:** Tr\u01b0\u1edbc khi th\u1ef1c hi\u1ec7n c\u00e1c t\u00e1c v\u1ee5 ph\u00e2n t\u00edch ph\u1ee9c t\u1ea1p, th\u00eam m\u1ed9t b\u01b0\u1edbc ki\u1ec3m tra \u0111\u1ec3 \u0111\u1ea3m b\u1ea3o t\u1ea5t c\u1ea3 c\u00e1c c\u1ed9t b\u1eaft bu\u1ed9c (required columns) \u0111\u1ec1u t\u1ed3n t\u1ea1i trong DataFrame, n\u1ebfu kh\u00f4ng th\u00ec d\u1eebng v\u00e0 b\u00e1o l\u1ed7i r\u00f5 r\u00e0ng.",
-        "domain": "python",
-        "qualifier": [
-            "runtime_error"
-        ],
-        "action": [
-            "fix_logic"
-        ],
-        "strength": "MUST",
-        "tool_category": "coding",
-        "errors_fixed": 1,
-        "token_length": 296,
-        "mdl_score": 0.0034
-    },
-    {
-        "nl_rule": "\n\n### Ph\u00e2n t\u00edch l\u1ed7i\nL\u1ed7i `InvalidParameterError` x\u1ea3y ra do tham s\u1ed1 `stop_words` trong h\u00e0m kh\u1edfi t\u1ea1o `TfidfVectorizer` \u0111\u01b0\u1ee3c g\u00e1n gi\u00e1 tr\u1ecb chu\u1ed7i `'vietnamese'`. Th\u01b0 vi\u1ec7n scikit-learn hi\u1ec7n t\u1ea1i ch\u1ec9 h\u1ed7 tr\u1ee3 c\u00e1c gi\u00e1 tr\u1ecb chu\u1ed7i c\u00f3 s\u1eb5n cho tham s\u1ed1 n\u00e0y (v\u00ed d\u1ee5: `'english'`) ho\u1eb7c y\u00eau c\u1ea7u m\u1ed9t danh s\u00e1ch (list) c\u00e1c t\u1eeb d\u1eebng c\u1ee5 th\u1ec3. Vi\u1ec7c s\u1eed d\u1ee5ng t\u00ean t\u00f9y ch\u1ec9nh kh\u00f4ng \u0111\u01b0\u1ee3c \u0111\u1ecbnh ngh\u0129a s\u1eb5n trong th\u01b0 vi\u1ec7n s\u1ebd vi ph\u1ea1m r\u00e0ng bu\u1ed9c tham s\u1ed1 v\u00e0 g\u00e2y l\u1ed7i kh\u1edfi t\u1ea1o.\n\n### H\u01b0\u1edbng d\u1eabn s\u1eeda l\u1ed7i (Generalizable Fix Instructions)\n\n1.  **X\u00e1c th\u1ef1c tham s\u1ed1 kh\u1edfi t\u1ea1o:** Tr\u01b0\u1edbc khi kh\u1edfi t\u1ea1o c\u00e1c \u0111\u1ed1i t\u01b0\u1ee3ng t\u1eeb th\u01b0 vi\u1ec7n machine learning, h\u00e3y ki\u1ec3m tra t\u00e0i li\u1ec7u ch\u00ednh th\u1ee9c \u0111\u1ec3 x\u00e1c \u0111\u1ecbnh danh s\u00e1ch c\u00e1c gi\u00e1 tr\u1ecb h\u1ee3p l\u1ec7 cho c\u00e1c tham s\u1ed1 c\u1ea5u h\u00ecnh (\u0111\u1eb7c bi\u1ec7t l\u00e0 c\u00e1c tham s\u1ed1 chu\u1ed7i nh\u01b0 `stop_words`).\n2.  **S\u1eed d\u1ee5ng gi\u00e1 tr\u1ecb chu\u1ea9n ho\u1eb7c danh s\u00e1ch t\u00f9y ch\u1ec9nh:** Kh\u00f4ng s\u1eed d\u1ee5ng c\u00e1c t\u00ean t\u00f9y ch\u1ec9nh cho c\u00e1c tham s\u1ed1 h\u1ec7 th\u1ed1ng n\u1ebfu kh\u00f4ng \u0111\u01b0\u1ee3c h\u1ed7 tr\u1ee3 s\u1eb5n. Thay v\u00e0o \u0111\u00f3, h\u00e3y s\u1eed d\u1ee5ng c\u00e1c gi\u00e1 tr\u1ecb m\u1eb7c \u0111\u1ecbnh c\u00f3 s\u1eb5n ho\u1eb7c chu\u1ea9n b\u1ecb m\u1ed9t danh s\u00e1ch (list) c\u00e1c gi\u00e1 tr\u1ecb c\u1ee5 th\u1ec3 \u0111\u1ec3 truy\u1ec1n v\u00e0o tham s\u1ed1.\n3.  **Ki\u1ec3m tra t\u01b0\u01a1ng th\u00edch phi\u00ean b\u1ea3n:** \u0110\u1ea3m b\u1ea3o m\u00e3 ngu\u1ed3n t\u01b0\u01a1ng th\u00edch v\u1edbi phi\u00ean b\u1ea3n th\u01b0 vi\u1ec7n \u0111ang c\u00e0i \u0111\u1eb7t, v\u00ec c\u00e1c r\u00e0ng bu\u1ed9c tham s\u1ed1 v\u00e0 gi\u00e1 tr\u1ecb h\u1ee3p l\u1ec7 c\u00f3 th\u1ec3 thay \u0111\u1ed5i gi\u1eefa c\u00e1c phi\u00ean b\u1ea3n.\n4.  **X\u1eed l\u00fd ngo\u1ea1i l\u1ec7 tham s\u1ed1:** Th\u00eam c\u01a1 ch\u1ebf ki\u1ec3m tra ho\u1eb7c b\u1eaft l\u1ed7i (`try-except`) khi kh\u1edfi t\u1ea1o c\u00e1c \u0111\u1ed1i t\u01b0\u1ee3ng \u0111\u1ec3 ph\u00e1t hi\u1ec7n s\u1edbm c\u00e1c l\u1ed7i tham s\u1ed1 kh\u00f4ng h\u1ee3p l\u1ec7 tr\u01b0\u1edbc khi th\u1ef1c thi logic ch\u00ednh.",
+        "nl_rule": "\n\nThe error indicates that the dataset identifier provided in the function call does not exist in the system's internal registry or index. To resolve this:\n\n1.  **Verify Available Identifiers:** Consult the system's configuration file or registry to retrieve the list of valid, registered dataset identifiers.\n2.  **Update Function Argument:** Modify the argument passed to the loading function to match one of the valid identifiers found in the registry.\n3.  **Switch Loading Method (If Necessary):** If the dataset is external and not registered locally, verify whether the custom loader supports external sources; if not, switch to the standard library function designed for loading external datasets.",
         "domain": "python",
         "qualifier": [
             "runtime_error"
@@ -57,11 +11,255 @@
         "strength": "MUST",
         "tool_category": "coding",
         "errors_fixed": 2,
-        "token_length": 280,
+        "token_length": 104,
+        "mdl_score": 0.0192
+    },
+    {
+        "nl_rule": "\n\n1. **Verify Available Modules:** Consult the environment's package registry or file system to retrieve the list of valid, installed modules before attempting to import.\n2. **Update Import Logic:** Modify the import statement to conditionally load the module only if it exists, or wrap it in a try-except block to handle missing dependencies gracefully.\n3. **Switch Loading Method (If Necessary):** If the module is unavailable, switch to the standard library functions or alternative data sources identified in the previous search phase to ensure execution continues.",
+        "domain": "python",
+        "qualifier": [
+            "runtime_error"
+        ],
+        "action": [
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "coding",
+        "errors_fixed": 1,
+        "token_length": 84,
+        "mdl_score": 0.0119
+    },
+    {
+        "nl_rule": "\n\n### Error Analysis\nThe execution failed with a `FileNotFoundError` because the script attempts to load a dataset from a hardcoded absolute path (`/mnt/d/kh4ng/Data_agent/ftel_data.csv`) that does not exist in the current execution environment. This indicates a mismatch between the assumed file location and the actual file system state.\n\n### Fix Instructions\nTo resolve this error and ensure generalizability across different environments, follow these logical steps:\n\n1.  **Verify Available Files:** Before attempting to load the dataset, programmatically check if the target file exists at the specified path within the current execution environment.\n2.  **Update Path Configuration:** Replace hardcoded absolute paths with dynamic path resolution methods, such as relative paths based on the script's location, environment variables, or a search function to locate valid CSV files in the directory.\n3.  **Implement Graceful Handling:** Wrap the file loading operation in a conditional check or error handling block. If the file is missing, provide a clear error message or switch to an alternative data source (e.g., a sample dataset or a different file found via search) to prevent execution failure.",
+        "domain": "python",
+        "qualifier": [
+            "runtime_error"
+        ],
+        "action": [
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "coding",
+        "errors_fixed": 1,
+        "token_length": 175,
+        "mdl_score": 0.0057
+    },
+    {
+        "nl_rule": "\n\n### Error Analysis\nThe execution failed with a `ValueError` because the f-string formatting syntax is invalid. Specifically, the format specifier within the curly braces uses an incorrect arrangement of the fill character, alignment, and width parameters, or attempts to use the debug specifier on a string literal incorrectly.\n\n### Fix Instructions\n1.  **Locate the Formatting Expression:** Identify the print statement containing the invalid format specifier that triggered the error.\n2.  **Correct Format Specifier Syntax:** Modify the format specification to follow the standard order: `{fill}{align}{width}`. Ensure the fill character (e.g., `=`) is placed immediately after the colon, followed by the alignment character (e.g., `^`), and then the width.\n3.  **Validate Expression Compatibility:** Ensure the expression being formatted is compatible with the specified format operations (e.g., avoid using debug syntax `=` on string literals unless intended).\n4.  **Test Execution:** Run the script to confirm the string renders correctly without raising a `ValueError`.",
+        "domain": "python",
+        "qualifier": [
+            "runtime_error"
+        ],
+        "action": [
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "coding",
+        "errors_fixed": 1,
+        "token_length": 150,
+        "mdl_score": 0.0067
+    },
+    {
+        "nl_rule": "\n\n## Error Analysis\n\nThe execution failed with a `KeyError: 'customer_id'` because the merge operation attempts to join on a column that no longer exists in one of the DataFrames. Specifically, `clustering_data` had the `customer_id` column dropped during preprocessing, but the merge operation still references it.\n\n## Fix Instructions\n\n1.  **Verify Column Availability Before Merge:** Before performing any DataFrame merge operation, check that all columns specified in the `on` parameter exist in both DataFrames. Use column existence checks or list comparisons to validate this.\n\n2.  **Preserve Merge Key Columns:** When dropping columns during preprocessing, ensure that any columns required for later merge operations are either:\n    *   Excluded from the drop list, or\n    *   Explicitly saved to a separate backup DataFrame before dropping\n\n3.  **Update Merge Logic:** Modify the merge statement to use columns that actually exist in both DataFrames. If a column was dropped, either restore it from the backup or adjust the merge to use an alternative key (such as row index) if appropriate.\n\n4.  **Validate Data Integrity:** After any column manipulation (drop, rename, filter), verify that the resulting DataFrame still contains all columns needed for subsequent operations before proceeding.\n\n5.  **Test Execution:** Run the script to confirm the merge completes successfully without raising a `KeyError`.",
+        "domain": "python",
+        "qualifier": [
+            "runtime_error"
+        ],
+        "action": [
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "coding",
+        "errors_fixed": 1,
+        "token_length": 206,
+        "mdl_score": 0.0049
+    },
+    {
+        "nl_rule": "\n\n### Error Analysis\nThe execution failed with an `ImportError` because a specific class (`TfidfVectorizer`) is being imported from an incorrect module path (`sklearn.preprocessing`). The class actually resides in a different sub-package within the scikit-learn library.\n\n### Fix Instructions\n1.  **Locate the Import Statement:** Identify the import line where the error occurred, specifically the one attempting to load the problematic class.\n2.  **Verify Module Location:** Consult the library documentation or package structure to determine the correct module path for the specific class or function.\n3.  **Update Import Logic:** Modify the import statement to reference the correct module path while keeping the class name unchanged.\n4.  **Test Execution:** Run the script to confirm the import resolves successfully and the script proceeds to the data loading phase.",
+        "domain": "python",
+        "qualifier": [
+            "runtime_error"
+        ],
+        "action": [
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "coding",
+        "errors_fixed": 1,
+        "token_length": 124,
+        "mdl_score": 0.0081
+    },
+    {
+        "nl_rule": "\n\n### Error Analysis\nThe execution failed with a `ValueError` because the script's data loading logic could not locate the dataset in the configured working directory or index file. The execution log confirms the target directory is empty and the index file is missing, causing the data variable to remain `None` and triggering the termination condition.\n\n### Fix Instructions\n1.  **Verify Data Availability:** Ensure that the dataset files or the configuration index file exist in the expected directories before the script attempts to load them.\n2.  **Update Path Configuration:** Modify the directory paths used for data discovery to point to the actual location where the data is stored in the current environment.\n3.  **Validate Loading Functions:** Confirm that any custom data loading functions referenced in the script are defined and accessible within the script's scope.\n4.  **Implement Fallback Logic:** Add logic to search for data in alternative locations if the primary search yields no results to prevent premature termination.",
+        "domain": "python",
+        "qualifier": [
+            "runtime_error"
+        ],
+        "action": [
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "coding",
+        "errors_fixed": 1,
+        "token_length": 158,
+        "mdl_score": 0.0063
+    },
+    {
+        "nl_rule": "\n\n### Error Analysis\nThe execution failed with a `KeyError` because the code attempts to access the `RMDT` column from `data_processed`, but this column was previously dropped during the data preprocessing phase to prevent target leakage.\n\n### Fix Instructions\n\n1.  **Verify Column Availability:** Before accessing any column for operations (grouping, plotting, statistics), check if that column exists in the target DataFrame.\n\n2.  **Use Original Data for Dropped Columns:** If a column was intentionally dropped during preprocessing (e.g., for target leakage prevention), use the original unprocessed DataFrame for any operations that require that column, such as visualization or final analysis.\n\n3.  **Add Conditional Checks:** Wrap any column access in a conditional statement that verifies the column exists before attempting to use it. If the column is not available, either skip that operation or use an alternative data source.\n\n4.  **Maintain Column References:** If certain columns are needed for multiple stages of the pipeline (preprocessing and visualization), maintain separate references to the original data alongside the processed data, or preserve a copy of dropped columns if they are required downstream.\n\n5.  **Test Data Flow:** After making changes, verify that all DataFrames used in the pipeline contain the expected columns at each stage of execution.",
+        "domain": "python",
+        "qualifier": [
+            "runtime_error"
+        ],
+        "action": [
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "coding",
+        "errors_fixed": 1,
+        "token_length": 201,
+        "mdl_score": 0.005
+    },
+    {
+        "nl_rule": "Semantic check failed: \u26a0 Data Leakage: Bi\u1ebfn m\u1ee5c ti\u00eau `RMDT` \u0111ang \u0111\u01b0\u1ee3c d\u00f9ng l\u00e0m feature cho thu\u1eadt to\u00e1n ph\u00e2n c\u1ee5m. B\u1eaeT BU\u1ed8C ph\u1ea3i drop `RMDT` kh\u1ecfi t\u1eadp d\u1eef li\u1ec7u hu\u1ea5n luy\u1ec7n KMeans!",
+        "domain": "python",
+        "qualifier": [
+            "semantic_error",
+            "business_logic"
+        ],
+        "action": [
+            "add_metrics",
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "data_analysis",
+        "errors_fixed": 26,
+        "token_length": 32,
+        "mdl_score": 0.8125
+    },
+    {
+        "nl_rule": "\n\n1.  **Verify Registry Schema:** Inspect the internal dataset registry structure to confirm the actual keys present for the selected dataset identifier, ensuring they match the loader's expectations.\n2.  **Update Access Logic:** Modify the data loading function to validate the existence of required metadata fields before attempting to access them, preventing crashes on missing keys.\n3.  **Refine Selection Criteria:** Adjust the dataset selection logic to ensure only entries with complete and valid metadata are chosen automatically, filtering out incomplete records.\n4.  **Implement Error Handling:** Add conditional checks or try-except blocks to gracefully handle missing metadata keys, allowing the system to fallback to alternative loading methods or report the schema mismatch clearly.",
+        "domain": "python",
+        "qualifier": [
+            "runtime_error"
+        ],
+        "action": [
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "coding",
+        "errors_fixed": 1,
+        "token_length": 110,
+        "mdl_score": 0.0091
+    },
+    {
+        "nl_rule": "\n\n1. **Verify Column Existence:** Before selecting columns for processing, programmatically confirm that all expected feature names are present in the dataset's column index.\n2. **Map to Actual Schema:** Update the feature selection logic to align with the actual column names found in the data, adjusting for any naming variations or suffixes.\n3. **Handle Missing Features:** Implement a check to exclude missing columns from the feature list or assign default values to prevent runtime errors during extraction.\n4. **Ensure Consistency:** Apply the validated column list across all subsequent steps (cleaning, scaling, clustering) to maintain data integrity throughout the pipeline.",
+        "domain": "python",
+        "qualifier": [
+            "runtime_error"
+        ],
+        "action": [
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "coding",
+        "errors_fixed": 1,
+        "token_length": 98,
+        "mdl_score": 0.0102
+    },
+    {
+        "nl_rule": "\n\n1. **Verify Module Path:** Consult the library documentation to identify the correct sub-package for the text vectorization utility, as it is not located in the general preprocessing module.\n2. **Update Import Logic:** Separate the import statement to assign the text processing class to its specific feature extraction module, while retaining the data scaling class in the preprocessing module.\n3. **Validate Environment:** Ensure the installed library version supports the identified module path to avoid import failures.\n4. **Test Execution:** Perform a minimal import check to confirm the class is accessible before running the main analysis pipeline.",
+        "domain": "python",
+        "qualifier": [
+            "runtime_error"
+        ],
+        "action": [
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "coding",
+        "errors_fixed": 1,
+        "token_length": 95,
+        "mdl_score": 0.0105
+    },
+    {
+        "nl_rule": "\n\nRule 4 [MDL Score: 0.00]:\n\n1.  **Verify Parameter Constraints:** Consult the library documentation to retrieve the list of valid values for the specific parameter causing the error (e.g., stop word settings).\n2.  **Update Function Argument:** Modify the argument passed to the function to match one of the valid identifiers found in the documentation, or set it to `None` if the feature is optional.\n3.  **Implement Custom List (If Necessary):** If the specific language support is unavailable natively, prepare a custom list of stop words and pass it as a list object instead of a string identifier.",
+        "domain": "python",
+        "qualifier": [
+            "runtime_error"
+        ],
+        "action": [
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "coding",
+        "errors_fixed": 1,
+        "token_length": 96,
+        "mdl_score": 0.0104
+    },
+    {
+        "nl_rule": "\n\n1. **Verify Feature Data Types:** Before passing data to the model, inspect the feature dataframe to identify any columns containing non-numeric data types (e.g., strings or objects) that cannot be directly processed by numerical algorithms.\n\n2. **Apply Categorical Encoding:** Implement a preprocessing step to transform all identified categorical variables into numeric representations using appropriate encoding techniques (e.g., One-Hot Encoding or Label Encoding) compatible with the specific algorithm.\n\n3. **Ensure Preprocessing Order:** Integrate this transformation into the data preparation pipeline prior to calling the model's `fit` method, ensuring that only numeric inputs are received during training to prevent type conversion errors.",
+        "domain": "python",
+        "qualifier": [
+            "runtime_error"
+        ],
+        "action": [
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "coding",
+        "errors_fixed": 1,
+        "token_length": 100,
+        "mdl_score": 0.01
+    },
+    {
+        "nl_rule": "\n\n1. **Refine Feature Type Classification:** Update the logic used to distinguish between numerical and categorical features. Do not rely solely on basic dtype checks (e.g., `dtype == 'object'`); instead, use robust validation methods to correctly identify string-based columns as non-numeric.\n\n2. **Validate Transformer Input Data:** Before initializing the preprocessing pipeline, verify that all columns assigned to numerical scaling components contain exclusively numeric values.\n\n3. **Ensure Correct Component Routing:** Confirm that all non-numeric columns are explicitly routed to categorical encoding components rather than numerical transformers.\n\n4. **Add Pre-Execution Validation:** Implement a check to confirm data types match transformer requirements prior to fitting, preventing runtime conversion errors.",
+        "domain": "python",
+        "qualifier": [
+            "runtime_error"
+        ],
+        "action": [
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "coding",
+        "errors_fixed": 1,
+        "token_length": 105,
+        "mdl_score": 0.0095
+    },
+    {
+        "nl_rule": "Semantic check failed: \u26a0 L\u1ed7i \u0111\u1ecbnh d\u1ea1ng: support_pct ph\u1ea3i l\u00e0 t\u1ef7 l\u1ec7 \u1edf d\u1ea1ng s\u1ed1 th\u1ef1c n\u1eb1m trong kho\u1ea3ng [0.0, 1.0] \u0111\u1ec3 render bi\u1ec3u \u0111\u1ed3. Gi\u00e1 tr\u1ecb hi\u1ec7n t\u1ea1i \u0111ang sai scale.",
+        "domain": "python",
+        "qualifier": [
+            "semantic_error",
+            "business_logic"
+        ],
+        "action": [
+            "add_metrics",
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "data_analysis",
+        "errors_fixed": 6,
+        "token_length": 32,
+        "mdl_score": 0.1875
+    },
+    {
+        "nl_rule": "\n\n### Root Cause Analysis\nThe error `KeyError: 'contract_id'` occurs because the unique identifier column required for merging was inadvertently dropped during the feature selection phase. When the dataset was subsetted to create the clustering feature matrix, only specific behavioral columns were retained, excluding the primary key needed to join the results back to the original data later.\n\n### Fix Instructions\n1.  **Preserve Linking Columns:** When subsetting the dataset for feature engineering or clustering, explicitly retain the unique identifier column(s) required for subsequent joins, even if they are excluded from the feature matrix.\n2.  **Validate Join Keys:** Before executing any merge operation, verify that the specified join key column exists in both DataFrames to prevent `KeyError` exceptions.\n3.  **Audit Column Selection Logic:** Review the sequence of column filtering steps to ensure critical linking columns are not inadvertently dropped during intermediate data transformations.",
+        "domain": "python",
+        "qualifier": [
+            "runtime_error"
+        ],
+        "action": [
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "coding",
+        "errors_fixed": 1,
+        "token_length": 141,
         "mdl_score": 0.0071
     },
     {
-        "nl_rule": "\n\n### Ph\u00e2n t\u00edch l\u1ed7i\n\nL\u1ed7i `KeyError` x\u1ea3y ra do tham chi\u1ebfu \u0111\u1ebfn c\u00e1c c\u1ed9t kh\u00f4ng t\u1ed3n t\u1ea1i trong DataFrame. Code t\u1ea1o c\u1ed9t `'cluster'` duy nh\u1ea5t \u1edf B\u01b0\u1edbc 5, nh\u01b0ng \u1edf B\u01b0\u1edbc 7 l\u1ea1i c\u1ed1 truy c\u1eadp c\u00e1c c\u1ed9t `'cluster_0'`, `'cluster_1'`, ... ch\u01b0a \u0111\u01b0\u1ee3c t\u1ea1o.\n\n### H\u01b0\u1edbng d\u1eabn s\u1eeda l\u1ed7i (Generalizable Fix Instructions)\n\n1. **X\u00e1c th\u1ef1c s\u1ef1 t\u1ed3n t\u1ea1i c\u1ee7a c\u1ed9t tr\u01b0\u1edbc khi truy c\u1eadp:** Tr\u01b0\u1edbc khi s\u1eed d\u1ee5ng c\u00e1c c\u1ed9t trong DataFrame, h\u00e3y ki\u1ec3m tra xem c\u00e1c c\u1ed9t \u0111\u00f3 c\u00f3 th\u1ef1c s\u1ef1 t\u1ed3n t\u1ea1i trong `data.columns` hay kh\u00f4ng b\u1eb1ng c\u00e1ch s\u1eed d\u1ee5ng `if col in data.columns`.\n\n2. **S\u1eed d\u1ee5ng h\u00e0m One-Hot Encoding \u0111\u00fang c\u00e1ch:** Khi c\u1ea7n chuy\u1ec3n \u0111\u1ed5i bi\u1ebfn ph\u00e2n lo\u1ea1i th\u00e0nh nhi\u1ec1u c\u1ed9t nh\u1ecb ph\u00e2n, h\u00e3y s\u1eed d\u1ee5ng `pd.get_dummies()` tr\u00ean c\u1ed9t g\u1ed1c thay v\u00ec c\u1ed1 g\u1eafng t\u1ea1o c\u00e1c c\u1ed9t t\u00ean ri\u00eang l\u1ebb th\u1ee7 c\u00f4ng.\n\n3. **\u0110\u1ed3ng b\u1ed9 h\u00f3a t\u00ean c\u1ed9t gi\u1eefa c\u00e1c b\u01b0\u1edbc:** \u0110\u1ea3m b\u1ea3o t\u00ean c\u1ed9t \u0111\u01b0\u1ee3c t\u1ea1o \u1edf b\u01b0\u1edbc tr\u01b0\u1edbc (v\u00ed d\u1ee5: B\u01b0\u1edbc 5) kh\u1edbp v\u1edbi t\u00ean c\u1ed9t \u0111\u01b0\u1ee3c tham chi\u1ebfu \u1edf b\u01b0\u1edbc sau (v\u00ed d\u1ee5: B\u01b0\u1edbc 7).\n\n4. **Ki\u1ec3m tra c\u1ea5u tr\u00fac DataFrame sau m\u1ed7i b\u01b0\u1edbc bi\u1ebfn \u0111\u1ed5i:** S\u1eed d\u1ee5ng `print(data.columns)` ho\u1eb7c `display(data.head())` sau m\u1ed7i b\u01b0\u1edbc quan tr\u1ecdng \u0111\u1ec3 x\u00e1c nh\u1eadn c\u1ea5u tr\u00fac d\u1eef li\u1ec7u tr\u01b0\u1edbc khi ti\u1ebfp t\u1ee5c.\n\n5. **S\u1eed d\u1ee5ng ph\u01b0\u01a1ng ph\u00e1p chu\u1ea9n cho bi\u1ebfn ph\u00e2n lo\u1ea1i:** Khi l\u00e0m vi\u1ec7c v\u1edbi bi\u1ebfn ph\u00e2n lo\u1ea1i cho c\u00e1c m\u00f4 h\u00ecnh ML, h\u00e3y s\u1eed d\u1ee5ng `pd.get_dummies()` ho\u1eb7c `OneHotEncoder` thay v\u00ec t\u1ea1o c\u1ed9t th\u1ee7 c\u00f4ng.",
+        "nl_rule": "\n\n1. **Preserve Identifier in Feature Pipeline**: When subsetting data for feature engineering (e.g., cleaning, vectorization), ensure the unique identifier column is included in the selection list if it is required for later merging or mapping cluster labels back to original records.\n\n2. **Extract Before Filtering**: If the identifier column must be excluded from the model input features, extract it into a separate variable or DataFrame *before* filtering the feature columns. Do not attempt to access it from the reduced feature dataframe later.\n\n3. **Verify Column Availability**: Before accessing any column from a DataFrame, confirm its existence in the DataFrame's schema to prevent `KeyError` during data processing.",
         "domain": "python",
         "qualifier": [
             "runtime_error"
@@ -72,11 +270,11 @@
         "strength": "MUST",
         "tool_category": "coding",
         "errors_fixed": 1,
-        "token_length": 237,
-        "mdl_score": 0.0042
+        "token_length": 106,
+        "mdl_score": 0.0094
     },
     {
-        "nl_rule": "\n\n### Ph\u00e2n t\u00edch l\u1ed7i\n\nL\u1ed7i `ValueError: could not convert string to float` x\u1ea3y ra khi th\u1ef1c hi\u1ec7n ph\u00e9p t\u00ednh t\u01b0\u01a1ng quan (`corr()`) tr\u00ean c\u00e1c c\u1ed9t ch\u1ee9a d\u1eef li\u1ec7u kh\u00f4ng ph\u1ea3i s\u1ed1. Danh s\u00e1ch c\u1ed9t \u0111\u01b0\u1ee3c ch\u1ec9 \u0111\u1ecbnh th\u1ee7 c\u00f4ng bao g\u1ed3m m\u1ed9t c\u1ed9t ph\u00e2n lo\u1ea1i (ki\u1ec3u chu\u1ed7i/string) thay v\u00ec ch\u1ec9 c\u00e1c c\u1ed9t s\u1ed1, khi\u1ebfn h\u00e0m th\u1ed1ng k\u00ea kh\u00f4ng th\u1ec3 chuy\u1ec3n \u0111\u1ed5i d\u1eef li\u1ec7u sang \u0111\u1ecbnh d\u1ea1ng s\u1ed1 \u0111\u1ec3 t\u00ednh to\u00e1n.\n\n### H\u01b0\u1edbng d\u1eabn s\u1eeda l\u1ed7i (Generalizable Fix Instructions)\n\n1.  **X\u00e1c th\u1ef1c ki\u1ec3u d\u1eef li\u1ec7u tr\u01b0\u1edbc khi x\u1eed l\u00fd:** Tr\u01b0\u1edbc khi th\u1ef1c hi\u1ec7n c\u00e1c h\u00e0m th\u1ed1ng k\u00ea y\u00eau c\u1ea7u d\u1eef li\u1ec7u s\u1ed1, h\u00e3y ki\u1ec3m tra ki\u1ec3u d\u1eef li\u1ec7u c\u1ee7a c\u00e1c c\u1ed9t m\u1ee5c ti\u00eau \u0111\u1ec3 \u0111\u1ea3m b\u1ea3o ch\u00fang l\u00e0 s\u1ed1 (integer/float) thay v\u00ec chu\u1ed7i ho\u1eb7c \u0111\u1ed1i t\u01b0\u1ee3ng.\n2.  **L\u1ecdc c\u1ed9t t\u1ef1 \u0111\u1ed9ng thay v\u00ec th\u1ee7 c\u00f4ng:** S\u1eed d\u1ee5ng ph\u01b0\u01a1ng th\u1ee9c c\u1ee7a DataFrame \u0111\u1ec3 t\u1ef1 \u0111\u1ed9ng ch\u1ecdn c\u00e1c c\u1ed9t c\u00f3 ki\u1ec3u d\u1eef li\u1ec7u s\u1ed1 cho c\u00e1c ph\u00e9p t\u00ednh to\u00e1n h\u1ecdc, tr\u00e1nh vi\u1ec7c li\u1ec7t k\u00ea t\u00ean c\u1ed9t th\u1ee7 c\u00f4ng c\u00f3 th\u1ec3 v\u00f4 t\u00ecnh bao g\u1ed3m c\u1ea3 d\u1eef li\u1ec7u ph\u00e2n lo\u1ea1i.\n3.  **X\u1eed l\u00fd ri\u00eang d\u1eef li\u1ec7u ph\u00e2n lo\u1ea1i:** T\u00e1ch bi\u1ec7t d\u1eef li\u1ec7u ph\u00e2n lo\u1ea1i (categorical) kh\u1ecfi d\u1eef li\u1ec7u s\u1ed1, ho\u1eb7c m\u00e3 h\u00f3a ch\u00fang th\u00e0nh s\u1ed1 tr\u01b0\u1edbc khi \u0111\u01b0a v\u00e0o c\u00e1c h\u00e0m t\u00ednh to\u00e1n y\u00eau c\u1ea7u gi\u00e1 tr\u1ecb s\u1ed1.\n4.  **Ki\u1ec3m tra schema d\u1eef li\u1ec7u:** Lu\u00f4n xem l\u1ea1i c\u1ea5u tr\u00fac d\u1eef li\u1ec7u (data types) sau khi t\u1ea3i d\u1eef li\u1ec7u \u0111\u1ec3 x\u00e1c nh\u1eadn c\u00e1c c\u1ed9t ph\u00f9 h\u1ee3p v\u1edbi c\u00e1c b\u01b0\u1edbc ph\u00e2n t\u00edch ti\u1ebfp theo tr\u01b0\u1edbc khi ch\u1ea1y c\u00e1c h\u00e0m x\u1eed l\u00fd.",
+        "nl_rule": "\n\n1. **Validate Schema Integrity:** Before executing the aggregation step, verify that the target DataFrame contains all columns referenced in the aggregation dictionary. If columns are missing, the operation will fail with a KeyError.\n\n2. **Ensure Complete Data Merge:** When merging cluster labels back to the original records, explicitly include all necessary feature columns in the merge operation, not just the target variable and unique identifiers.\n\n3. **Re-integrate Missing Features:** If feature columns were excluded during preprocessing (e.g., cleaning or feature selection), re-merge them into the target DataFrame using the unique identifier key prior to performing statistical calculations.",
         "domain": "python",
         "qualifier": [
             "runtime_error"
@@ -87,11 +285,461 @@
         "strength": "MUST",
         "tool_category": "coding",
         "errors_fixed": 1,
-        "token_length": 255,
+        "token_length": 97,
+        "mdl_score": 0.0103
+    },
+    {
+        "nl_rule": "\n\n1.  **Verify Dataset Schema Compatibility:** Before executing feature engineering steps, validate that the loaded dataset contains the specific columns required for text generation and clustering. If the expected columns are missing, dynamically select available columns that match the analysis intent instead of relying on hardcoded column names.\n\n2.  **Sanitize Text Input for Vectorization:** Ensure the text column passed to the vectorizer contains non-empty strings with meaningful tokens. If the text generation logic results in empty strings due to missing source columns, implement a fallback mechanism (e.g., skip TF-IDF or use dummy text) to prevent the `ValueError`.\n\n3.  **Handle Empty Vocabulary Gracefully:** Add a validation check before calling `fit_transform` on the vectorizer to ensure the input corpus contains at least one non-stop-word token. If the corpus is empty, catch the exception and switch to using numerical features only for clustering.\n\n4.  **Adjust Vectorizer Configuration:** If the text data is sparse or dominated by common words, configure the vectorizer to handle edge cases, such as disabling the stop words filter temporarily or ensuring the input text contains sufficient unique tokens to build a vocabulary.",
+        "domain": "python",
+        "qualifier": [
+            "runtime_error"
+        ],
+        "action": [
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "coding",
+        "errors_fixed": 1,
+        "token_length": 182,
+        "mdl_score": 0.0055
+    },
+    {
+        "nl_rule": "\n\n1. **Verify Column Existence:** Before executing a `groupby` operation, confirm that the grouping column exists in the specific dataframe instance being queried.\n2. **Propagate Generated Metadata:** If grouping identifiers (e.g., cluster labels) are generated on a processed copy of the data, merge these identifiers back into the source dataset containing the target variable before performing aggregation.\n3. **Ensure Data Consistency:** Verify that the dataset used for metric calculation retains all necessary columns, including both the target variable and the newly generated grouping column, to prevent missing key errors.",
+        "domain": "python",
+        "qualifier": [
+            "runtime_error"
+        ],
+        "action": [
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "coding",
+        "errors_fixed": 1,
+        "token_length": 88,
+        "mdl_score": 0.0114
+    },
+    {
+        "nl_rule": "\n\n### Root Cause Analysis\nThe error `AttributeError: 'NoneType' object has no attribute 'fit_predict'` occurs because the variable intended to store the optimal clustering model is initialized as `None` before the hyperparameter search loop. The selection logic compares the current score against the *first* iteration's score (`sil > silhouette_scores[0]`). Since the first iteration's score is the baseline, the condition fails for the first iteration (and potentially others if the first is the best), preventing the variable from ever being assigned a model instance. Consequently, the variable remains `None` when prediction methods are called.\n\n### Fix Instructions\n1.  **Initialize Model Variable:** Modify the initialization logic for the variable storing the optimal model. Instead of setting it to `None` before the loop, assign it the model instance from the first iteration of the search loop to guarantee a valid object exists after the loop completes.\n2.  **Correct Selection Logic:** Update the conditional statement used to identify the best model. It should compare the current score against the *current best score* found so far, ensuring the first iteration is captured as the baseline and not excluded by the comparison operator.\n3.  **Validation Check:** Before invoking prediction methods on the selected model, implement a validation step to confirm the model object has been successfully assigned and is not null, preventing runtime errors if the selection logic fails.",
+        "domain": "python",
+        "qualifier": [
+            "runtime_error"
+        ],
+        "action": [
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "coding",
+        "errors_fixed": 1,
+        "token_length": 222,
+        "mdl_score": 0.0045
+    },
+    {
+        "nl_rule": "\n\n1. **Preserve Target Variable:** Before preprocessing data for the clustering model, extract the target variable into a separate storage or retain it in the original dataset. Do not permanently drop it from the main dataframe if it is required for post-clustering evaluation.\n\n2. **Isolate Training Features:** Ensure the target variable is excluded only from the specific feature set passed to the clustering algorithm, while keeping it available in the dataset used for calculating metrics like churn rate and ARPU.\n\n3. **Merge Labels with Original Data:** After generating cluster labels, assign them to the dataset that retains the target variable, ensuring all necessary columns are present before aggregation.\n\n4. **Validate Column Existence:** Before performing aggregation or grouping operations, verify that all referenced columns exist in the target dataframe to prevent runtime errors.",
+        "domain": "python",
+        "qualifier": [
+            "runtime_error"
+        ],
+        "action": [
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "coding",
+        "errors_fixed": 1,
+        "token_length": 131,
+        "mdl_score": 0.0076
+    },
+    {
+        "nl_rule": "\n\n### Fix Instructions\n\n1.  **Identify Column Name Mismatch**: Before performing the merge operation, verify that the column names used as the join key exist and match exactly in both DataFrames. In this case, one DataFrame uses `'valid_cluster'` while the other uses `'cluster'`.\n\n2.  **Standardize Join Key Names**: Rename the column in one of the DataFrames to match the other before merging. For example, rename `'valid_cluster'` to `'cluster'` in the first DataFrame, or vice versa, ensuring consistency across the dataset.\n\n3.  **Explicit Merge Parameters**: Alternatively, use the `left_on` and `right_on` parameters in the merge function to explicitly specify the different column names for the left and right DataFrames, rather than relying on the `on` parameter which requires identical column names.\n\n4.  **Validate Column Existence**: Add a check to ensure the join key column exists in both DataFrames before executing the merge to prevent `KeyError` exceptions.\n\n5.  **Consistent Naming Convention**: Establish a consistent naming convention for cluster-related columns throughout the codebase to avoid similar mismatches in future operations.",
+        "domain": "python",
+        "qualifier": [
+            "runtime_error"
+        ],
+        "action": [
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "coding",
+        "errors_fixed": 1,
+        "token_length": 166,
+        "mdl_score": 0.006
+    },
+    {
+        "nl_rule": "\n\n1.  **Trace Data Propagation:** Identify that derived columns created during intermediate processing steps exist only in temporary dataframes and must be explicitly transferred to the main dataframe used for final analysis and reporting.\n2.  **Synchronize Dataframes:** Before performing final aggregations or exports, ensure all necessary derived features from the feature engineering phase are assigned to the primary dataset holding the target variable and cluster labels.\n3.  **Validate Column Existence:** Add a verification step to confirm that all required output columns are present in the final dataframe before attempting to access them in loops or statistical calculations.\n4.  **Maintain Index Alignment:** When transferring data between multiple dataframe instances, ensure row indices remain aligned to prevent data misalignment or missing values during the merge or assignment process.",
+        "domain": "python",
+        "qualifier": [
+            "runtime_error"
+        ],
+        "action": [
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "coding",
+        "errors_fixed": 1,
+        "token_length": 125,
+        "mdl_score": 0.008
+    },
+    {
+        "nl_rule": "\n\n### Diagnosis\nThe execution failed due to an `ImportError` because `TfidfVectorizer` is not located in the `sklearn.preprocessing` module; it belongs to `sklearn.feature_extraction.text`. The code attempts to import it from the wrong module path, causing the script to crash before execution.\n\n### Fix Instructions\n1.  **Locate Incorrect Import:** Identify the import statement where `TfidfVectorizer` is listed alongside `StandardScaler` under the `sklearn.preprocessing` module.\n2.  **Correct Module Path:** Remove `TfidfVectorizer` from the `sklearn.preprocessing` import line, as it is not defined there.\n3.  **Ensure Correct Import:** Verify that `TfidfVectorizer` is imported from `sklearn.feature_extraction.text` instead.\n4.  **Validate Preprocessing Imports:** Ensure `StandardScaler` remains correctly imported from `sklearn.preprocessing` without the text vectorization class.\n5.  **Remove Redundancy:** If `TfidfVectorizer` is imported in multiple places, consolidate them to ensure only the correct module path is used to prevent future conflicts.",
+        "domain": "python",
+        "qualifier": [
+            "runtime_error"
+        ],
+        "action": [
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "coding",
+        "errors_fixed": 1,
+        "token_length": 131,
+        "mdl_score": 0.0076
+    },
+    {
+        "nl_rule": "\n\n1. **Audit Feature Selection Scope:** Review the list of columns used to initialize the intermediate processing DataFrame. Ensure it includes all variables required for subsequent encoding and modeling steps, not just the primary numeric metrics.\n\n2. **Align Selection with Requirements:** Modify the subset creation logic to explicitly retain all categorical and numeric features needed for the pipeline, preventing the premature exclusion of columns referenced in later transformation steps.\n\n3. **Validate Column Existence:** Before attempting any transformation or access operation on a specific column, verify its presence in the current DataFrame scope to avoid runtime access errors.",
+        "domain": "python",
+        "qualifier": [
+            "runtime_error"
+        ],
+        "action": [
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "coding",
+        "errors_fixed": 1,
+        "token_length": 96,
+        "mdl_score": 0.0104
+    },
+    {
+        "nl_rule": "\n\n1.  **Preserve Unique Identifiers:** During the initial data cleaning and feature selection phase, ensure that the unique record identifier column is not dropped, as it is required for subsequent merging with target variables and calculating cluster support counts.\n2.  **Verify Column Existence:** Before executing aggregation or merge operations, confirm that all referenced columns (especially identifiers) are present in the DataFrame to prevent `KeyError` exceptions.\n3.  **Align Data Scope:** Ensure that any DataFrame used for merging with target statistics retains the necessary join keys, or adjust the aggregation logic to use the group size directly if the identifier is unavailable.",
+        "domain": "python",
+        "qualifier": [
+            "runtime_error"
+        ],
+        "action": [
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "coding",
+        "errors_fixed": 1,
+        "token_length": 99,
+        "mdl_score": 0.0101
+    },
+    {
+        "nl_rule": "\n\n1.  **Verify Function Return Structure:** Inspect the function passed to the `apply` method configured with `result_type='expand'`. Ensure it returns a sequence (such as a list or Series) containing individual components, rather than a single pre-joined string.\n2.  **Align Column Count:** Confirm that the number of elements in the returned sequence exactly matches the number of column indices accessed in the subsequent DataFrame assignment logic.\n3.  **Adjust Downstream Logic:** If the function is intended to return a single string, remove the `result_type='expand'` parameter and update the following code to reference the single generated column directly, avoiding attempts to access non-existent indexed columns.\n4.  **Consistency Check:** Validate that all subsequent operations relying on the expanded columns exist before execution to prevent `KeyError` exceptions during indexing.",
+        "domain": "python",
+        "qualifier": [
+            "runtime_error"
+        ],
+        "action": [
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "coding",
+        "errors_fixed": 1,
+        "token_length": 123,
+        "mdl_score": 0.0081
+    },
+    {
+        "nl_rule": "\n\n1. **Identify Parameter Constraints:** Review the execution error log to determine the specific parameter name and the list of valid values required by the text processing library.\n2. **Replace Unsupported Value:** Remove the invalid string argument and substitute it with a supported option (e.g., `None`, a built-in language string, or a custom list).\n3. **Load External Resources:** If language-specific filtering is needed, load the stop words into a list structure from an external source rather than passing a language name string.\n4. **Ensure Type Compliance:** Verify that the final argument type matches the library's expected constraints (string, list, or None) to prevent initialization failures.",
+        "domain": "python",
+        "qualifier": [
+            "runtime_error"
+        ],
+        "action": [
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "coding",
+        "errors_fixed": 1,
+        "token_length": 104,
+        "mdl_score": 0.0096
+    },
+    {
+        "nl_rule": "\n\n**Diagnosis:**\nThe execution failed due to an `InvalidParameterError` in the text vectorization component. The `stop_words` parameter was set to `'vietnamese'`, which is not a supported value for the `TfidfVectorizer` in the current library version. The library expects `None`, a specific list of strings, or a supported language string (e.g., `'english'`).\n\n**Fix Instructions:**\n\n1.  **Locate Vectorization Configuration:** Identify the initialization block where the text vectorization component is defined.\n2.  **Update Parameter Value:** Modify the `stop_words` argument to a valid option supported by the library, such as `None` (to disable stop word removal) or a custom list of strings, instead of the unsupported language string.\n3.  **Verify Constraints:** Ensure the new parameter value strictly adheres to the library's documented constraints for that specific parameter to prevent `InvalidParameterError`.\n4.  **Re-validate:** Execute the vectorization step to confirm the configuration change resolves the error without affecting the text processing logic.",
+        "domain": "python",
+        "qualifier": [
+            "runtime_error"
+        ],
+        "action": [
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "coding",
+        "errors_fixed": 1,
+        "token_length": 145,
+        "mdl_score": 0.0069
+    },
+    {
+        "nl_rule": "\n\n### Error Analysis\nThe execution failed with a `KeyError: 'persona_text'` because the column containing the generated persona text was created in an intermediate dataframe (`data_for_cluster`) but was not propagated to the primary dataset dataframe (`data`) used for statistical aggregation and text retrieval in the later steps. Consequently, when the code attempted to access this column from the primary dataset, it did not exist.\n\n### Fix Instructions\n\n1.  **Propagate Derived Features:** After generating new feature columns in an intermediate processing dataframe, explicitly copy these columns to the primary dataset dataframe before performing statistical aggregation or text retrieval operations.\n2.  **Maintain Row Alignment:** Ensure the copy operation preserves the row order or uses a unique identifier to align records between the intermediate and primary dataframes correctly to prevent data misalignment.\n3.  **Validate Column Presence:** Before accessing a specific column within a loop or aggregation function, verify that the column exists in the target dataframe to prevent runtime key errors.",
+        "domain": "python",
+        "qualifier": [
+            "runtime_error"
+        ],
+        "action": [
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "coding",
+        "errors_fixed": 1,
+        "token_length": 157,
+        "mdl_score": 0.0064
+    },
+    {
+        "nl_rule": "\n\n**Analysis:**\nThe execution error indicates a parameter validation failure within the text vectorization component. Specifically, the stop words configuration was set to an unsupported language identifier ('vietnamese'), which the library does not recognize by default. This prevents the vectorization process from initializing correctly.\n\n**Fix Instructions:**\n\n1.  **Verify Parameter Constraints:** Consult the library documentation for the text vectorization component to identify the valid values for the stop words configuration parameter.\n2.  **Replace Unsupported Identifiers:** Remove any language-specific strings not recognized by the library and replace them with valid options such as `None`, a supported built-in language code, or a custom list.\n3.  **Implement Custom Lists for Specific Languages:** If filtering specific language stop words is required, construct a list of words explicitly and pass it as a list object rather than a string identifier.\n4.  **Ensure Data Compatibility:** Confirm that the updated configuration matches the text data's language to maintain vectorization quality and prevent processing errors.",
+        "domain": "python",
+        "qualifier": [
+            "runtime_error"
+        ],
+        "action": [
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "coding",
+        "errors_fixed": 1,
+        "token_length": 155,
+        "mdl_score": 0.0065
+    },
+    {
+        "nl_rule": "\n\n1.  **Preserve Unique Identifiers:** During the data cleaning and feature selection phase, ensure the unique record identifier column is explicitly retained and not dropped, as it is required for linking results back to the original dataset.\n2.  **Validate Join Keys:** Before executing any merge operations between the original dataset and the processed feature matrix, verify that the join key column exists in both DataFrames.\n3.  **Audit Column Exclusions:** Review the column exclusion list in the data preparation step to confirm that critical linking columns are not inadvertently removed.",
+        "domain": "python",
+        "qualifier": [
+            "runtime_error"
+        ],
+        "action": [
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "coding",
+        "errors_fixed": 1,
+        "token_length": 88,
+        "mdl_score": 0.0114
+    },
+    {
+        "nl_rule": "\n\n1.  **Convert Data Types Before Serialization:** Before passing the data structure to the JSON serialization function, ensure all numeric values are converted from NumPy types (e.g., `int32`, `int64`, `float64`) to native Python types (e.g., `int`, `float`).\n2.  **Apply Recursive Conversion:** Implement a conversion step that recursively traverses the output dictionary or list, casting any NumPy scalar objects to their standard Python equivalents to ensure compatibility with the JSON encoder.\n3.  **Validate Output Structure:** Verify that the final object passed to the serialization function contains only standard JSON-serializable types (dict, list, str, int, float, bool, None) to prevent `TypeError` during encoding.",
+        "domain": "python",
+        "qualifier": [
+            "runtime_error"
+        ],
+        "action": [
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "coding",
+        "errors_fixed": 1,
+        "token_length": 100,
+        "mdl_score": 0.01
+    },
+    {
+        "nl_rule": "\n\n1. **Verify Library Parameter Constraints:** Consult the official documentation for the text vectorization function to identify the valid values allowed for the stop words parameter.\n2. **Replace Invalid Configuration:** Update the parameter value to use a supported built-in identifier (e.g., 'english') or set it to `None` to disable automatic stop word filtering.\n3. **Implement Custom Stop Words (If Required):** If language-specific filtering is necessary, load the stop words as a list from an external source and pass that list object instead of a string identifier.\n4. **Ensure Compatibility:** Confirm that the chosen configuration matches the installed version of the library to prevent parameter validation errors during execution.",
+        "domain": "python",
+        "qualifier": [
+            "runtime_error"
+        ],
+        "action": [
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "coding",
+        "errors_fixed": 1,
+        "token_length": 107,
+        "mdl_score": 0.0093
+    },
+    {
+        "nl_rule": "\n\n1. **Verify Input Data Structure:** Before invoking the scaling transformation, confirm whether the combined feature matrix is in a sparse format (e.g., resulting from text vectorization concatenation).\n2. **Adjust Scaling Parameters:** When initializing the scaling component, explicitly set the mean-centering option to `False` to accommodate sparse data constraints, as standard centering operations are incompatible with sparse matrix structures.\n3. **Execute Transformation:** Apply the fit and transform methods using the adjusted configuration to ensure the operation completes without raising errors regarding matrix centering.",
+        "domain": "python",
+        "qualifier": [
+            "runtime_error"
+        ],
+        "action": [
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "coding",
+        "errors_fixed": 1,
+        "token_length": 82,
+        "mdl_score": 0.0122
+    },
+    {
+        "nl_rule": "\n\n### Error Analysis\nThe execution failed with a `TypeError: Cannot perform reduction 'mean' with string dtype`. This occurred because the code attempted to calculate the mean of a dataframe subset containing mixed data types (including string columns like `khu_vuc`, `contract_id`, etc.). Statistical aggregation functions like `mean` require numeric data types only.\n\n### Fix Instructions\nTo resolve this error and ensure robustness, follow these logical steps:\n\n1.  **Validate Data Types for Aggregation:** Before executing statistical reduction functions (e.g., `mean`, `sum`) on a dataframe subset, verify that the target columns contain numeric data types.\n2.  **Filter Non-Numeric Columns:** Explicitly select only numeric columns required for the calculation from the dataframe, excluding categorical or string columns that cannot be mathematically averaged.\n3.  **Ensure Data Consistency:** Confirm that the dataset used for metric calculation retains the necessary numeric columns while excluding non-numeric identifiers to prevent type mismatches during reduction.",
+        "domain": "python",
+        "qualifier": [
+            "runtime_error"
+        ],
+        "action": [
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "coding",
+        "errors_fixed": 1,
+        "token_length": 145,
+        "mdl_score": 0.0069
+    },
+    {
+        "nl_rule": "\n\n## FIX INSTRUCTIONS\n\n**Root Cause:** Identifier columns (e.g., `contract_id`) containing string values are included in the feature matrix for Decision Tree training, causing conversion errors when the algorithm attempts to convert strings to numeric types.\n\n**Generalized Fix Steps:**\n\n1.  **Identify and Exclude Identifier Columns:** Before any machine learning operation (clustering, classification, regression), explicitly drop all unique identifier columns from the feature matrix. These include columns with unique string values like `contract_id`, `customer_id`, `user_id`, etc.\n\n2.  **Verify Feature Matrix Data Types:** Before passing data to any sklearn estimator, confirm that all columns are either numeric (`int64`, `float64`) or properly encoded categorical data (via `get_dummies`, `LabelEncoder`, etc.). String columns must not remain in the final feature matrix.\n\n3.  **Pre-Processing Validation:** Add a validation step after feature preparation to check for any remaining object/string columns. If found, either drop them or apply appropriate encoding before model training.\n\n**Implementation Pattern:**\n```python\n# Drop identifier columns before modeling\nidentifier_cols = ['contract_id', 'customer_id', 'user_id']  # Add all ID columns\ndt_features = dt_features.drop(columns=[col for col in identifier_cols if col in dt_features.columns])\n\n# Verify no string columns remain\nassert not dt_features.select_dtypes(include=['object', 'string']).any().any(), \"String columns detected!\"\n```\n\n**Key Principle:** Never include primary key or unique identifier columns in any predictive model feature matrix. These columns provide no predictive value and will cause type conversion errors.",
+        "domain": "python",
+        "qualifier": [
+            "runtime_error"
+        ],
+        "action": [
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "coding",
+        "errors_fixed": 1,
+        "token_length": 216,
+        "mdl_score": 0.0046
+    },
+    {
+        "nl_rule": "\n\n## Fix Instructions\n\n### Root Cause Analysis\nThe error occurs because the `generate_business_name` function attempts to access a column named `'churn_rate'` from `data_clean`, but `data_clean` contains the original column `'RMDT'` instead. The column renaming happens in `cluster_stats` (STEP 8), but the function receives `data_clean` which still has the original column names.\n\n### Generalized Fix Steps\n\n1. **Verify Column Name Consistency**: Before accessing any column in a function, confirm that the column name exists in the dataframe being passed to that function. Use `.columns` or `.columns.tolist()` to inspect available columns.\n\n2. **Align Data Source with Function Expectations**: Either:\n   - Update the function to use the correct column name from the source dataframe (e.g., use `'RMDT'` instead of `'churn_rate'` when accessing `data_clean`)\n   - OR pass the pre-aggregated dataframe (`cluster_stats`) to the function instead of the raw dataframe (`data_clean`)\n\n3. **Implement Defensive Column Access**: Add a validation step before column access to check if the column exists. If not, either:\n   - Use the correct column name from the source data\n   - OR rename the column before passing to the function\n\n4. **Ensure Data Structure Compatibility**: When a function expects aggregated metrics (like `churn_rate`, `arpu`), ensure the dataframe passed contains those columns. If passing raw data, either:\n   - Calculate the metrics inside the function\n   - OR pass the pre-calculated aggregated dataframe\n\n5. **Test Column Availability**: Before running the function, verify that all required columns exist in the dataframe by checking `df.columns` against the expected column names in the function signature.\n\n### Prevention Guidelines\n- Always document which dataframe each function expects and its required columns\n- When renaming columns during aggregation, ensure downstream functions reference the correct column names\n- Use `try-except` blocks with informative error messages when accessing columns that may not exist\n- Consider using `df.get('column_name', default_value)` instead of `df['column_name']` for safer access",
+        "domain": "python",
+        "qualifier": [
+            "runtime_error"
+        ],
+        "action": [
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "coding",
+        "errors_fixed": 1,
+        "token_length": 301,
+        "mdl_score": 0.0033
+    },
+    {
+        "nl_rule": "\n\n1.  **Verify Column Availability:** Before iterating over a DataFrame to construct output records, confirm that all required columns (including dynamically generated ones) exist in the specific DataFrame instance being used for iteration.\n2.  **Align Data References:** If a new column is assigned to a copy or derived DataFrame, ensure the subsequent iteration loop targets this updated DataFrame, or explicitly propagate the new column back to the original DataFrame used for iteration.\n3.  **Schema Validation:** Add a validation step to assert the presence of all expected keys in the iteration source before attempting to access them, preventing runtime `KeyError` exceptions.",
+        "domain": "python",
+        "qualifier": [
+            "runtime_error"
+        ],
+        "action": [
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "coding",
+        "errors_fixed": 1,
+        "token_length": 99,
+        "mdl_score": 0.0101
+    },
+    {
+        "nl_rule": "\n\n## Analysis of Error\n\n**Error Type**: `KeyError: 'cluster_id'`\n\n**Root Cause**: The `auto_name_persona` function is being called with the wrong DataFrame. The `cluster_id` column was added to `data_for_clustering` (Step 5), but the function receives `data` (the original loaded dataset) which does not contain this column.\n\n## Generalized Fix Instructions\n\n1. **Verify DataFrame Column Availability**: Before passing a DataFrame to any function, confirm that all columns referenced in the function exist in that DataFrame. Use `.columns.tolist()` or `.columns` to inspect available columns.\n\n2. **Match Function Arguments to Data Source**: When a function requires a specific column (e.g., `cluster_id`), ensure the DataFrame passed to the function actually contains that column. If the column was added to a modified DataFrame (e.g., `data_for_clustering`), pass that modified DataFrame instead of the original.\n\n3. **Use Consistent Data References**: When multiple DataFrames are created from the same source (e.g., `data`, `data_clustering`, `data_for_clustering`), track which DataFrame contains which columns. Do not mix DataFrames that have different column sets.\n\n4. **Add Defensive Checks**: Before accessing columns in a function, verify their existence using `if column in df.columns:` or use `.get()` method with default values to prevent KeyError.\n\n5. **Review Function Call Context**: When calling a function, trace back to where the DataFrame was created and modified. Ensure the function receives the DataFrame that has been updated with all required columns.\n\n## Action Required\n\n**Change the function call from:**\n```python\nname = auto_name_persona(data, cluster_id)\n```\n\n**To:**\n```python\nname = auto_name_persona(data_for_clustering, cluster_id)\n```\n\n**Or ensure `data` is updated with `cluster_id` before calling the function.**",
+        "domain": "python",
+        "qualifier": [
+            "runtime_error"
+        ],
+        "action": [
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "coding",
+        "errors_fixed": 1,
+        "token_length": 252,
+        "mdl_score": 0.004
+    },
+    {
+        "nl_rule": "\n\n## Fix Instructions\n\n### Problem Analysis\nThe error occurs because the `auto_name_persona` function attempts to access the `RMDT` column from a dataframe that had this column dropped during Step 0 (target leakage prevention). The clustering dataframe no longer contains the target variable, but the persona naming logic requires it.\n\n### Generalized Fix Steps\n\n1. **Preserve Target Variable Reference**: Before dropping the target variable for clustering, maintain a reference to the original dataset that contains all columns including the target variable.\n\n2. **Separate Clustering and Analysis DataFrames**: Keep two separate data references:\n   - One for clustering (without target variable to prevent leakage)\n   - One for post-clustering analysis (with target variable for metrics calculation)\n\n3. **Update Function Arguments**: When calling functions that require target variable metrics (like churn rate, ARPU, etc.), pass the original dataset containing the target variable instead of the clustering-only dataset.\n\n4. **Merge Target Back After Clustering**: After cluster labels are assigned, merge the target variable back into the clustering dataframe before performing any analysis that requires it.\n\n5. **Verify Column Availability**: Before accessing any column in a dataframe, verify it exists using `.columns` or `.get()` method to prevent KeyError exceptions.\n\n### Key Principle\n**Never use the target variable for feature engineering during clustering, but always preserve access to it for post-clustering analysis and metric calculation.**",
+        "domain": "python",
+        "qualifier": [
+            "runtime_error"
+        ],
+        "action": [
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "coding",
+        "errors_fixed": 1,
+        "token_length": 217,
+        "mdl_score": 0.0046
+    },
+    {
+        "nl_rule": "\n\n## Fix Instructions\n\n**Problem Analysis:** The error occurs because `cuoc_hang_thang` was dropped from the clustering dataset in Step 1, but the code attempts to calculate ARPU from this column in Step 8. This creates a mismatch between the data used for clustering and the data used for metrics calculation.\n\n**Generalized Fix Steps:**\n\n1. **Preserve Original Data for Metrics:** Before dropping any columns for clustering, create a separate copy of the original dataset that retains all columns needed for business metrics (ARPU, Churn Rate, Support counts).\n\n2. **Separate Clustering and Metrics Datasets:** \n   - Keep one dataset with all columns for calculating business metrics\n   - Create a separate dataset with only clustering features (dropping target variables like `RMDT` and non-feature columns)\n   - Ensure both datasets share the same row indices so cluster assignments can be merged back\n\n3. **Merge Cluster Assignments Back:** After clustering is complete, merge the `cluster_id` from the clustering dataset back to the original metrics dataset using row indices or a unique identifier column.\n\n4. **Calculate Metrics from Original Data:** Perform all business metric calculations (ARPU, Churn Rate, Support counts) on the original dataset that contains all required columns, not on the reduced clustering dataset.\n\n5. **Verify Column Availability:** Before any aggregation operation, verify that all columns referenced in the aggregation dictionary exist in the target DataFrame using `.columns.tolist()` or similar validation.\n\n**Key Principle:** Never drop columns needed for business metrics from the dataset used for metrics calculation. Only drop columns from the specific dataset used for model training/feature engineering.",
+        "domain": "python",
+        "qualifier": [
+            "runtime_error"
+        ],
+        "action": [
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "coding",
+        "errors_fixed": 1,
+        "token_length": 251,
+        "mdl_score": 0.004
+    },
+    {
+        "nl_rule": "\n\n1.  **Identify Missing Dependency:** Extract the specific library name reported in the `ModuleNotFoundError` exception message.\n2.  **Install Package:** Use the package manager (e.g., `pip`) associated with the active Python environment to install the identified library.\n3.  **Verify Environment:** Ensure the installation occurs in the same environment where the script is executed (check for virtual environments or path conflicts).\n4.  **Re-run Execution:** Execute the code again to confirm the import statement succeeds without errors.",
+        "domain": "python",
+        "qualifier": [
+            "runtime_error"
+        ],
+        "action": [
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "coding",
+        "errors_fixed": 1,
+        "token_length": 73,
+        "mdl_score": 0.0137
+    },
+    {
+        "nl_rule": "\n\n1. **Verify Service Availability:** Confirm that the target database server process is actively running and listening on the intended network interface.\n2. **Validate Connection Parameters:** Ensure the host address and port specified in the connection configuration match the server's actual network binding and listening port.\n3. **Inspect Network Security:** Check firewall rules and network policies to ensure the client machine is permitted to establish a connection to the database port.\n4. **Restart Database Service:** If the service is running but inaccessible, restart the database server to reinitialize network sockets and clear potential binding errors.",
+        "domain": "python",
+        "qualifier": [
+            "runtime_error"
+        ],
+        "action": [
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "coding",
+        "errors_fixed": 1,
+        "token_length": 94,
+        "mdl_score": 0.0106
+    },
+    {
+        "nl_rule": "\n\n1. **Preserve Target Variable:** Ensure the target variable remains in the main dataframe during data cleaning, even if it is excluded from the feature matrix used for model training.\n2. **Isolate Feature Selection:** Instead of dropping the target column from the dataset, explicitly exclude it only when defining the input features for the clustering algorithm.\n3. **Validate Data Integrity:** Before accessing any column for operations like imputation or aggregation, verify that the column has not been removed from the active dataframe.\n4. **Maintain Analysis Context:** Keep the full dataset intact for post-model analysis (e.g., calculating metrics) while using a filtered subset for model fitting.",
+        "domain": "python",
+        "qualifier": [
+            "runtime_error"
+        ],
+        "action": [
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "coding",
+        "errors_fixed": 1,
+        "token_length": 104,
+        "mdl_score": 0.0096
+    },
+    {
+        "nl_rule": "\n\n## Error Analysis\n\n**Root Cause:** The `hstack` function from `scipy.sparse` expects all input blocks to be sparse matrices, but `numeric_matrix` is a dense numpy array. This creates a type mismatch when attempting to combine sparse TF-IDF features with dense numeric features.\n\n## Generalized Fix Instructions\n\n1. **Identify Data Type Mismatch:** Before calling `hstack` or similar sparse matrix operations, verify that all input arrays/matrices are in the same format (either all sparse or all dense).\n\n2. **Convert Dense to Sparse:** When combining dense numeric features with sparse text features, convert the dense numeric array to sparse format using `scipy.sparse.csr_matrix()` or `scipy.sparse.csr_matrix(numeric_array)` before stacking.\n\n3. **Alternative Stacking Method:** If converting to sparse is not feasible, use `scipy.sparse.hstack()` with proper sparse conversion, or use `numpy.hstack()` if both inputs can be converted to dense format (note: this may increase memory usage).\n\n4. **Verify Input Shapes:** Ensure all matrices being stacked have compatible dimensions (same number of rows) before attempting to combine them.\n\n5. **Test with Small Sample:** Before running on the full dataset, test the stacking operation with a small subset to verify the format conversion works correctly.\n\n## Key Principle\n**Always ensure data format consistency** when combining different feature types (text vs numeric, sparse vs dense) in machine learning pipelines.",
+        "domain": "python",
+        "qualifier": [
+            "runtime_error"
+        ],
+        "action": [
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "coding",
+        "errors_fixed": 1,
+        "token_length": 207,
+        "mdl_score": 0.0048
+    },
+    {
+        "nl_rule": "\n\n## Fix Instructions\n\n### Root Cause Analysis\nThe error occurs because the column `cuoc_hang_thang` was dropped from the dataframe during preprocessing (Step 0/Step 2) but is later referenced in Step 8 for ARPU calculation. This creates a data availability conflict.\n\n### Generalized Fix Steps\n\n1. **Preserve All Required Columns in Dataframe**\n   - When dropping columns for clustering feature preparation, ensure you do NOT remove columns that will be needed for downstream metric calculations (e.g., ARPU, Churn Rate)\n   - Only exclude columns from the **feature matrix** used for clustering algorithms, not from the main dataframe\n\n2. **Separate Feature Matrix from Dataframe**\n   - Create a separate feature matrix for clustering that excludes target/billing columns\n   - Keep the original dataframe intact with all columns needed for final metric calculations\n\n3. **Verify Column Availability Before Aggregation**\n   - Before any `groupby().agg()` operation, verify that all referenced columns exist in the dataframe\n   - Add validation checks to confirm required columns are present before metric calculations\n\n4. **Follow Domain-Specific Column Rules**\n   - Target columns (like `RMDT` for churn) should be preserved in the dataframe but excluded from clustering features\n   - Metric calculation columns (like `cuoc_hang_thang` for ARPU) must remain in the dataframe even if excluded from clustering features\n\n### Prevention Checklist\n- [ ] Identify all columns needed for final metric calculations before any drop operations\n- [ ] Create separate feature matrices for different algorithm stages (clustering vs. evaluation)\n- [ ] Validate column existence before aggregation operations\n- [ ] Document which columns are excluded from which processing stages",
+        "domain": "python",
+        "qualifier": [
+            "runtime_error"
+        ],
+        "action": [
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "coding",
+        "errors_fixed": 1,
+        "token_length": 254,
         "mdl_score": 0.0039
     },
     {
-        "nl_rule": "\n\n### Ph\u00e2n t\u00edch l\u1ed7i\nL\u1ed7i `NameError` x\u1ea3y ra do m\u00e3 ngu\u1ed3n c\u1ed1 g\u1eafng s\u1eed d\u1ee5ng t\u00ean c\u00e1c c\u1ed9t d\u1eef li\u1ec7u (v\u00ed d\u1ee5: `thang_su_dung`, `cuoc_hang_thang`) nh\u01b0 c\u00e1c bi\u1ebfn Python \u0111\u1ed9c l\u1eadp trong chu\u1ed7i f-string. Tuy nhi\u00ean, c\u00e1c t\u00ean n\u00e0y ch\u1ec9 t\u1ed3n t\u1ea1i d\u01b0\u1edbi d\u1ea1ng kh\u00f3a trong DataFrame v\u00e0 ch\u01b0a \u0111\u01b0\u1ee3c \u0111\u1ecbnh ngh\u0129a trong ph\u1ea1m vi bi\u1ebfn c\u1ee7a script, d\u1eabn \u0111\u1ebfn vi\u1ec7c tr\u00ecnh th\u00f4ng d\u1ecbch kh\u00f4ng th\u1ec3 t\u00ecm th\u1ea5y ch\u00fang.\n\n### H\u01b0\u1edbng d\u1eabn s\u1eeda l\u1ed7i (Generalizable Fix Instructions)\n\n1.  **Ki\u1ec3m tra ph\u1ea1m vi bi\u1ebfn (Scope Verification):** Tr\u01b0\u1edbc khi s\u1eed d\u1ee5ng b\u1ea5t k\u1ef3 bi\u1ebfn n\u00e0o trong bi\u1ec3u th\u1ee9c chu\u1ed7i, h\u00e3y x\u00e1c minh xem bi\u1ebfn \u0111\u00f3 \u0111\u00e3 \u0111\u01b0\u1ee3c \u0111\u1ecbnh ngh\u0129a trong ph\u1ea1m vi hi\u1ec7n t\u1ea1i hay ch\u01b0a. N\u1ebfu d\u1eef li\u1ec7u n\u1eb1m trong c\u1ea5u tr\u00fac b\u1ea3ng (DataFrame), kh\u00f4ng \u0111\u01b0\u1ee3c truy c\u1eadp tr\u1ef1c ti\u1ebfp b\u1eb1ng t\u00ean c\u1ed9t m\u00e0 kh\u00f4ng c\u00f3 ti\u1ec1n t\u1ed1 \u0111\u1ed1i t\u01b0\u1ee3ng.\n2.  **Truy c\u1eadp d\u1eef li\u1ec7u t\u01b0\u1eddng minh:** Khi x\u00e2y d\u1ef1ng chu\u1ed7i t\u1eeb d\u1eef li\u1ec7u b\u1ea3ng, h\u00e3y lu\u00f4n tham chi\u1ebfu \u0111\u1ebfn c\u1ed9t th\u00f4ng qua \u0111\u1ed1i t\u01b0\u1ee3ng ch\u1ee9a d\u1eef li\u1ec7u (v\u00ed d\u1ee5: `data['t\u00ean_c\u1ed9t']`) thay v\u00ec gi\u1ea3 \u0111\u1ecbnh t\u00ean c\u1ed9t l\u00e0 m\u1ed9t bi\u1ebfn to\u00e0n c\u1ee5c.\n3.  **S\u1eed d\u1ee5ng ph\u01b0\u01a1ng th\u1ee9c vectorized:** \u01afu ti\u00ean s\u1eed d\u1ee5ng c\u00e1c ph\u01b0\u01a1ng th\u1ee9c x\u1eed l\u00fd chu\u1ed7i c\u1ee7a th\u01b0 vi\u1ec7n d\u1eef li\u1ec7u (nh\u01b0 pandas string methods) ho\u1eb7c h\u00e0m format ch\u1ea5p nh\u1eadn Series \u0111\u1ec3 tr\u00e1nh vi\u1ec7c ph\u1ea3i tr\u00edch xu\u1ea5t t\u1eebng bi\u1ebfn ri\u00eang l\u1ebb.\n4.  **X\u00e1c th\u1ef1c c\u1ea5u tr\u00fac d\u1eef li\u1ec7u:** Th\u00eam b\u01b0\u1edbc ki\u1ec3m tra s\u1ef1 t\u1ed3n t\u1ea1i c\u1ee7a c\u00e1c c\u1ed9t c\u1ea7n thi\u1ebft trong t\u1eadp d\u1eef li\u1ec7u tr\u01b0\u1edbc khi th\u1ef1c hi\u1ec7n c\u00e1c thao t\u00e1c x\u1eed l\u00fd v\u0103n b\u1ea3n \u0111\u1ec3 \u0111\u1ea3m b\u1ea3o t\u00ednh nh\u1ea5t qu\u00e1n c\u1ee7a d\u1eef li\u1ec7u \u0111\u1ea7u v\u00e0o.",
+        "nl_rule": "\n\nThe error indicates that the variable representing the data source has not been initialized before being referenced in the processing logic. To resolve this:\n\n1.  **Initialize Data Object:** Ensure the variable holding the dataset is instantiated and assigned a value prior to any transformation or aggregation operations.\n2.  **Verify Execution Order:** Confirm that the data loading or creation step appears earlier in the script execution flow than the function calls attempting to use the data.\n3.  **Check Variable Scope:** Ensure the data variable is defined in the current execution scope and is not shadowed or undefined due to conditional logic or scope limitations.",
         "domain": "python",
         "qualifier": [
             "runtime_error"
@@ -102,11 +750,11 @@
         "strength": "MUST",
         "tool_category": "coding",
         "errors_fixed": 1,
-        "token_length": 266,
-        "mdl_score": 0.0038
+        "token_length": 103,
+        "mdl_score": 0.0097
     },
     {
-        "nl_rule": "\n\n### Ph\u00e2n t\u00edch l\u1ed7i\nL\u1ed7i `TypeError: unsupported format string passed to Series.__format__` x\u1ea3y ra v\u00ec ph\u01b0\u01a1ng th\u1ee9c `.format()` c\u1ee7a chu\u1ed7i Python kh\u00f4ng h\u1ed7 tr\u1ee3 t\u1ef1 \u0111\u1ed9ng l\u1eb7p qua c\u00e1c ph\u1ea7n t\u1eed c\u1ee7a \u0111\u1ed1i t\u01b0\u1ee3ng `Series` pandas. Khi truy\u1ec1n m\u1ed9t Series v\u00e0o c\u00e1c tham s\u1ed1 c\u1ee7a `.format()`, Python c\u1ed1 g\u1eafng \u0111\u1ecbnh d\u1ea1ng to\u00e0n b\u1ed9 Series nh\u01b0 m\u1ed9t \u0111\u1ed1i t\u01b0\u1ee3ng \u0111\u01a1n l\u1ebb thay v\u00ec t\u1eebng gi\u00e1 tr\u1ecb h\u00e0ng, d\u1eabn \u0111\u1ebfn l\u1ed7i kh\u00f4ng t\u01b0\u01a1ng th\u00edch ki\u1ec3u d\u1eef li\u1ec7u.\n\n### H\u01b0\u1edbng d\u1eabn s\u1eeda l\u1ed7i (Generalizable Fix Instructions)\n\n1.  **Tr\u00e1nh \u0111\u1ecbnh d\u1ea1ng chu\u1ed7i tr\u1ef1c ti\u1ebfp v\u1edbi Series:** Kh\u00f4ng s\u1eed d\u1ee5ng c\u00e1c ph\u01b0\u01a1ng th\u1ee9c \u0111\u1ecbnh d\u1ea1ng chu\u1ed7i c\u1ee7a Python (nh\u01b0 `.format()`, f-strings) tr\u1ef1c ti\u1ebfp v\u1edbi c\u00e1c c\u1ed9t DataFrame/Series l\u00e0m tham s\u1ed1, v\u00ec ch\u00fang kh\u00f4ng h\u1ed7 tr\u1ee3 t\u1ef1 \u0111\u1ed9ng duy\u1ec7t qua t\u1eebng h\u00e0ng.\n2.  **S\u1eed d\u1ee5ng x\u1eed l\u00fd theo h\u00e0ng (Row-wise Processing):** Khi c\u1ea7n k\u1ebft h\u1ee3p nhi\u1ec1u c\u1ed9t \u0111\u1ec3 t\u1ea1o chu\u1ed7i m\u1edbi, h\u00e3y s\u1eed d\u1ee5ng h\u00e0m `apply()` v\u1edbi tham s\u1ed1 `axis=1` \u0111\u1ec3 duy\u1ec7t qua t\u1eebng h\u00e0ng ri\u00eang bi\u1ec7t, ho\u1eb7c s\u1eed d\u1ee5ng c\u00e1c h\u00e0m chu\u1ed7i vectorized c\u1ee7a th\u01b0 vi\u1ec7n (v\u00ed d\u1ee5: `str.cat()`) \u0111\u01b0\u1ee3c thi\u1ebft k\u1ebf cho thao t\u00e1c c\u1ed9t.\n3.  **X\u1eed l\u00fd gi\u00e1 tr\u1ecb thi\u1ebfu tr\u01b0\u1edbc khi \u0111\u1ecbnh d\u1ea1ng:** \u0110\u1ea3m b\u1ea3o c\u00e1c gi\u00e1 tr\u1ecb NaN trong c\u00e1c c\u1ed9t tham gia t\u1ea1o chu\u1ed7i \u0111\u01b0\u1ee3c x\u1eed l\u00fd (v\u00ed d\u1ee5: thay th\u1ebf b\u1eb1ng chu\u1ed7i r\u1ed7ng) tr\u01b0\u1edbc khi th\u1ef1c hi\u1ec7n thao t\u00e1c \u0111\u1ecbnh d\u1ea1ng \u0111\u1ec3 tr\u00e1nh l\u1ed7i \u0111\u1ecbnh d\u1ea1ng kh\u00f4ng mong mu\u1ed1n.\n4.  **Ki\u1ec3m tra ki\u1ec3u d\u1eef li\u1ec7u \u0111\u1ea7u v\u00e0o:** X\u00e1c nh\u1eadn r\u1eb1ng c\u00e1c \u0111\u1ed1i t\u01b0\u1ee3ng \u0111\u01b0\u1ee3c truy\u1ec1n v\u00e0o h\u00e0m \u0111\u1ecbnh d\u1ea1ng chu\u1ed7i l\u00e0 gi\u00e1 tr\u1ecb v\u00f4 h\u01b0\u1edbng (scalar) ho\u1eb7c \u0111\u01b0\u1ee3c x\u1eed l\u00fd qua v\u00f2ng l\u1eb7p h\u00e0ng, thay v\u00ec l\u00e0 to\u00e0n b\u1ed9 c\u1ed9t d\u1eef li\u1ec7u.",
+        "nl_rule": "\n\n**Root Cause Analysis:**\nThe execution failed with a `KeyError` because the code attempts to group and aggregate using column names (`'category'`, `'region'`, `'device'`, `'amount'`, `'customer_id'`) that do not exist in the loaded dataset. The actual dataset contains different column names (e.g., `'khu_vuc'`, `'goi_cuoc'`, `'cuoc_hang_thang'`), causing a schema mismatch between the code logic and the data structure.\n\n**Fix Instructions:**\n\n1.  **Validate Schema Compatibility:** Before executing aggregation operations, inspect the dataframe's column list to identify the actual available column names.\n2.  **Map Logical Columns to Actual Schema:** Replace the hardcoded column names in the `groupby` and `agg` arguments with valid column names from the loaded dataset that correspond to the intended logical grouping (e.g., geographic, categorical) and calculation targets.\n3.  **Ensure Numeric Data Types:** Verify that the columns selected for numerical aggregation functions (e.g., `mean`, `sum`, `count`) contain numeric data types to prevent calculation errors during execution.\n4.  **Add Error Handling (Optional):** Implement a check to confirm the existence of required columns before running the aggregation logic to provide clear feedback if the schema changes again.",
         "domain": "python",
         "qualifier": [
             "runtime_error"
@@ -117,11 +765,71 @@
         "strength": "MUST",
         "tool_category": "coding",
         "errors_fixed": 1,
-        "token_length": 273,
-        "mdl_score": 0.0037
+        "token_length": 174,
+        "mdl_score": 0.0057
     },
     {
-        "nl_rule": "Semantic check failed: The output displays the Decision Tree structure but the section 'RULE DETAILS WITH SUPPORT & CHURN' is empty. The code must calculate and print the number of samples (Support) and the average Churn Rate for each specific rule/leaf node in the Decision Tree output, not just the tree structure itself. Update the code to iterate through the tree nodes and print these metrics.",
+        "nl_rule": "\n\n## Error Analysis\n\n**Error Type:** `ValueError: cannot insert cluster_id, already exists`\n\n**Root Cause:** When using `groupby('cluster_id').agg({'cluster_id': 'count'})`, the aggregation creates a column with the same name as the groupby key. After `reset_index()`, pandas attempts to insert 'cluster_id' but it already exists as a column from the groupby operation, causing a naming conflict.\n\n## Fix Instructions\n\n1. **Use a Different Aggregation Column:** Instead of aggregating the groupby column itself, aggregate a different column (e.g., 'cluster_id' \u2192 'count' or use a unique identifier column) to avoid naming conflicts.\n\n2. **Rename After Aggregation:** After the `groupby().agg()` operation, rename the resulting column to something unique before calling `reset_index()`, or use `as_index=False` parameter in groupby to control column naming.\n\n3. **Alternative Approach:** Use `size()` or `count()` methods directly on the grouped object instead of `agg()` with the same column name, then rename the result column explicitly.\n\n4. **Verify Column Names:** Before assigning column names with `.columns = [...]`, verify that the current column names don't conflict with the intended new names by checking `df.columns.tolist()`.\n\n5. **Use Unique Column Names:** When creating aggregation results, ensure the aggregation key column name differs from the groupby key column name to prevent insertion conflicts during `reset_index()`.\n\n**General Principle:** Never use the same column name for both the groupby key and the aggregation target when the result will be reset to columns.",
+        "domain": "python",
+        "qualifier": [
+            "runtime_error"
+        ],
+        "action": [
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "coding",
+        "errors_fixed": 1,
+        "token_length": 222,
+        "mdl_score": 0.0045
+    },
+    {
+        "nl_rule": "\n\n### Root Cause Analysis\nThe error `TypeError: data type 'arrow' not understood` occurs because the `select_dtypes` method in the current Pandas environment does not recognize the string literal `'arrow'` as a valid dtype specifier. The code attempts to filter columns using this unsupported string, causing the execution to fail before any data processing begins.\n\n### Fix Instructions\n1.  **Locate the Type Filtering Call:** Identify the function call used to filter columns by data type (e.g., `select_dtypes`).\n2.  **Remove Invalid Specifiers:** Inspect the `include` or `exclude` arguments for string literals that are not standard Pandas dtype names. Remove the unsupported string literal (specifically `'arrow'`) from the list.\n3.  **Implement Dynamic Type Checking:** If specific handling for Arrow-backed columns is required, replace the static string-based filtering with a dynamic check. Use methods like `pd.api.types.is_extension_array_dtype` or inspect the column's `dtype` object directly to identify Arrow types without relying on unsupported string literals.\n4.  **Validate Compatibility:** Ensure all remaining dtype strings in the filtering arguments are valid for the active Pandas version to prevent similar `TypeError` exceptions.\n5.  **Verify Execution:** Run the code to confirm the type filtering step completes without raising errors regarding unrecognized data types.",
+        "domain": "python",
+        "qualifier": [
+            "runtime_error"
+        ],
+        "action": [
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "coding",
+        "errors_fixed": 1,
+        "token_length": 193,
+        "mdl_score": 0.0052
+    },
+    {
+        "nl_rule": "\n\n## Error Analysis\n\nThe error `KeyError: 'support_pct'` occurs because the `generate_persona_name` function attempts to access `row['support_pct']`, but the `row` parameter (which is `fin_stat` from `financial_stats`) only contains columns `['cluster_id', 'arpu', 'churn_rate']`. The `support_pct` column exists in `cluster_stats`, not in `financial_stats`.\n\n## Generalized Fix Instructions\n\n1. **Verify Column Availability**: Before accessing any column in a DataFrame/Series, confirm that the column exists in that specific DataFrame's schema. Use column inspection methods to validate available fields.\n\n2. **Match Data Structure to Function Parameters**: Ensure the data structure passed to a function contains all columns that the function expects to access. If a function needs multiple data sources, either pass them as separate parameters or merge them into a single structure before passing.\n\n3. **Separate Concerns for Different Metrics**: When calculating metrics from different data sources (e.g., support metrics vs. financial metrics), keep them in separate DataFrames and pass the appropriate DataFrame to functions that need specific metrics.\n\n4. **Validate Function Input Before Access**: Add defensive checks to verify that required columns exist in the input data before attempting to access them. This prevents runtime errors when column names don't match expectations.\n\n5. **Review Function Signatures**: When refactoring code, ensure that all functions receive the complete data they need. If a function accesses columns from multiple sources, either merge those sources beforehand or pass each source as a separate parameter.",
+        "domain": "python",
+        "qualifier": [
+            "runtime_error"
+        ],
+        "action": [
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "coding",
+        "errors_fixed": 1,
+        "token_length": 226,
+        "mdl_score": 0.0044
+    },
+    {
+        "nl_rule": "\n\n### Root Cause Analysis\nThe error `ValueError: feature_names must contain 5 elements, got 4` occurs because the Decision Tree model was trained on a feature matrix containing 5 columns (including the target variable), but the `feature_names` list provided to `export_text` only contains 4 names. This dimension mismatch violates the requirement for the export function. Additionally, including the target variable in the input features constitutes **Data Leakage**, violating Rule 1 from the domain knowledge.\n\n### Actionable Fix Instructions\n\n1.  **Verify Feature Consistency:** Before calling the export function, ensure the number of columns in the training feature matrix exactly matches the length of the feature names list provided.\n2.  **Exclude Target Variable:** Remove the target variable from the input feature matrix to prevent data leakage. The target should only be used as the label (`y`), not as an input feature (`X`).\n3.  **Synchronize Feature Names:** Update the feature names list to correspond exactly to the columns remaining in the input feature matrix after excluding the target variable.",
+        "domain": "python",
+        "qualifier": [
+            "runtime_error"
+        ],
+        "action": [
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "coding",
+        "errors_fixed": 1,
+        "token_length": 165,
+        "mdl_score": 0.0061
+    },
+    {
+        "nl_rule": "Semantic check failed: The code implements Decision Tree Rule Mining, but the user requested Persona Analysis (Clustering). You must: 1. Implement KMeans clustering. 2. Drop 'RMDT' from features before clustering to prevent Data Leakage (Domain Knowledge Rule 1). 3. Calculate Silhouette Score (must be >= 0.15). 4. Output personas as a JSON array with support percentages (0.0-1.0). 5. Calculate Churn Rate as df['RMDT'].mean() per cluster. 6. Do not hallucinate persona names.",
         "domain": "python",
         "qualifier": [
             "semantic_error",
@@ -134,7 +842,116 @@
         "strength": "MUST",
         "tool_category": "data_analysis",
         "errors_fixed": 1,
-        "token_length": 66,
-        "mdl_score": 0.0152
+        "token_length": 71,
+        "mdl_score": 0.0141
+    },
+    {
+        "nl_rule": "\n\n1.  **Validate Column Availability:** Before executing aggregation or statistical operations, verify that every column referenced in the operation exists within the target dataframe.\n2.  **Audit Preprocessing Logic:** Review the data cleaning and feature engineering steps to identify if any columns required for downstream reporting were explicitly removed during the process.\n3.  **Align Data Retention:** Modify the preprocessing pipeline to retain columns necessary for final business metrics (e.g., revenue or usage statistics) even if they are excluded from model training features.\n4.  **Restore Missing Data:** If columns were dropped for modeling purposes, retrieve them from the original dataset and merge them back into the processed dataframe after clustering labels are assigned.",
+        "domain": "python",
+        "qualifier": [
+            "runtime_error"
+        ],
+        "action": [
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "coding",
+        "errors_fixed": 1,
+        "token_length": 110,
+        "mdl_score": 0.0091
+    },
+    {
+        "nl_rule": "\n\n1.  **Extract Target Before Modification:** Before removing any columns from the dataset intended for feature engineering, explicitly isolate the target variable column into a separate variable to preserve its data.\n2.  **Remove from Features:** Drop the target variable column from the main dataset to prevent it from being used as a feature during model training.\n3.  **Assign Target Correctly:** Use the separately extracted variable for the model's target parameter, ensuring it is not accessed from the modified dataset where the column no longer exists.",
+        "domain": "python",
+        "qualifier": [
+            "runtime_error"
+        ],
+        "action": [
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "coding",
+        "errors_fixed": 1,
+        "token_length": 84,
+        "mdl_score": 0.0119
+    },
+    {
+        "nl_rule": "Semantic check failed: \u26a0 L\u1ed7i \u0111\u1ecbnh d\u1ea1ng: support_pct v\u00e0 churn_rate ph\u1ea3i l\u00e0 t\u1ef7 l\u1ec7 d\u1ea1ng s\u1ed1 th\u1ef1c trong kho\u1ea3ng [0.0, 1.0]. H\u00e3y \u0111\u1ea3m b\u1ea3o b\u1ea1n kh\u00f4ng nh\u1ea7m v\u1edbi ph\u1ea7n tr\u0103m (0-100).",
+        "domain": "python",
+        "qualifier": [
+            "semantic_error",
+            "business_logic"
+        ],
+        "action": [
+            "add_metrics",
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "data_analysis",
+        "errors_fixed": 1,
+        "token_length": 31,
+        "mdl_score": 0.0323
+    },
+    {
+        "nl_rule": "Semantic check failed: \u26a0 Support qu\u00e1 th\u1ea5p (0.77% < 5%). C\u1ee5m '\u1ed4n \u0111\u1ecbnh - C\u1ea7n theo d\u00f5i' kh\u00f4ng mang \u00fd ngh\u0129a th\u1ed1ng k\u00ea.",
+        "domain": "python",
+        "qualifier": [
+            "semantic_error",
+            "business_logic"
+        ],
+        "action": [
+            "add_metrics",
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "data_analysis",
+        "errors_fixed": 1,
+        "token_length": 23,
+        "mdl_score": 0.0435
+    },
+    {
+        "nl_rule": "\n\n1.  **Identify Output Paths:** Locate all file paths defined in the script for saving outputs (e.g., CSV data, models, plots).\n2.  **Validate Directory Existence:** Before executing any file write operation, extract the parent directory path from the target file path.\n3.  **Create Missing Directories:** Implement a check to verify if the parent directory exists; if it does not, programmatically create the directory structure before attempting to save the file.\n4.  **Apply Universally:** Ensure this directory creation logic is applied to all file saving steps (data, models, and visualizations) to prevent execution interruption due to missing paths.\n5.  **Alternative Path Strategy:** Consider switching to relative paths based on the current working directory to eliminate dependency on specific absolute paths that may not exist in the execution environment.",
+        "domain": "python",
+        "qualifier": [
+            "runtime_error"
+        ],
+        "action": [
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "coding",
+        "errors_fixed": 1,
+        "token_length": 126,
+        "mdl_score": 0.0079
+    },
+    {
+        "nl_rule": "\n\n1. **Adjust Output Directory Path:** Modify the configuration for the output directory path to point to a location where the execution environment has valid write permissions (e.g., the current working directory) to resolve the `PermissionError` encountered during file system operations.\n\n2. **Preserve JSON Generation Logic:** Ensure the final step responsible for serializing the data into JSON and printing it with the required start and end delimiters is intact, active, and positioned after all data processing and model saving steps.\n\n3. **Validate Execution Flow:** Re-run the entire pipeline to confirm that the permission issue is resolved, file operations complete successfully, and the JSON output is generated and displayed at the end of the script.",
+        "domain": "python",
+        "qualifier": [
+            "runtime_error"
+        ],
+        "action": [
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "coding",
+        "errors_fixed": 1,
+        "token_length": 113,
+        "mdl_score": 0.0088
+    },
+    {
+        "nl_rule": "\n\n## Fix Instructions\n\n### Root Cause Analysis\nThe error occurs because `persona_text` column was created on a subset dataframe (`data_clustering`) but never propagated back to the main dataset (`data`). When the JSON output section tries to access `persona_text` from the main dataset, it fails with a KeyError.\n\n### Generalized Fix Steps\n\n1. **Ensure Column Propagation**: After generating any derived columns on a subset dataframe, explicitly merge or assign those columns back to the main dataset before downstream operations that reference the main dataset.\n\n2. **Verify Column Existence**: Before accessing any column in a dataframe, validate that the column exists in that specific dataframe's schema. Use column existence checks when working with multiple related dataframes.\n\n3. **Maintain Dataframe Consistency**: When creating intermediate dataframes for processing (e.g., clustering, feature engineering), track which columns were added and ensure they are propagated to the original dataset if needed for final output.\n\n4. **Check Column Availability**: Before iterating through rows to extract values, confirm the target column exists in the dataframe being accessed. This prevents KeyError when columns are missing from specific dataframes.\n\n5. **Review Data Flow**: Trace the complete data flow from source to output. Identify all points where dataframes are split, modified, or merged, and ensure necessary columns are carried through each transformation step.\n\n### Prevention Pattern\nWhen working with multiple related dataframes:\n- Create a mapping of which columns exist in which dataframe\n- Before accessing columns, verify they exist in the target dataframe\n- When splitting data for processing, maintain a record of all derived columns\n- Propagate derived columns back to the main dataset before final output generation",
+        "domain": "python",
+        "qualifier": [
+            "runtime_error"
+        ],
+        "action": [
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "coding",
+        "errors_fixed": 1,
+        "token_length": 268,
+        "mdl_score": 0.0037
     }
 ]

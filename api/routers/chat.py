@@ -49,6 +49,20 @@ async def execute_code_api(
             "message": "Code execution failed",
         }
 
+@router.get("/memory")
+async def get_rimrule_memory(lambda_instance = Depends(get_lambda_agent)):
+    try:
+        rules = [r.to_dict() for r in lambda_instance.conv.verifier.memory_bank.rules]
+        return {
+            "success": True,
+            "rules": rules
+        }
+    except Exception as exc:
+        return {
+            "success": False,
+            "error": str(exc)
+        }
+
 
 def format_chunk(content: str, model: str) -> str:
     chunk = {
@@ -84,6 +98,32 @@ async def chat(body: dict = Body(...), lambda_instance = Depends(get_lambda_agen
         
     last_msg = messages[-1]
     user_query = last_msg.get("content", "")
+    
+    # [DOMAIN KNOWLEDGE INJECTION & RIMRULE EVOLUTION]
+    if any(keyword in user_query.lower() for keyword in ["phân cụm", "persona", "clustering", "cluster"]):
+        try:
+            rules_context = lambda_instance.conv.verifier.memory_bank.retrieve_rules_symbolic(query_domain="python", top_k=5)
+            if not rules_context:
+                rules_context = "No past mistakes recorded yet."
+        except Exception as e:
+            rules_context = ""
+            
+        domain_knowledge = f"""
+---
+[DOMAIN KNOWLEDGE FOR DATA AGENT]
+1. Financial Metrics:
+- ARPU (Average Revenue Per User) MUST be calculated exactly as `df['cuoc_hang_thang'].mean()` for each cluster. NEVER divide by 30 or any other number.
+- Churn_Rate MUST be calculated exactly as `df['RMDT'].mean()` for each cluster.
+
+2. Anti-Hallucination for Categorical Data:
+- When writing if-else rules to describe a persona based on a categorical column (like `khu_vuc`), you MUST NOT hallucinate or guess the values (e.g., 'Đô thị', 'Nông thôn'). You MUST use only the exact values present in the data (e.g., 'Vung Tau', 'Binh Duong'). To be safe, run `.unique()` on the column first if you are unsure.
+
+3. RIMRULE EVOLUTION MEMORY (LESSONS LEARNED FROM PAST ERRORS):
+{rules_context}
+---
+"""
+        user_query += "\n" + domain_knowledge
+
     model_name = body.get("model", "lambda-triadic-agent")
 
     async def event_generator():
@@ -98,6 +138,10 @@ async def chat(body: dict = Body(...), lambda_instance = Depends(get_lambda_agen
             # but since we are bypassing chat_streaming and calling stream_workflow directly,
             # we MUST add the user's current message here.
             gradio_history.append({"role": "user", "content": user_query})
+            
+            # Sync backend memory: If frontend only sends 1 message, it means it's a new chat, so clear backend context!
+            if not messages[:-1]:
+                lambda_instance.conv.programmer.clear()
             
             # CRITICAL: We also MUST add it to the actual LLM's conversation context!
             lambda_instance.conv.programmer.messages.append({"role": "user", "content": user_query})
