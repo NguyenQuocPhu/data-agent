@@ -51,6 +51,7 @@ class ProposerAgent:
             "  \"transformation_logic\": \"Step-by-step natural language logic to clean/transform the data\",\n"
             "  \"statistical_model_logic\": \"The mathematical/statistical approach to solve the problem\"\n"
             "}\n"
+            "Do NOT wrap the JSON in markdown blocks (```json). Do NOT use trailing commas. Output ONLY the raw JSON.\n"
             f"{dropout_constraint}"
         )
 
@@ -69,11 +70,17 @@ class ProposerAgent:
             )
 
             try:
+                import re
+                # Clean up response to ensure JSON loads correctly
+                clean_response = re.sub(r'```json\n?', '', response_text)
+                clean_response = re.sub(r'```\n?', '', clean_response)
                 # Ép kiểu và bóc tách JSON
-                start_idx = response_text.find('{')
-                end_idx = response_text.rfind('}') + 1
+                start_idx = clean_response.find('{')
+                end_idx = clean_response.rfind('}') + 1
                 if start_idx != -1 and end_idx != 0:
-                    json_str = response_text[start_idx:end_idx]
+                    json_str = clean_response[start_idx:end_idx]
+                    # Fix trailing commas
+                    json_str = re.sub(r',\s*([}\]])', r'\1', json_str)
                     plan_dict = json.loads(json_str)
                     
                     # Cập nhật lịch sử để dùng cho Vocab Dropout các vòng sau
@@ -84,7 +91,7 @@ class ProposerAgent:
                 else:
                     raise ValueError("No JSON object found in response.")
             except Exception as e:
-                print(f"[PROPOSER] JSON parse error on attempt {attempt+1}: {e}")
+                print(f"[PROPOSER] JSON parse error on attempt {attempt+1}: {e}. RAW: {response_text[:200]}...")
                 if attempt == 2:
                     return {
                         "error": f"Failed to parse Proposer output: {str(e)}",

@@ -8,6 +8,8 @@ from fastapi import APIRouter, Body, HTTPException, Depends
 from fastapi.responses import StreamingResponse
 
 from ..dependencies import get_lambda_agent
+from ..services import workspace as workspace_service
+import os
 
 router = APIRouter()
 
@@ -27,6 +29,13 @@ async def execute_code_api(
         }
 
     try:
+        # Snapshot files before execution
+        source_dir = lambda_instance.session_cache_path
+        known_before = {
+            f for f in os.listdir(source_dir)
+            if os.path.isfile(os.path.join(source_dir, f))
+        } if os.path.isdir(source_dir) else set()
+
         # Run code directly through LAMBDA's Jupyter Kernel
         sign, msg_llm, exe_res = lambda_instance.conv.run_code(code)
         
@@ -34,19 +43,28 @@ async def execute_code_api(
         display, link_info = lambda_instance.conv.check_folder()
         if display:
             exe_res += f"\n\n[Files Generated]: {link_info}"
-            
+
+        # Scan and register newly generated files
+        new_generated_files = workspace_service.scan_and_register_generated(
+            session_id=session_id,
+            source_dir=source_dir,
+            known_files_before=known_before,
+        )
+
         success = True if sign and 'error' not in sign else False
         
         return {
             "success": success,
             "result": exe_res if exe_res else msg_llm,
             "message": "Code executed successfully" if success else "Code execution failed",
+            "generated_files": new_generated_files,
         }
     except Exception as exc:
         return {
             "success": False,
             "result": f"Error: {exc}",
             "message": "Code execution failed",
+            "generated_files": [],
         }
 
 @router.get("/memory")
@@ -93,6 +111,7 @@ def format_end_chunk(model: str) -> str:
 @router.post("/chat/completions")
 async def chat(body: dict = Body(...), lambda_instance = Depends(get_lambda_agent)):
     messages = body.get("messages", [])
+    session_id = body.get("session_id", "default")
     if not messages:
         raise HTTPException(status_code=400, detail="No messages provided")
         
@@ -264,6 +283,21 @@ async def chat(body: dict = Body(...), lambda_instance = Depends(get_lambda_agen
             
             # The UI doesn't necessarily need "Workflow complete" if it's already in Answer.
             yield format_chunk("Workflow complete.\n\n</Answer>", model_name)
+
+            # ==== SCAN for newly generated files and notify frontend ====
+            try:
+                source_dir = lambda_instance.session_cache_path
+                new_files = workspace_service.scan_and_register_generated(
+                    session_id=session_id,
+                    source_dir=source_dir,
+                    known_files_before=None,  # grab all valid-extension files each time
+                )
+                if new_files:
+                    files_event = json.dumps({"type": "generated_files", "files": new_files})
+                    yield format_chunk(f"\n<!-- GENERATED_FILES:{files_event} -->\n", model_name)
+            except Exception as scan_err:
+                print(f"[chat] scan_and_register_generated failed: {scan_err}")
+
             yield format_end_chunk(model_name)
             
         except Exception as e:

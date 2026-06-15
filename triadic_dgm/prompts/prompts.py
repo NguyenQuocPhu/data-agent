@@ -80,9 +80,9 @@ Your Python code MUST strictly implement these steps and PRINT the output precis
 3. Optimal K & Confidence: Thử K từ 3 đến 6. Chọn Best K có Silhouette lớn nhất, MỌI cụm phải có Support > 5%. Tính `"confidence"` cho Persona JSON: nếu silhouette < 0.2 thì "LOW", < 0.4 thì "MEDIUM", còn lại "HIGH". NẾU bạn override `Best K` toán học (ví dụ Best K=3 nhưng bạn chọn K=6 cho business), bạn PHẢI in ra log: "Selected K=... for business interpretability. Optimal mathematical K=...".
 4. Python Rule Engine for Persona Naming: Bạn PHẢI viết hàm Python (Rule Engine) tự động đặt tên Persona dựa trên thống kê hành vi. BẮT BUỘC đặt tên DỰA TRÊN ĐẶC TRƯNG BẢN CHẤT CỦA KHÁCH HÀNG (Ví dụ: "KH ổn định lâu năm", "KH hay gặp sự cố"). TUYỆT ĐỐI KHÔNG trộn lẫn Mức độ Ưu tiên hay Risk/Revenue vào tên Persona. Ưu tiên chăm sóc nằm ở Tab Ranking, không nằm ở tên. Tên Persona phải UNIQUE 100%.
 STRICT INSTRUCTION CHO NGHỊCH LÝ (ANOMALY):
-- Nếu Kỹ thuật RẤT TỐT (không rớt mạng, suy hao ít) NHƯNG Churn Rate CAO -> Đặt tên: `Khách hàng hài lòng kỹ thuật nhưng rủi ro rời mạng cao (Price-sensitive)`.
+- Nếu Kỹ thuật RẤT TỐT (không rớt mạng, suy hao ít) NHƯNG Churn Rate CAO -> Đặt tên: `Khách hàng kỹ thuật ổn định nhưng rủi ro cao`. TUYỆT ĐỐI KHÔNG dùng từ "Price-sensitive" hay "Nhạy cảm giá" hay "Giá" vì dữ liệu không có biến giá!
 - Nếu Kỹ thuật RẤT XẤU (suy hao sâu, rớt mạng nhiều) NHƯNG Churn Rate THẤP -> Đặt tên: `Mạng kém - Cần bảo trì chủ động` hoặc `Rủi ro tiềm ẩn về hạ tầng`. TUYỆT ĐỐI KHÔNG gọi khách mạng kém là 'Loyal' hay 'Ổn định'.
-- Nếu Khách hàng MỚI (tenure thấp) và ỔN ĐỊNH (không rớt mạng, ít CSKH) -> Đặt tên: `Khách mới ổn định` hoặc `New Joiners`. TUYỆT ĐỐI KHÔNG đặt tên vô nghĩa kiểu "Khách hàng đặc điểm 0.0" hay "Cluster 0". Tên Persona phải có Semantic Meaning (ví dụ: Khách mới ổn định, Khách hàng gặp sự cố kỹ thuật, Khách hàng trung thành).
+- Nếu Khách hàng MỚI (tenure thấp) và ỔN ĐỊNH (không rớt mạng, ít CSKH) -> Đặt tên: `Khách mới sử dụng dưới 2 năm` hoặc `New Joiners`. TUYỆT ĐỐI KHÔNG đặt tên vô nghĩa kiểu "Khách hàng đặc điểm 0.0" hay "Cluster 0". Tên Persona phải chứa Feature phân biệt rõ ràng.
 TUYỆT ĐỐI KHÔNG ĐƯỢC để trùng tên Persona giữa 2 cụm!
 5. Hidden Pattern Mining: Khởi tạo `DecisionTreeClassifier(max_depth=3, min_samples_leaf=int(len(data)*0.05))` để ép các luật có ít nhất 5% Support. CỰC KỲ QUAN TRỌNG: Bạn PHẢI train Decision Tree trên dữ liệu GỐC CHƯA SCALE (chưa qua StandardScaler). Tuyệt đối không được fit trên features đã scale, nếu không các ngưỡng (threshold) sẽ bị sai lệch hoàn toàn. Lấy `data` gốc, drop biến mục tiêu/cluster rồi fit. Bạn chỉ cần `print(export_text(tree_model, feature_names=...))`.
 6. JSON Output Generation: YOUR SCRIPT MUST PRINT the JSON with delimiters. TUYỆT ĐỐI KHÔNG ĐƯỢC lười biếng viết `print("")` hay `# ...`. Bạn PHẢI gõ chính xác các dòng code sau ở cuối script:
@@ -97,8 +97,9 @@ CRITICAL QA RULE FOR DEMO SURVIVAL: If the user asks a conversational question a
 
 Where `personas` is a Python list of dicts with keys: cluster_id, persona_name, support, support_pct, arpu, churn_rate, confidence, sample_persona_text.
 DO NOT just assign to a variable — you MUST call print() with the delimiters!
-7. Export Data: Lưu DataFrame ra `persona_analysis_with_text.csv` trong `{working_path}`.
+7. Export Data: Bạn BẮT BUỘC PHẢI viết code Python lưu kết quả ở cuối script bằng ĐƯỜNG DẪN TƯƠNG ĐỐI (chỉ dùng tên file): `data.to_csv('persona_analysis_with_text.csv', index=False)` và lưu biểu đồ `plt.savefig('chart.png')`. Không dùng các biến đường dẫn ảo như working_path.
 CRITICAL COLUMN NAME RULE: Dataset FTEL dùng tên KHÔNG DẤU: `goi_cuoc`, `khu_vuc`. Nếu sai tên cột sẽ bị KeyError!
+IMPORTANT: ALWAYS wrap your ENTIRE python logic inside EXACTLY ONE ```python ... ``` block. DO NOT JUST OUTPUT TEXT.
 Assistant:"
 ```python
 # Load the active dataset (auto-selects if only one)
@@ -119,7 +120,13 @@ Now: You MUST synthesize the execution results into a clean, Business-focused 4-
 Do NOT print any raw EDA logs, absolute file paths (like /mnt/d/... or /home/...), or memory usage stats in this response. Use the Filename or File ID instead.
 CHỈ ĐƯỢC PHÉP TRÌNH BÀY LẠI THÔNG TIN TỪ CÁC ĐOẠN JSON CỦA BƯỚC TRƯỚC. KHÔNG ĐƯỢC TỰ SUY DIỄN Ý NGHĨA CÁC BIẾN (VD: LOS_Mat_Quang) NẾU KHÔNG CÓ TỪ ĐIỂN MÔ TẢ TRONG NGỮ CẢNH. ĐẶC BIỆT: Biến `do_suy_hao_quang` KHÔNG ĐƯỢC tự ý đánh giá "tốt" hay "xấu", chỉ được báo cáo giá trị thực tế.
 
-Format your response strictly as follows using Markdown:
+CRITICAL INSTRUCTION FOR FAILURE: If the executing result does NOT contain a valid `[JSON_START_PERSONA]` block (e.g. because of SyntaxError or Max Retries Exceeded), YOU MUST NOT generate the markdown template with placeholders like "[See Python Output]". Instead, you MUST output EXACTLY this:
+"🚨 QUÁ TRÌNH PHÂN TÍCH BỊ LỖI KỸ THUẬT.
+Hệ thống AI đã gặp lỗi kỹ thuật trong lúc phân tích dữ liệu (Python Code Error). Các quy tắc nghiệp vụ (Hard Gates) quá khắt khe hoặc dữ liệu đầu vào chứa nhiều bất thường khiến mô hình không thể vượt qua vòng kiểm duyệt. Vui lòng thử lại hoặc cung cấp thêm dữ liệu!"
+Do NOT output anything else if JSON is missing!
+
+Format your response strictly as follows using Markdown (ONLY IF JSON IS PRESENT):
+
 
 ### 🚨 EXECUTIVE SUMMARY
 (You MUST start with a powerful Business Impact summary. Calculate Total Revenue and Total Revenue At Risk across all Personas. 
@@ -178,6 +185,7 @@ Ví dụ BẮT BUỘC:
 - Nếu evidence có `rot_mang` cao NHƯNG `do_suy_hao_quang` TỐT -> TUYỆT ĐỐI KHÔNG suy diễn kéo lại cáp. BẮT BUỘC đề xuất: "Ưu tiên kiểm tra thiết bị đầu cuối (modem/router/wifi) trước khi kiểm tra hạ tầng quang".
 - Nếu evidence có `so_lan_goi_CSKH` cao -> Đề xuất Outbound call chăm sóc.
 - Nếu evidence có `do_suy_hao_quang` XẤU -> Đề xuất Kiểm tra hạ tầng tuyến/kéo lại cáp.
+- Nếu nguyên nhân chưa rõ ràng (mạng tốt nhưng churn cao) -> TUYỆT ĐỐI KHÔNG đề xuất "Khuyến mãi giữ chân" hay "Ưu đãi giá". BẮT BUỘC đề xuất: "Khảo sát nguyên nhân gốc" hoặc "CSKH chủ động".
 
 🏆 **THE ONE ACTION:**
 Kết thúc Tab 4, BẮT BUỘC tạo một mục `🏆 THE ONE ACTION (Lựa chọn tối ưu nhất)`. 

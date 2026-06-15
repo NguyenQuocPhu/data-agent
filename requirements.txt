@@ -19,3 +19,5 @@ fastapi
 uvicorn
 python-multipart
 httpx
+
+backoff==2.2.1

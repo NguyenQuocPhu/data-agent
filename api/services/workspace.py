@@ -235,6 +235,138 @@ BLOCKED_UPLOAD_EXTENSIONS = {
     ".py",
 }
 
+# Extensions that are "scannable" — i.e. files Python agents might generate
+SCANNABLE_AGENT_EXTENSIONS = (
+    TABLE_EXTENSIONS
+    | IMAGE_EXTENSIONS
+    | TEXT_PREVIEW_EXTENSIONS
+    | MARKDOWN_PREVIEW_EXTENSIONS
+    | SQLITE_PREVIEW_EXTENSIONS
+    | {".joblib", ".pkl", ".pickle", ".pdf", ".zip", ".model", ".h5", ".pt", ".pth", ".onnx", ".ipynb"}
+)
+
+# Internal files we skip when scanning
+_SKIP_FILENAMES = {
+    "index.json",
+    ".deepanalyze_generated.json",
+    "programmer_msg.json",
+    "verifier_memory.json",
+    "config.json",
+    "system_dialogue.json",
+}
+
+
+def scan_and_register_generated(
+    session_id: str,
+    source_dir: str | Path,
+    known_files_before: set[str] | None = None,
+) -> list[dict]:
+    """
+    Quét source_dir (session_cache_path của LAMBDA), copy file mới vào
+    workspace/<session_id>/generated/, và register vào .deepanalyze_generated.json.
+
+    Args:
+        session_id:          Frontend session id (hoặc "default").
+        source_dir:          Thư mục LAMBDA đã ghi file (session_cache_path).
+        known_files_before:  Set tên file đã biết TRƯỚC khi execute.
+                             Nếu None, copy tất cả file có extension hợp lệ.
+
+    Returns:
+        Danh sách dict mô tả từng file mới {name, path, category, download_url, preview_url, size}.
+    """
+    source = Path(source_dir)
+    if not source.exists() or not source.is_dir():
+        return []
+
+    workspace_root = resolve_workspace_root(session_id)
+    gen_dir = workspace_root / "generated"
+    gen_dir.mkdir(parents=True, exist_ok=True)
+
+    new_files: list[dict] = []
+
+    for candidate in sorted(source.iterdir()):
+        if not candidate.is_file():
+            continue
+        if candidate.name in _SKIP_FILENAMES:
+            continue
+        if candidate.name.startswith("."):
+            continue
+        ext = candidate.suffix.lower()
+        if ext not in SCANNABLE_AGENT_EXTENSIONS:
+            continue
+        # If we have a before-snapshot, only grab files NOT in it
+        if known_files_before is not None and candidate.name in known_files_before:
+            continue
+
+        # Copy to generated/  (overwrite if same name exists — latest wins)
+        dst = gen_dir / candidate.name
+        try:
+            shutil.copy2(str(candidate), str(dst))
+        except Exception as e:
+            print(f"[scan_and_register] Failed to copy {candidate}: {e}")
+            continue
+
+        rel = f"generated/{candidate.name}"
+        rel_with_session = f"{session_id}/{rel}"
+
+        file_info = {
+            "name": candidate.name,
+            "path": rel,
+            "size": dst.stat().st_size,
+            "extension": ext,
+            "icon": get_file_icon(ext),
+            "category": classify_file_type(dst),
+            "is_generated": True,
+            "download_url": build_download_url(rel_with_session),
+            "preview_url": (
+                build_preview_url(rel_with_session)
+                if ext in PREVIEWABLE_EXTENSIONS
+                else None
+            ),
+        }
+        new_files.append(file_info)
+
+    # Register into .deepanalyze_generated.json
+    if new_files:
+        register_generated_paths(session_id, [f["path"] for f in new_files])
+
+    return new_files
+
+
+def get_generated_files_for_session(session_id: str) -> list[dict]:
+    """
+    Trả về toàn bộ file trong workspace/<session_id>/generated/.
+    Dùng cho GET /workspace/generated-files.
+    """
+    workspace_root = resolve_workspace_root(session_id)
+    gen_dir = workspace_root / "generated"
+    if not gen_dir.exists():
+        return []
+
+    files: list[dict] = []
+    for f in sorted(gen_dir.iterdir()):
+        if not f.is_file() or _is_internal_workspace_file(f):
+            continue
+        rel = f"generated/{f.name}"
+        rel_with_session = f"{session_id}/{rel}"
+        ext = f.suffix.lower()
+        files.append({
+            "name": f.name,
+            "path": rel,
+            "size": f.stat().st_size,
+            "extension": ext,
+            "icon": get_file_icon(ext),
+            "category": classify_file_type(f),
+            "is_generated": True,
+            "download_url": build_download_url(rel_with_session),
+            "preview_url": (
+                build_preview_url(rel_with_session)
+                if ext in PREVIEWABLE_EXTENSIONS
+                else None
+            ),
+        })
+    return files
+
 
 def classify_file_type(path: Path) -> str:
     ext = path.suffix.lower()

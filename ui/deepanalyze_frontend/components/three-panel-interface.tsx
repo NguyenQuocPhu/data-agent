@@ -1003,6 +1003,8 @@ export function ThreePanelInterface() {
   const [isStopping, setIsStopping] = useState(false);
   const [attachments, setAttachments] = useState<FileAttachment[]>([]);
   const [workspaceFiles, setWorkspaceFiles] = useState<WorkspaceFile[]>([]);
+  // Danh sách file mới nhất được AI sinh ra (CSV, PNG, model, ...) — dùng để hiển thị Output Files tray
+  const [lastGeneratedFiles, setLastGeneratedFiles] = useState<WorkspaceFile[]>([]);
   const [workspaceTree, setWorkspaceTree] = useState<WorkspaceNode | null>(
     null
   );
@@ -1045,17 +1047,14 @@ export function ThreePanelInterface() {
 
   const handleNewChat = () => {
     const welcome = {
-        id: `welcome-${Date.now()}`,
-        content: "Hello! I'm DeepAnalyze-8B, your autonomous data science assistant. Upload your data and let's explore it together!",
-        sender: "ai",
-        timestamp: new Date(),
-        localOnly: true,
-      };
+      id: `welcome-${Date.now()}`,
+      content: "Hello! I'm DeepAnalyze-8B, your autonomous data science assistant. Upload your data and let's explore it together!",
+      sender: "ai",
+      timestamp: new Date(),
+      localOnly: true,
+    };
     setMessages([welcome]);
-    const sid = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    localStorage.setItem("sessionId", sid);
     localStorage.setItem("chat_messages_v1", JSON.stringify([welcome])); // Đè luôn bộ nhớ tạm ngay lập tức
-    setSessionId(sid);
   };
 
 
@@ -2061,7 +2060,7 @@ export function ThreePanelInterface() {
           <div className="mt-2 mb-1 px-2 flex items-center justify-between select-none">
             <div className="flex items-center gap-2 text-[11px] text-purple-600 dark:text-purple-400">
               <span className="h-px w-4 bg-purple-200 dark:bg-purple-800" />
-              <span className="font-medium">代码生成文件</span>
+              <span className="font-medium">Generated Files</span>
             </div>
             <button
               className="text-red-600 hover:text-red-700 p-1 rounded hover:bg-red-50 dark:hover:bg-red-950/20"
@@ -2228,7 +2227,7 @@ export function ThreePanelInterface() {
         {isGeneratedFolder && (
           <div className="mb-2 mt-2 ml-2 border-t-2 border-purple-200 dark:border-purple-800 relative">
             <div className="absolute -top-2.5 left-2 bg-white dark:bg-gray-950 px-2 text-[10px] text-purple-600 dark:text-purple-400 font-medium">
-              代码生成文件
+              Generated Files
             </div>
           </div>
         )}
@@ -5216,6 +5215,40 @@ export function ThreePanelInterface() {
 
             if (deltaContent) {
               accumulatedMessage += deltaContent;
+
+              // Parse GENERATED_FILES event emitted by backend after execute
+              const genFilesRegex = /<!-- GENERATED_FILES:(.*?) -->/s;
+              const genFilesMatch = accumulatedMessage.match(genFilesRegex);
+              if (genFilesMatch) {
+                try {
+                  const parsed = JSON.parse(genFilesMatch[1]);
+                  if (parsed?.files && Array.isArray(parsed.files) && parsed.files.length > 0) {
+                    const resolvedFiles = parsed.files.map((f: WorkspaceFile) => ({
+                      ...f,
+                      download_url: f.download_url
+                        ? resolveWorkspaceFileUrl(f.download_url, { download: true })
+                        : f.download_url,
+                      preview_url: f.preview_url
+                        ? resolveWorkspaceFileUrl(f.preview_url, { download: false })
+                        : f.preview_url,
+                    }));
+                    setLastGeneratedFiles(resolvedFiles);
+                    // Trigger workspace refresh
+                    setTimeout(() => {
+                      loadWorkspaceFiles();
+                      loadWorkspaceTree?.();
+                    }, 500);
+                    sonnerToast.success(`📁 ${resolvedFiles.length} file mới được tạo`, {
+                      description: resolvedFiles.map((f: WorkspaceFile) => f.name).join(", "),
+                      duration: 4000,
+                    });
+                  }
+                } catch (e) {
+                  console.warn("[GENERATED_FILES] parse error", e);
+                }
+                accumulatedMessage = accumulatedMessage.replace(genFilesRegex, "");
+              }
+
               const rimruleRegex = /<!-- RIMRULE_LEARNED: (.*?) -->/;
               const match = accumulatedMessage.match(rimruleRegex);
               if (match) {
@@ -5226,6 +5259,18 @@ export function ThreePanelInterface() {
                   style: { background: 'linear-gradient(to right, #0f2027, #203a43, #2c5364)', color: '#fff', border: '1px solid #4ade80' },
                 });
                 accumulatedMessage = accumulatedMessage.replace(rimruleRegex, '');
+              }
+
+              const vocabRegex = /<!-- VOCAB_DROPOUT: (.*?) -->/;
+              const matchVocab = accumulatedMessage.match(vocabRegex);
+              if (matchVocab) {
+                const vocabContent = matchVocab[1];
+                sonnerToast.warning('🎯 VOCAB DROPOUT (Cấm từ vựng)', {
+                  description: `Để chống học vẹt, hệ thống đang chủ động cấm AI sử dụng lại các thuật toán sau trong vòng lặp này: ${vocabContent}`,
+                  duration: 6000,
+                  style: { background: 'linear-gradient(to right, #f2994a, #f2c94c)', color: '#000', border: '1px solid #f2994a', fontWeight: 'bold' },
+                });
+                accumulatedMessage = accumulatedMessage.replace(vocabRegex, '');
               }
               // 仅更新 pending，不直接刷新 UI
               aiPendingContentRef.current = accumulatedMessage;
@@ -5252,6 +5297,18 @@ export function ThreePanelInterface() {
                 style: { background: 'linear-gradient(to right, #0f2027, #203a43, #2c5364)', color: '#fff', border: '1px solid #4ade80' },
               });
               accumulatedMessage = accumulatedMessage.replace(rimruleRegex, '');
+            }
+
+            const vocabRegex = /<!-- VOCAB_DROPOUT: (.*?) -->/;
+            const matchVocab = accumulatedMessage.match(vocabRegex);
+            if (matchVocab) {
+              const vocabContent = matchVocab[1];
+              sonnerToast.warning('🎯 VOCAB DROPOUT (Cấm từ vựng)', {
+                description: `Để chống học vẹt, hệ thống đang chủ động cấm AI sử dụng lại các thuật toán sau trong vòng lặp này: ${vocabContent}`,
+                duration: 6000,
+                style: { background: 'linear-gradient(to right, #f2994a, #f2c94c)', color: '#000', border: '1px solid #f2994a', fontWeight: 'bold' },
+              });
+              accumulatedMessage = accumulatedMessage.replace(vocabRegex, '');
             }
             aiPendingContentRef.current = accumulatedMessage;
           }
@@ -5294,6 +5351,23 @@ export function ThreePanelInterface() {
     if (!files) return;
     await uploadToDir("", files);
     if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  const handleClearWorkspace = async () => {
+    try {
+      const sessionId = localStorage.getItem("sessionId") || "default";
+      const url = `${API_URLS.WORKSPACE_CLEAR}?session_id=${sessionId}`;
+      const response = await fetch(url, { method: "DELETE" });
+      if (response.ok) {
+        sonnerToast.success(uiLanguage === "zh" ? "已清空工作区数据" : "Workspace data cleared successfully!");
+        loadWorkspaceFiles();
+      } else {
+        sonnerToast.error(uiLanguage === "zh" ? "清空失败" : "Failed to clear workspace");
+      }
+    } catch (e) {
+      console.error(e);
+      sonnerToast.error("Error clearing workspace");
+    }
   };
 
   const removeAttachment = (id: string) => {
@@ -5362,6 +5436,84 @@ export function ThreePanelInterface() {
     </AlertDialog>
   );
 
+  const renderGeneratedFilesTray = () => {
+    if (!lastGeneratedFiles || lastGeneratedFiles.length === 0) return null;
+
+    return (
+      <div className="mb-3 px-1">
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-2">
+            <Sparkles className="h-4 w-4 text-emerald-500" />
+            <span className="text-sm font-semibold text-emerald-700 dark:text-emerald-400">
+              New Output Files
+            </span>
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setLastGeneratedFiles([])}
+            className="h-6 px-2 text-gray-500 hover:text-gray-700"
+          >
+            Clear
+          </Button>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {lastGeneratedFiles.map((file, idx) => {
+            const ext = (file.extension || "").replace(/^\./, "").toUpperCase() || "FILE";
+            return (
+              <div
+                key={`gen-${idx}`}
+                className="group flex items-center gap-2 rounded-xl border border-emerald-200/50 bg-emerald-50/50 px-3 py-2 pr-2 dark:border-emerald-900/50 dark:bg-emerald-900/20"
+              >
+                <div className="flex items-center justify-center bg-white dark:bg-gray-950 rounded-lg h-8 w-8 shadow-sm">
+                  {file.category === "image" ? (
+                    <FileImage className="h-4 w-4 text-blue-500" />
+                  ) : file.category === "table" ? (
+                    <FileSpreadsheet className="h-4 w-4 text-emerald-500" />
+                  ) : (
+                    <FileText className="h-4 w-4 text-gray-500" />
+                  )}
+                </div>
+                <div className="flex flex-col max-w-[150px]">
+                  <span className="truncate text-xs font-medium text-gray-700 dark:text-gray-300">
+                    {file.name}
+                  </span>
+                  <span className="text-[10px] text-gray-500 uppercase">
+                    {ext} • {formatFileSize(file.size || 0)}
+                  </span>
+                </div>
+                <div className="flex items-center gap-1 ml-1 opacity-0 transition-opacity group-hover:opacity-100">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 w-7 p-0 rounded-full bg-white dark:bg-gray-800 hover:bg-emerald-100 dark:hover:bg-emerald-800"
+                    onClick={() => {
+                      setSelectedWorkspacePath(file.path);
+                      openPreview(file);
+                    }}
+                    title="Preview"
+                  >
+                    <Eye className="h-3.5 w-3.5 text-gray-600 dark:text-gray-300" />
+                  </Button>
+                  <a href={file.download_url} download target="_blank" rel="noreferrer">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 w-7 p-0 rounded-full bg-white dark:bg-gray-800 hover:bg-emerald-100 dark:hover:bg-emerald-800"
+                      title="Download"
+                    >
+                      <Download className="h-3.5 w-3.5 text-gray-600 dark:text-gray-300" />
+                    </Button>
+                  </a>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
+
   const renderChatComposer = (
     wrapperClassName: string,
     options?: { stacked?: boolean }
@@ -5369,6 +5521,7 @@ export function ThreePanelInterface() {
     const stacked = !!options?.stacked;
     return (
       <div className={wrapperClassName}>
+        {renderGeneratedFilesTray()}
         <div className={stacked ? "space-y-3" : "flex gap-3 items-end"}>
           {stacked ? (
             <Textarea
@@ -5397,6 +5550,15 @@ export function ThreePanelInterface() {
                 title={uiLanguage === "zh" ? "\u4e0a\u4f20\u6587\u4ef6" : "Upload Files"}
               >
                 <Paperclip className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleClearWorkspace}
+                className="h-10 w-10 p-0 rounded-full text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-200"
+                title={uiLanguage === "zh" ? "清空数据集" : "Clear Workspace Data"}
+              >
+                <Trash2 className="h-4 w-4" />
               </Button>
               <div className="flex-1 relative">
                 <Textarea
@@ -6091,6 +6253,15 @@ export function ThreePanelInterface() {
                       title={uiLanguage === "zh" ? "上传文件" : "Upload Files"}
                     >
                       <Paperclip className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleClearWorkspace}
+                      className="h-10 w-10 p-0 rounded-full text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-200"
+                      title={uiLanguage === "zh" ? "清空数据集" : "Clear Workspace Data"}
+                    >
+                      <Trash2 className="h-4 w-4" />
                     </Button>
                     <div className="flex-1 relative">
                       <Textarea

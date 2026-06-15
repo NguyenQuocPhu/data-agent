@@ -79,7 +79,7 @@ class OpenAICompatibleClient(ILLMClient):
                     temperature=temperature,
                     max_tokens=max_tokens,
                     stop=stop_sequences,
-                    extra_body={"cache":{"no-cache":True},"chat_template_kwargs":{"enable_thinking":True},"timeout":60}
+                    extra_body={"cache":{"no-cache":True},"chat_template_kwargs":{"enable_thinking":True},"timeout":120}
 
                 )
                 

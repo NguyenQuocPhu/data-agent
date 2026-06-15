@@ -10,6 +10,12 @@ import os
 router = APIRouter()
 
 
+@router.get("/workspace/generated-files")
+async def get_generated_files(session_id: str = Query("default")):
+    """Trả về danh sách file đã được AI agent sinh ra trong session này."""
+    return {"files": workspace_service.get_generated_files_for_session(session_id)}
+
+
 @router.get("/workspace/files")
 async def get_workspace_files(session_id: str = Query("default")):
     return {"files": workspace_service.list_workspace_files(session_id)}
@@ -110,13 +116,23 @@ async def upload_files(
 
 
 @router.delete("/workspace/clear")
-async def clear_workspace(session_id: str = Query("default")):
-    return workspace_service.clear_workspace(session_id)
+async def clear_workspace(session_id: str = Query("default"), lambda_instance = Depends(get_lambda_agent)):
+    result = workspace_service.clear_workspace(session_id)
+    try:
+        lambda_instance.conv.run_code("if '_DATASET_CACHE' in globals(): _DATASET_CACHE.clear()")
+    except Exception as e:
+        print(f"Failed to clear python cache: {e}")
+    return result
 
 
 @router.post("/workspace/clear")
-async def clear_workspace_via_post(session_id: str = Query("default")):
-    return workspace_service.clear_workspace(session_id)
+async def clear_workspace_via_post(session_id: str = Query("default"), lambda_instance = Depends(get_lambda_agent)):
+    result = workspace_service.clear_workspace(session_id)
+    try:
+        lambda_instance.conv.run_code("if '_DATASET_CACHE' in globals(): _DATASET_CACHE.clear()")
+    except Exception as e:
+        print(f"Failed to clear python cache: {e}")
+    return result
 
 
 @router.post("/workspace/upload-to")

@@ -68,3 +68,16 @@ dgm_agent/lcb_sandbox/
 
 *.pdf
 
+# Untracked junk files
+api_server.log
+lambda_evolution.log
+output/
+scratch/
+test_stub_dl/
+triadic_dgm.egg-info/
+workspace/
+{working_path}/
+blade_benchmark/
+*.pkl
+*.joblib
+*.png

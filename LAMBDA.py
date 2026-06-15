@@ -85,10 +85,11 @@ class LAMBDA:
             logger.error(f"Failed to initialize TriadicAgent: {e}")
             raise
 
+        safe_working_path = str(self.session_cache_path).replace('\\', '/')
         self.conv.programmer.messages = [
             {
                 "role": "system",
-                "content": PROGRAMMER_PROMPT.format(working_path=self.session_cache_path)
+                "content": PROGRAMMER_PROMPT.format(working_path=safe_working_path)
             }
         ]
 

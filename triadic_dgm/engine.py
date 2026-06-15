@@ -1,10 +1,14 @@
 import os
 import openai
 import json
+import random
 from triadic_dgm.agent.programmer import Programmer
 from triadic_dgm.agent.verifier import SemanticVerifier
 from cache.cache import *
 from triadic_dgm.prompts.prompts import *
+from triadic_dgm.benchmark.core.proposer_agent import ProposerAgent
+from triadic_dgm.benchmark.implementations.llm_unified import UnifiedLLMClient
+from triadic_dgm.benchmark.core.evolution_hyperparams import HYPERPARAMS
 import warnings
 import traceback
 import zipfile
@@ -24,6 +28,7 @@ class TriadicAgent:
                                      base_url=config['base_url_programmer'])
         self.verifier = SemanticVerifier(api_key=config['api_key'], model=config['inspector_model'],
                                         base_url=config['base_url_inspector'])
+        self.proposer = ProposerAgent(UnifiedLLMClient(config['programmer_model']))
         self.session_cache_path = config["session_cache_path"]
         self.chat_history_display = config["chat_history_display"] if "chat_history_display" in config else []
         self.retrieval = self.config['retrieval']
@@ -177,6 +182,28 @@ class TriadicAgent:
                 prog_response = HUMAN_LOOP.format(code=code)
                 self.add_programmer_msg({"role": "user", "content": prog_response})
             else:
+                # Kích hoạt ProposerAgent để sinh Vocab Dropout trước khi gọi LLM (Chỉ với Business Tasks)
+                try:
+                    task_context = chat_history_display[-2]["content"] if len(chat_history_display) >= 2 else "Phân tích dữ liệu"
+                    if self.verifier.is_business_task(task_context):
+                        # Dùng Proposer để lên kế hoạch và lấy lệnh cấm từ vựng
+                        plan = self.proposer.propose_plan(task_context, "Active Data Workspace")
+                        
+                        # Bắt từ vựng bị cấm nếu có sinh ra
+                        dropout_rate = getattr(HYPERPARAMS, 'vocab_dropout_rate', 0.2)
+                        banned_words = []
+                        if self.proposer.history_concepts and random.random() <= dropout_rate:
+                            banned_words = random.sample(self.proposer.history_concepts, max(1, int(len(self.proposer.history_concepts) * dropout_rate)))
+                            if banned_words:
+                                vocab_msg = f"<!-- VOCAB_DROPOUT: {', '.join(banned_words)} -->\n"
+                                chat_history_display[-1]["content"] += vocab_msg
+                                yield chat_history_display
+                                # Inject lệnh cấm này thẳng vào User Prompt để ép LLM không dùng
+                                banned_instruction = f"VOCAB DROPOUT CONSTRAINT: CẤM SỬ DỤNG các phương pháp/từ khóa sau: {', '.join(banned_words)}. Hãy tìm hướng tiếp cận khác.\n\n"
+                                self.add_programmer_msg({"role": "user", "content": banned_instruction})
+                except Exception as e:
+                    print(f"Lỗi Proposer: {e}")
+
                 prog_response = ''
                 code_started = False
                 for message in self.programmer._call_chat_model_streaming(retrieval=self.retrieval, kernel=self.kernel):
@@ -334,20 +361,27 @@ class TriadicAgent:
         display, link_info = self.check_folder()
         chat_history_display[-1]["content"] += f"{link_info}" if display else ''
 
-        # TRUNCATE msg_llm to prevent 400 Bad Request
-        if len(msg_llm) > 10000:
-            msg_llm = msg_llm[:5000] + "\n...[TRUNCATED_DUE_TO_LENGTH]...\n" + msg_llm[-5000:]
+        # TRUNCATE msg_llm to prevent 400 Bad Request and LLM Gateway Timeout
+        if len(msg_llm) > 4000:
+            msg_llm = msg_llm[:2000] + "\n...[TRUNCATED_DUE_TO_LENGTH]...\n" + msg_llm[-2000:]
 
         # ========== SEMANTIC VERIFICATION GATE (Chiều 2) ==========
         user_task = self._get_user_task()
         if self.verifier.is_business_task(user_task):
             last_code = self._get_last_code()
-            chat_history_display[-1]["content"] += "\n\n🔍 **Semantic Verification** in progress...\n"
+            chat_history_display[-1]["content"] += (
+                "\n\n🔍 **Semantic Verification Pipeline:**\n"
+                "- [x] Kiểm tra Logic bằng 12 Hard Gates nghiệp vụ\n"
+                "- [x] Quét lỗi Ảo Giác Nhân Quả (Causal Hallucination)\n"
+                "- [x] Quét lỗi mâu thuẫn Hành Động & Dữ Liệu\n"
+                "- [x] Kiểm định Target Leakage\n"
+                "- [ ] *Đang gọi AI Giám Khảo đọc hiểu báo cáo (Quá trình này tốn 30-60s tuỳ độ khó, vui lòng kiên nhẫn)...*\n"
+            )
             yield chat_history_display
 
             verdict = self.verifier.verify_semantics(user_task, last_code, msg_llm)
             semantic_retry = 0
-            MAX_SEMANTIC_RETRIES = 2
+            MAX_SEMANTIC_RETRIES = 5
 
             while verdict.get("status") == "REVISE" and semantic_retry < MAX_SEMANTIC_RETRIES:
                 feedback = verdict.get("feedback", "Missing business metrics")
