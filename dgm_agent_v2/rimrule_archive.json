@@ -905,9 +905,9 @@
         ],
         "strength": "MUST",
         "tool_category": "data_analysis",
-        "errors_fixed": 1,
+        "errors_fixed": 5,
         "token_length": 23,
-        "mdl_score": 0.0435
+        "mdl_score": 0.2174
     },
     {
         "nl_rule": "\n\n1.  **Identify Output Paths:** Locate all file paths defined in the script for saving outputs (e.g., CSV data, models, plots).\n2.  **Validate Directory Existence:** Before executing any file write operation, extract the parent directory path from the target file path.\n3.  **Create Missing Directories:** Implement a check to verify if the parent directory exists; if it does not, programmatically create the directory structure before attempting to save the file.\n4.  **Apply Universally:** Ensure this directory creation logic is applied to all file saving steps (data, models, and visualizations) to prevent execution interruption due to missing paths.\n5.  **Alternative Path Strategy:** Consider switching to relative paths based on the current working directory to eliminate dependency on specific absolute paths that may not exist in the execution environment.",
@@ -1181,9 +1181,9 @@
         ],
         "strength": "MUST",
         "tool_category": "data_analysis",
-        "errors_fixed": 1,
+        "errors_fixed": 2,
         "token_length": 59,
-        "mdl_score": 0.0169
+        "mdl_score": 0.0339
     },
     {
         "nl_rule": "\n\n## Fix Instructions\n\n**Problem Analysis:**\nThe error `KeyError: 'persona_text'` occurs because the `persona_text` column was created on the `data_clustering` DataFrame but the code attempts to access it from `data_with_cluster`, which was created from the original `data` DataFrame without the `persona_text` column.\n\n**Generalized Fix Steps:**\n\n1. **Ensure Column Propagation**: When creating a copy of the original dataset for analysis (e.g., `data_with_cluster`), ensure all derived columns (like `persona_text`) are also copied or merged into this dataset before attempting to access them.\n\n2. **Verify Column Existence**: Before accessing any derived column in a DataFrame, verify that the column exists in that specific DataFrame. If the column was created on a different DataFrame, either:\n   - Copy the column from the source DataFrame to the target DataFrame, OR\n   - Access the column from the correct DataFrame where it was originally created.\n\n3. **Maintain Data Consistency**: When working with multiple DataFrame copies (e.g., `data_clustering` for clustering, `data_with_cluster` for final analysis), ensure that all derived features and labels are consistently propagated across all DataFrames that need them.\n\n4. **Check Column Availability**: Add a validation step to confirm that required columns exist in the target DataFrame before attempting to access them, especially when combining data from multiple sources or after DataFrame operations.\n\n**Key Principle**: Always verify that derived columns exist in the DataFrame you're accessing them from, and ensure data consistency across all DataFrame copies used in the analysis pipeline.",
@@ -1228,9 +1228,9 @@
         ],
         "strength": "MUST",
         "tool_category": "data_analysis",
-        "errors_fixed": 2,
+        "errors_fixed": 3,
         "token_length": 32,
-        "mdl_score": 0.0625
+        "mdl_score": 0.0938
     },
     {
         "nl_rule": "Semantic check failed: \u26a0 Churn Variance Error: Ch\u00eanh l\u1ec7ch Churn Rate gi\u1eefa c\u00e1c c\u1ee5m (0.16 vs 0.12) < 5%. C\u00e1c c\u1ee5m n\u00e0y kh\u00f4ng ph\u00e2n t\u00e1ch \u0111\u01b0\u1ee3c r\u1ee7i ro r\u1eddi m\u1ea1ng. B\u1eaeT BU\u1ed8C ph\u1ea3i t\u0103ng K ho\u1eb7c thay \u0111\u1ed5i features \u0111\u1ec3 nh\u00f3m r\u1ee7i ro ph\u00e2n t\u00e1ch r\u00f5 r\u1ec7t h\u01a1n!",
@@ -1245,9 +1245,9 @@
         ],
         "strength": "MUST",
         "tool_category": "data_analysis",
-        "errors_fixed": 2,
+        "errors_fixed": 6,
         "token_length": 48,
-        "mdl_score": 0.0417
+        "mdl_score": 0.125
     },
     {
         "nl_rule": "Semantic check failed: \u26a0 Persona quality too low. Silhouette 0.1847 < 0.2. Kh\u00f4ng \u0111\u1ee7 b\u1eb1ng ch\u1ee9ng th\u1ed1ng k\u00ea \u0111\u1ec3 t\u1ea1o persona \u0111\u00e1ng tin c\u1eady. D\u1eebng vi\u1ec7c t\u1ea1o Persona gi\u1ea3.",
@@ -1354,9 +1354,9 @@
         ],
         "strength": "MUST",
         "tool_category": "data_analysis",
-        "errors_fixed": 2,
+        "errors_fixed": 7,
         "token_length": 54,
-        "mdl_score": 0.037
+        "mdl_score": 0.1296
     },
     {
         "nl_rule": "\n\n1. **Validate Feature Data Types:** Before passing data to any machine learning model, verify that the feature matrix contains exclusively numerical data types. Any string or object columns must be excluded or transformed to prevent type conversion errors during training.\n\n2. **Apply Categorical Encoding:** If categorical variables are required for the analysis, apply an appropriate encoding technique (e.g., One-Hot Encoding) to convert them into numerical format prior to model fitting.\n\n3. **Exclude Non-Predictive Identifiers:** Explicitly remove unique identifier columns (such as customer IDs) from the feature set, as they do not contribute to predictive patterns and often cause type mismatches in numerical models.",
@@ -1495,9 +1495,9 @@
         ],
         "strength": "MUST",
         "tool_category": "data_analysis",
-        "errors_fixed": 1,
+        "errors_fixed": 2,
         "token_length": 53,
-        "mdl_score": 0.0189
+        "mdl_score": 0.0377
     },
     {
         "nl_rule": "\n\n**Root Cause Analysis:**\nThe execution failed due to a `NameError`, indicating that a variable was referenced in a print statement with a spelling mismatch (typo) compared to its definition.\n\n**Fix Instructions:**\n1.  **Verify Variable Consistency:** Ensure that every variable name used in the code (including print statements and function calls) matches the defined variable name exactly, character-for-character.\n2.  **Check Scope and Definition:** Confirm that all variables referenced in a specific code block are defined within the current scope before they are used.\n3.  **Correct Typos:** Identify and fix any spelling errors in variable references, such as extra characters or missing letters, to align with the original definition.\n4.  **Preventive Review:** Implement a code review step to systematically check variable naming consistency before execution to catch similar typos early.",
@@ -1558,5 +1558,427 @@
         "errors_fixed": 1,
         "token_length": 213,
         "mdl_score": 0.0047
+    },
+    {
+        "nl_rule": "\n\n## Fix Instructions for ImportError\n\n### Root Cause Analysis\nThe error occurs because `TfidfVectorizer` is incorrectly imported from `sklearn.preprocessing` when it actually belongs to `sklearn.feature_extraction.text`.\n\n### Generalized Fix Steps\n\n1. **Identify Incorrect Import Paths**\n   - Review all sklearn imports to verify they use the correct module paths\n   - Cross-reference each imported class/function with its actual location in the sklearn library\n\n2. **Correct Module Import Statements**\n   - Move text vectorization classes (like `TfidfVectorizer`) from `sklearn.preprocessing` to `sklearn.feature_extraction.text`\n   - Keep scaling classes (like `StandardScaler`) in `sklearn.preprocessing`\n   - Ensure no duplicate imports exist for the same class from different modules\n\n3. **Remove Redundant Imports**\n   - Eliminate duplicate import statements for the same class\n   - Consolidate imports from the same module into a single statement\n\n4. **Verify Import Completeness**\n   - After fixing, verify all required sklearn modules are imported from their correct locations\n   - Ensure no import statements reference non-existent paths\n\n### Prevention Guidelines\n- Always verify sklearn class locations before importing\n- Use IDE autocomplete features to discover correct import paths\n- Maintain a consistent import structure across the codebase\n- Test imports early in the development pipeline before running full analysis",
+        "domain": "python",
+        "qualifier": [
+            "runtime_error"
+        ],
+        "action": [
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "coding",
+        "errors_fixed": 1,
+        "token_length": 189,
+        "mdl_score": 0.0053
+    },
+    {
+        "nl_rule": "\n\n## Fix Instructions\n\n### Root Cause Analysis\nThe error `TypeError: unsupported operand type(s) for +: 'int' and 'str'` occurs when attempting to sum values from columns that contain mixed or string data types instead of numeric values.\n\n### Generalized Fix Steps\n\n1. **Validate Data Types Before Arithmetic Operations**\n   - Before performing any sum/mean calculations on columns, verify that the column dtype is numeric (int64 or float64)\n   - Filter columns to only include those with numeric dtype before attempting aggregation\n\n2. **Add Type Checking in Feature Selection**\n   - When building feature lists for calculations, explicitly check `df[col].dtype in ['int64', 'float64']` \n   - Exclude any columns with object/string dtype from numeric operations\n\n3. **Implement Safe Summation with Error Handling**\n   - Wrap arithmetic operations in try-except blocks to catch type errors\n   - Use `.astype(float)` with error handling to convert string values to numeric where appropriate\n   - Apply `pd.to_numeric()` with `errors='coerce'` to handle non-numeric values gracefully\n\n4. **Ensure Consistent Data Preparation Pipeline**\n   - Apply `.fillna(0)` to numeric columns before aggregation to handle missing values\n   - Verify all columns used in calculations have been pre-processed to numeric type\n   - Add validation step to confirm feature columns contain only numeric data before clustering\n\n5. **Follow Domain Calculation Rules**\n   - Ensure ARPU calculation uses `df['cuoc_hang_thang'].mean()` without division\n   - Ensure Churn_Rate calculation uses `df['RMDT'].mean()` (but RMDT must be dropped from clustering features per Rule 1)\n   - Ensure support_pct is in range [0.0, 1.0] for chart rendering (Rule 2)\n\n### Prevention Checklist\n- [ ] All columns used in arithmetic operations are verified as numeric dtype\n- [ ] Missing values are handled before calculations\n- [ ] Target leakage columns are dropped before clustering\n- [ ] Output values are in correct scale/format for visualization\n- [ ] JSON output follows required format with markers",
+        "domain": "python",
+        "qualifier": [
+            "runtime_error"
+        ],
+        "action": [
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "coding",
+        "errors_fixed": 1,
+        "token_length": 296,
+        "mdl_score": 0.0034
+    },
+    {
+        "nl_rule": "\n\n1. **Diagnose Import Path Mismatch**: Identify the import statement that attempts to load the text vectorizer class from the `sklearn.preprocessing` module. This is incorrect as text vectorizers belong to the text feature extraction submodule.\n\n2. **Separate Import Statements**: Split the combined import line. Keep the scaler class within the `sklearn.preprocessing` import statement.\n\n3. **Correct Module Assignment**: Move the text vectorizer class import to the `sklearn.feature_extraction.text` module. Ensure it is not listed in the preprocessing import list.\n\n4. **Verify Module Structure**: Confirm that all scikit-learn imports align with their respective submodules (e.g., text processing in `feature_extraction`, scaling in `preprocessing`) to prevent future `ImportError` exceptions.",
+        "domain": "python",
+        "qualifier": [
+            "runtime_error"
+        ],
+        "action": [
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "coding",
+        "errors_fixed": 1,
+        "token_length": 103,
+        "mdl_score": 0.0097
+    },
+    {
+        "nl_rule": "\n\n1. **Validate Data Types Before Statistical Operations**: Before performing any statistical reduction (e.g., median, mean) on a column, explicitly verify that the column's data type is numeric. If the column contains strings or mixed types, convert it to numeric using safe coercion methods that handle errors gracefully.\n\n2. **Ensure Preprocessing Consistency**: Use the preprocessed dataset (where types have been standardized) for all calculations and comparisons, rather than mixing raw data with preprocessed data in the same calculation context. If using raw data, apply the same type conversion logic explicitly before calculations.\n\n3. **Filter Columns by Type**: When selecting columns for statistical analysis based on naming patterns, filter the list to include only columns that are confirmed to be numeric, excluding any string or object type columns that might match the search pattern.\n\n4. **Implement Robust Error Handling**: Wrap statistical operations in error handling blocks or use functions that return safe defaults when data types are incompatible, preventing runtime crashes.",
+        "domain": "python",
+        "qualifier": [
+            "runtime_error"
+        ],
+        "action": [
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "coding",
+        "errors_fixed": 1,
+        "token_length": 159,
+        "mdl_score": 0.0063
+    },
+    {
+        "nl_rule": "\n\n## Fix Instructions\n\n### 1. **\u8bc6\u522b\u6570\u636e\u7ed3\u6784\u8bbf\u95ee\u9519\u8bef**\n- \u5f53\u53d8\u91cf\u5b58\u50a8\u7684\u662f\u5217\u540d\u5b57\u7b26\u4e32\uff08\u5982 `target_col[0]`\uff09\u65f6\uff0c\u4e0d\u80fd\u76f4\u63a5\u8c03\u7528 pandas \u65b9\u6cd5\uff08\u5982 `.apply()`\uff09\n- \u5fc5\u987b\u901a\u8fc7 `df[\u5217\u540d]` \u683c\u5f0f\u5148\u83b7\u53d6\u5b9e\u9645\u7684 Series \u5bf9\u8c61\uff0c\u518d\u8c03\u7528\u65b9\u6cd5\n\n### 2. **\u4fee\u6b63\u6570\u636e\u63d0\u53d6\u65b9\u5f0f**\n- \u5728\u8c03\u7528 pandas \u65b9\u6cd5\u524d\uff0c\u786e\u4fdd\u64cd\u4f5c\u5bf9\u8c61\u662f DataFrame \u7684\u5217\uff08Series\uff09\uff0c\u800c\u975e\u5217\u540d\u5b57\u7b26\u4e32\n- \u4f7f\u7528 `df[\u53d8\u91cf\u540d]` \u8bbf\u95ee\u5217\u6570\u636e\uff0c\u800c\u4e0d\u662f\u76f4\u63a5\u5bf9\u53d8\u91cf\u540d\u672c\u8eab\u8c03\u7528\u65b9\u6cd5\n\n### 3. **\u4fdd\u6301\u8ba1\u7b97\u903b\u8f91\u4e00\u81f4**\n- \u786e\u4fdd\u6240\u6709\u5217\u8bbf\u95ee\u90fd\u9075\u5faa\u76f8\u540c\u7684\u6a21\u5f0f\uff1a\u5148\u901a\u8fc7 `df[\u5217\u540d]` \u83b7\u53d6\u6570\u636e\uff0c\u518d\u8fdb\u884c\u8f6c\u6362\u6216\u8ba1\u7b97\n- \u907f\u514d\u5728\u5b57\u7b26\u4e32\u53d8\u91cf\u4e0a\u76f4\u63a5\u8c03\u7528 pandas \u65b9\u6cd5\n\n### 4. **\u9a8c\u8bc1\u6570\u636e\u7c7b\u578b**\n- \u5728\u8c03\u7528\u65b9\u6cd5\u524d\uff0c\u786e\u8ba4\u64cd\u4f5c\u5bf9\u8c61\u662f Series \u7c7b\u578b\uff08\u53ef\u901a\u8fc7 `type()` \u68c0\u67e5\uff09\n- \u786e\u4fdd\u5217\u540d\u53d8\u91cf\u6b63\u786e\u6307\u5411 DataFrame \u4e2d\u7684\u5b9e\u9645\u5217\n\n### 5. **\u901a\u7528\u4fee\u590d\u6a21\u5f0f**\n- \u9519\u8bef\u6a21\u5f0f\uff1a`column_name_var.apply(...)` \u274c\n- \u6b63\u786e\u6a21\u5f0f\uff1a`df[column_name_var].apply(...)` \u2705\n\n---\n\n**\u6838\u5fc3\u95ee\u9898**\uff1a\u4ee3\u7801\u5c06\u5217\u540d\u5b57\u7b26\u4e32\u5f53\u4f5c Series \u5bf9\u8c61\u4f7f\u7528\uff0c\u5bfc\u81f4 AttributeError\u3002\u4fee\u590d\u65f6\u9700\u5148\u901a\u8fc7 DataFrame \u7d22\u5f15\u83b7\u53d6\u5b9e\u9645\u5217\u6570\u636e\u3002",
+        "domain": "python",
+        "qualifier": [
+            "runtime_error"
+        ],
+        "action": [
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "coding",
+        "errors_fixed": 1,
+        "token_length": 71,
+        "mdl_score": 0.0141
+    },
+    {
+        "nl_rule": "\n\n1. **Synchronize Data Preprocessing**: Ensure the data instance used for row-level calculations has undergone the same numeric type conversion as the feature engineering dataset. Do not mix raw and preprocessed data in the same calculation context.\n\n2. **Enforce Numeric Constraints**: Before performing arithmetic operations (such as sum or mean) on column subsets, explicitly convert the values to numeric types. Handle non-numeric entries by converting them to nulls rather than allowing them to remain as strings.\n\n3. **Validate Column Types**: Verify that the specific columns selected for calculation contain only numeric data types. If the column dtype is non-numeric, apply a safe conversion function that coerces errors to NaN before aggregation.",
+        "domain": "python",
+        "qualifier": [
+            "runtime_error"
+        ],
+        "action": [
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "coding",
+        "errors_fixed": 1,
+        "token_length": 110,
+        "mdl_score": 0.0091
+    },
+    {
+        "nl_rule": "\n\n1. **X\u00e1c minh s\u1ef1 t\u1ed3n t\u1ea1i c\u1ee7a c\u1ed9t m\u1ee5c ti\u00eau**: Tr\u01b0\u1edbc khi th\u1ef1c hi\u1ec7n b\u1ea5t k\u1ef3 ph\u00e2n t\u00edch th\u1ed1ng k\u00ea n\u00e0o y\u00eau c\u1ea7u c\u1ed9t m\u1ee5c ti\u00eau (nh\u01b0 t\u00ednh t\u01b0\u01a1ng quan ho\u1eb7c trung b\u00ecnh), c\u1ea7n ki\u1ec3m tra programmatically xem c\u1ed9t \u0111\u00f3 c\u00f3 th\u1ef1c s\u1ef1 t\u1ed3n t\u1ea1i trong DataFrame hay kh\u00f4ng.\n\n2. **Th\u1ef1c thi c\u00f3 \u0111i\u1ec1u ki\u1ec7n**: Bao b\u1ecdc c\u00e1c thao t\u00e1c ph\u1ee5 thu\u1ed9c v\u00e0o c\u1ed9t m\u1ee5c ti\u00eau trong kh\u1ed1i \u0111i\u1ec1u ki\u1ec7n. N\u1ebfu c\u1ed9t kh\u00f4ng t\u1ed3n t\u1ea1i, ghi log c\u1ea3nh b\u00e1o v\u00e0 b\u1ecf qua b\u01b0\u1edbc ph\u00e2n t\u00edch \u0111\u00f3 thay v\u00ec \u0111\u1ec3 ch\u01b0\u01a1ng tr\u00ecnh b\u1ecb l\u1ed7i d\u1eebng (crash).\n\n3. **Ng\u0103n ng\u1eeba r\u00f2 r\u1ec9 d\u1eef li\u1ec7u**: Khi chu\u1ea9n b\u1ecb d\u1eef li\u1ec7u cho m\u00f4 h\u00ecnh (nh\u01b0 KMeans), \u0111\u1ea3m b\u1ea3o c\u1ed9t m\u1ee5c ti\u00eau (d\u00f9 t\u00ean l\u00e0 g\u00ec) lu\u00f4n \u0111\u01b0\u1ee3c lo\u1ea1i b\u1ecf kh\u1ecfi t\u1eadp \u0111\u1eb7c tr\u01b0ng (features) \u0111\u1ea7u v\u00e0o \u0111\u1ec3 tr\u00e1nh r\u00f2 r\u1ec9 th\u00f4ng tin.\n\n4. **S\u1eed d\u1ee5ng t\u00ean c\u1ed9t th\u1ef1c t\u1ebf**: Tr\u00e1nh gi\u1ea3 \u0111\u1ecbnh c\u1ee9ng t\u00ean c\u1ed9t (v\u00ed d\u1ee5: 'RMDT'). H\u00e3y s\u1eed d\u1ee5ng t\u00ean c\u1ed9t \u0111\u01b0\u1ee3c ph\u00e1t hi\u1ec7n t\u1eeb metadata c\u1ee7a d\u1eef li\u1ec7u \u0111\u00e3 t\u1ea3i cho m\u1ecdi thao t\u00e1c x\u1eed l\u00fd li\u00ean quan \u0111\u1ebfn m\u1ee5c ti\u00eau.",
+        "domain": "python",
+        "qualifier": [
+            "runtime_error"
+        ],
+        "action": [
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "coding",
+        "errors_fixed": 1,
+        "token_length": 180,
+        "mdl_score": 0.0056
+    },
+    {
+        "nl_rule": "\n\n1.  **S\u1eeda l\u1ed7i Import:** Di chuy\u1ec3n l\u1ec7nh import c\u1ee7a l\u1edbp vector h\u00f3a v\u0103n b\u1ea3n (text vectorization class) t\u1eeb module x\u1eed l\u00fd ti\u1ec1n x\u1eed l\u00fd d\u1eef li\u1ec7u (`sklearn.preprocessing`) sang module tr\u00edch xu\u1ea5t \u0111\u1eb7c t\u1ea3 v\u0103n b\u1ea3n (`sklearn.feature_extraction.text`) \u0111\u1ec3 tr\u00e1nh l\u1ed7i `ImportError`.\n2.  **Tu\u00e2n th\u1ee7 r\u00e0ng bu\u1ed9c t\u1eeb kh\u00f3a:** Lo\u1ea1i b\u1ecf ho\u00e0n to\u00e0n vi\u1ec7c s\u1eed d\u1ee5ng bi\u1ebfn m\u1ee5c ti\u00eau b\u1ecb c\u1ea5m trong c\u00e1c b\u01b0\u1edbc ti\u1ec1n x\u1eed l\u00fd, ch\u1ecdn \u0111\u1eb7c tr\u01b0ng v\u00e0 t\u00ednh to\u00e1n, thay th\u1ebf b\u1eb1ng c\u00e1c ch\u1ec9 s\u1ed1 thay th\u1ebf h\u1ee3p l\u1ec7 kh\u00e1c theo y\u00eau c\u1ea7u c\u1ee7a nhi\u1ec7m v\u1ee5.\n3.  **Ng\u0103n ch\u1eb7n r\u00f2 r\u1ec9 d\u1eef li\u1ec7u:** \u0110\u1ea3m b\u1ea3o bi\u1ebfn m\u1ee5c ti\u00eau b\u1ecb c\u1ea5m kh\u00f4ng \u0111\u01b0\u1ee3c \u0111\u01b0a v\u00e0o t\u1eadp h\u1ee3p c\u00e1c \u0111\u1eb7c tr\u01b0ng \u0111\u1ea7u v\u00e0o cho thu\u1eadt to\u00e1n ph\u00e2n c\u1ee5m, ch\u1ec9 gi\u1eef l\u1ea1i c\u00e1c bi\u1ebfn h\u00e0nh vi v\u00e0 t\u01b0\u01a1ng t\u00e1c \u0111\u1ec3 x\u00e2y d\u1ef1ng m\u00f4 h\u00ecnh.",
+        "domain": "python",
+        "qualifier": [
+            "runtime_error"
+        ],
+        "action": [
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "coding",
+        "errors_fixed": 1,
+        "token_length": 133,
+        "mdl_score": 0.0075
+    },
+    {
+        "nl_rule": "\n\n1. **Dynamic Schema Validation**: Before accessing any column by name, programmatically verify its existence within the loaded dataset's column list to prevent `KeyError` exceptions caused by missing fields.\n2. **Remove Hardcoded Assumptions**: Eliminate all references to specific column names that belong to unrelated example datasets (e.g., Iris dataset columns) and replace them with logic that adapts to the actual schema of the loaded data.\n3. **Adaptive Feature Selection**: Configure the clustering pipeline to automatically identify numerical features for input, ensuring target variables or leakage indicators are explicitly excluded from the feature set based on domain rules.\n4. **Flexible Visualization Logic**: Update exploratory data analysis plots to iterate over available numeric columns dynamically rather than relying on a fixed list of assumed feature names.\n5. **Metric Mapping Verification**: Ensure business metric calculations (such as ARPU and Churn Rate) are mapped to the actual column names present in the dataset, confirming their existence before performing computations.",
+        "domain": "python",
+        "qualifier": [
+            "runtime_error"
+        ],
+        "action": [
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "coding",
+        "errors_fixed": 1,
+        "token_length": 154,
+        "mdl_score": 0.0065
+    },
+    {
+        "nl_rule": "\n\n## Fix Instructions\n\n### 1. **Convert String Columns to Numeric Before Calculation**\n- **Problem**: Churn status columns contain string/object data, not numeric values\n- **Fix**: Before calculating mean on any column, verify it's numeric dtype. If not, convert using `pd.to_numeric()` with `errors='coerce'` and handle NaN values\n- **General Rule**: Never apply statistical operations (mean, sum, etc.) on string/object columns without first converting to numeric\n\n### 2. **Remove Target Leakage Variables from Clustering Features**\n- **Problem**: Target variables (like RMDT or status columns) are being used as features for KMeans\n- **Fix**: Create a separate exclusion list for target/leakage variables and drop them from the feature matrix `X` before scaling and clustering\n- **General Rule**: Target variables must NEVER be included in the feature set for unsupervised learning algorithms\n\n### 3. **Ensure Support Percentage is Properly Scaled**\n- **Problem**: `support_pct` may not be in [0.0, 1.0] format for chart rendering\n- **Fix**: Calculate as `support / total_records` and verify the result is between 0 and 1. If using percentage format (0-100), convert to decimal (0-1) for plotting libraries\n- **General Rule**: Always validate percentage/ratio values are in the expected scale before passing to visualization functions\n\n### 4. **Handle Dictionary List Structure for Plotting**\n- **Problem**: Results are stored as dictionary list, not DataFrame\n- **Fix**: Use list comprehension or loop to extract values from each dictionary before passing to plotting functions. Create separate lists for x-axis and y-axis data\n- **General Rule**: When working with dictionary lists, extract values into independent sequences before passing to functions expecting arrays/lists\n\n### 5. **Ensure JSON Output Format Compliance**\n- **Problem**: JSON output may not follow required format\n- **Fix**: Wrap persona list with `[JSON_START_PERSONA]` and `[JSON_END_PERSONA]` markers, use `json.dumps()` for serialization\n- **General Rule**: Always use the exact output format markers specified in requirements for automated parsing\n\n### 6. **Validate Persona Names Don't Contain Forbidden Patterns**\n- **Problem**: Persona names may contain '(C\u1ee5m X)' pattern\n- **Fix**: After generating persona names, check for forbidden patterns and replace with descriptive names based on actual data characteristics\n- **General Rule**: Persona names must be descriptive of behavior, not cluster identifiers\n\n### 7. **Add Data Type Validation Before Operations**\n- **Problem**: No validation before applying operations on columns\n- **Fix**: Add `if col in df.columns and pd.api.types.is_numeric_dtype(df[col])` checks before applying numeric operations\n- **General Rule**: Always validate column existence and data type before applying operations",
+        "domain": "python",
+        "qualifier": [
+            "runtime_error"
+        ],
+        "action": [
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "coding",
+        "errors_fixed": 1,
+        "token_length": 398,
+        "mdl_score": 0.0025
+    },
+    {
+        "nl_rule": "\n\nThe error occurs because the plotting loop attempts to access more axes than were created in the figure initialization. The figure grid size (4 axes) is smaller than the number of iterations (up to 12), causing an index out-of-bounds exception.\n\n**Fix Instructions:**\n\n1.  **Align Layout with Data Volume:** Modify the figure initialization parameters to ensure the total number of generated plotting areas is greater than or equal to the maximum number of items intended for iteration in the loop.\n2.  **Constrain Loop Range:** If the figure layout cannot be changed, restrict the loop's iteration count to match the total number of available plotting areas to prevent accessing non-existent indices.\n3.  **Validate Access Bounds:** Implement a check or logic to ensure that any index used to retrieve a plotting area does not exceed the actual size of the axes collection before execution.",
+        "domain": "python",
+        "qualifier": [
+            "runtime_error"
+        ],
+        "action": [
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "coding",
+        "errors_fixed": 1,
+        "token_length": 141,
+        "mdl_score": 0.0071
+    },
+    {
+        "nl_rule": "\n\n## FIX INSTRUCTIONS\n\n### Root Cause Analysis\nThe error occurs because `StandardScaler` receives non-numeric data (string values like 'Kh\u00f4ng c\u00f3 t\u00edn hi\u1ec7u quang (mkn)') that cannot be converted to float. The feature selection logic incorrectly includes categorical columns in the scaling pipeline.\n\n### Generalized Fix Steps\n\n1. **Validate Feature Types Before Scaling**: Before passing data to `StandardScaler`, verify that ALL columns in the feature DataFrame are numeric. Filter out any columns that contain string/object data types that cannot be converted to numeric values.\n\n2. **Proper Numeric Column Selection**: When building the feature set, use `select_dtypes(include=[np.number])` to explicitly select only numeric columns. Do not rely on post-hoc conversion attempts for categorical data.\n\n3. **Handle Non-Convertible Columns**: For any columns that cannot be converted to numeric (e.g., string values with text), drop them from the feature set rather than attempting coercion. Use `pd.to_numeric(..., errors='coerce')` and then drop rows/columns with resulting NaN values.\n\n4. **Verify Data Types Before Scaling**: Add a validation step before `StandardScaler.fit_transform()` that checks `features_df.dtypes` to ensure all columns are numeric types (int, float). Raise an error or filter out non-numeric columns if validation fails.\n\n5. **Maintain Consistent Feature Selection**: Ensure the same feature selection logic is applied consistently throughout the pipeline (EDA, scaling, clustering, and decision tree training) to prevent type mismatches.\n\n### Prevention Checklist\n- [ ] Confirm all feature columns are numeric before scaling\n- [ ] Drop non-numeric columns instead of forcing conversion\n- [ ] Validate data types after any preprocessing step\n- [ ] Use `select_dtypes()` for explicit numeric filtering\n- [ ] Test with sample data before running full pipeline",
+        "domain": "python",
+        "qualifier": [
+            "runtime_error"
+        ],
+        "action": [
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "coding",
+        "errors_fixed": 1,
+        "token_length": 267,
+        "mdl_score": 0.0037
+    },
+    {
+        "nl_rule": "\n\n1. **Ki\u1ec3m tra ki\u1ec3u d\u1eef li\u1ec7u tr\u01b0\u1edbc khi t\u00ednh to\u00e1n**: Tr\u01b0\u1edbc khi th\u1ef1c hi\u1ec7n c\u00e1c ph\u00e9p t\u00ednh th\u1ed1ng k\u00ea s\u1ed1 h\u1ecdc (nh\u01b0 `.mean()`, `.sum()`) tr\u00ean b\u1ea5t k\u1ef3 c\u1ed9t d\u1eef li\u1ec7u n\u00e0o, c\u1ea7n x\u00e1c minh r\u1eb1ng c\u1ed9t \u0111\u00f3 c\u00f3 ki\u1ec3u d\u1eef li\u1ec7u s\u1ed1 (numeric) ch\u1ee9 kh\u00f4ng ph\u1ea3i chu\u1ed7i (string/object).\n\n2. **Chuy\u1ec3n \u0111\u1ed5i ki\u1ec3u d\u1eef li\u1ec7u b\u1eaft bu\u1ed9c**: N\u1ebfu c\u1ed9t m\u1ee5c ti\u00eau ch\u1ee9a gi\u00e1 tr\u1ecb d\u1ea1ng chu\u1ed7i nh\u01b0ng c\u1ea7n t\u00ednh to\u00e1n s\u1ed1 h\u1ecdc, b\u1eaft bu\u1ed9c ph\u1ea3i chuy\u1ec3n \u0111\u1ed5i ch\u00fang sang ki\u1ec3u s\u1ed1 (float ho\u1eb7c int) tr\u01b0\u1edbc khi s\u1eed d\u1ee5ng.\n\n3. **S\u1eed d\u1ee5ng h\u00e0m chuy\u1ec3n \u0111\u1ed5i an to\u00e0n**: \u00c1p d\u1ee5ng h\u00e0m chuy\u1ec3n \u0111\u1ed5i v\u1edbi tham s\u1ed1 x\u1eed l\u00fd l\u1ed7i (v\u00ed d\u1ee5: `errors='coerce'`) \u0111\u1ec3 \u0111\u1ea3m b\u1ea3o c\u00e1c gi\u00e1 tr\u1ecb kh\u00f4ng h\u1ee3p l\u1ec7 \u0111\u01b0\u1ee3c chuy\u1ec3n th\u00e0nh NaN thay v\u00ec g\u00e2y l\u1ed7i ch\u01b0\u01a1ng tr\u00ecnh.\n\n4. **Tu\u00e2n th\u1ee7 quy t\u1eafc nghi\u1ec7p v\u1ee5**: \u0110\u1ea3m b\u1ea3o ch\u1ec9 s\u1ed1 m\u1ee5c ti\u00eau (nh\u01b0 Churn Rate) \u0111\u01b0\u1ee3c t\u00ednh t\u1eeb c\u1ed9t c\u00f3 \u0111\u1ecbnh d\u1ea1ng s\u1ed1 \u0111\u00fang theo quy \u0111\u1ecbnh, \u01b0u ti\u00ean c\u1ed9t chu\u1ea9n n\u1ebfu c\u00f3 s\u1eb5n, ho\u1eb7c chu\u1ea9n h\u00f3a d\u1eef li\u1ec7u c\u1ee7a c\u1ed9t thay th\u1ebf tr\u01b0\u1edbc khi \u0111\u01b0a v\u00e0o t\u00ednh to\u00e1n.",
+        "domain": "python",
+        "qualifier": [
+            "runtime_error"
+        ],
+        "action": [
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "coding",
+        "errors_fixed": 1,
+        "token_length": 178,
+        "mdl_score": 0.0056
+    },
+    {
+        "nl_rule": "\n\n1. **Match Feature Dimensions**: Ensure the list of feature names passed to model export or inspection functions has a length exactly equal to the number of features used during training.\n2. **Avoid Hardcoded Subsets**: Do not slice or limit the feature names list to a fixed number of items unless the model was specifically trained on that subset.\n3. **Verify Metadata Consistency**: Before calling export functions, validate that the input metadata aligns with the model's internal feature count to prevent parameter validation errors.",
+        "domain": "python",
+        "qualifier": [
+            "runtime_error"
+        ],
+        "action": [
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "coding",
+        "errors_fixed": 1,
+        "token_length": 83,
+        "mdl_score": 0.012
+    },
+    {
+        "nl_rule": "\n\n1.  **Implement Missing Value Imputation:** Before passing the feature matrix to the clustering algorithm, apply a data cleaning step to handle all missing values (NaN). Use an imputation strategy (e.g., filling with column mean, median, or a constant) to ensure the data is complete.\n\n2.  **Ensure Comprehensive Coverage:** Apply this imputation process to *all* numeric columns selected for analysis, not just those converted from object types. Pre-existing numeric columns may also contain nulls that were previously overlooked.\n\n3.  **Validate Data Integrity:** Verify that the processed feature matrix contains no null values before model initialization to prevent runtime errors caused by unsupported data types in the algorithm.",
+        "domain": "python",
+        "qualifier": [
+            "runtime_error"
+        ],
+        "action": [
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "coding",
+        "errors_fixed": 1,
+        "token_length": 106,
+        "mdl_score": 0.0094
+    },
+    {
+        "nl_rule": "\n\n1. **Validate Column Presence**: Before accessing any column for data processing or metric calculation, explicitly verify its existence in the data structure to prevent runtime errors.\n\n2. **Avoid Cross-Dataset Assumptions**: Do not use columns specific to one dataset type as fallbacks for another dataset type when expected columns are missing. Treat missing columns as data gaps rather than indicators of a different dataset.\n\n3. **Implement Graceful Degradation**: If required metrics are unavailable, calculate them using available numeric features or assign safe default values to ensure the pipeline continues without crashing.\n\n4. **Dynamic Schema Handling**: Ensure data processing logic adapts to the actual schema of the loaded data rather than relying on hardcoded assumptions about specific dataset structures.",
+        "domain": "python",
+        "qualifier": [
+            "runtime_error"
+        ],
+        "action": [
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "coding",
+        "errors_fixed": 1,
+        "token_length": 117,
+        "mdl_score": 0.0085
+    },
+    {
+        "nl_rule": "\n\n1. **Pre-Operation Type Validation**: Before performing numerical aggregations (e.g., `mean`, `sum`) on any dataset column, explicitly verify that the column's data type is numeric. Do not assume all columns containing potential metrics are in the correct format.\n\n2. **Categorical Encoding**: If a column intended for metric calculation contains categorical string data (e.g., status indicators), convert it to a numeric format (e.g., mapping specific status values to 0 or 1) using a mapping function or type casting before applying arithmetic operations.\n\n3. **Fallback Safety**: Ensure fallback logic for missing primary metrics includes a type check to confirm the fallback column supports the required operation. If the data type is incompatible, default to a safe value (e.g., 0) or skip the calculation to prevent runtime errors.",
+        "domain": "python",
+        "qualifier": [
+            "runtime_error"
+        ],
+        "action": [
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "coding",
+        "errors_fixed": 1,
+        "token_length": 124,
+        "mdl_score": 0.0081
+    },
+    {
+        "nl_rule": "\n\n1.  **Identify the Import Error:** Locate the specific import statement that triggers the `ImportError` when loading the library.\n2.  **Verify Module Paths:** Recognize that text processing utilities (such as vectorizers) reside in a different submodule than numerical preprocessing utilities within the library.\n3.  **Separate Imports:** Split the import statement to separate numerical scaling tools from text vectorization tools, ensuring they are imported from their respective correct submodules.\n4.  **Update Import Statement:** Modify the import path for the text processing class to reference the correct feature extraction submodule instead of the general preprocessing module.\n5.  **Validate Structure:** Ensure all imports align with the library's actual package structure to prevent runtime failures.",
+        "domain": "python",
+        "qualifier": [
+            "runtime_error"
+        ],
+        "action": [
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "coding",
+        "errors_fixed": 1,
+        "token_length": 110,
+        "mdl_score": 0.0091
+    },
+    {
+        "nl_rule": "\n\n1. **Generalize Feature Selection Logic**: Modify the column filtering mechanism to dynamically include available numeric columns as fallback features when specific event-based columns (e.g., complaints, calls) are not found in the dataset schema, ensuring the clustering input matrix is not empty.\n\n2. **Ensure Data Variance in Text Generation**: Update the persona text generation function to incorporate available unique attributes (such as service plans or technical status) into the description, preventing all rows from generating identical text strings which lead to zero-variance feature vectors.\n\n3. **Validate Clustering Output Before Scoring**: Wrap the silhouette score calculation in a validation check to verify that the clustering labels contain at least two unique values; if only one label exists, skip the score calculation or adjust the cluster count to prevent runtime errors.\n\n4. **Handle Degenerate Feature Sets**: Implement a pre-clustering check to detect if the selected features have zero variance, and switch to a default feature set or skip the clustering step gracefully to avoid KMeans convergence issues.",
+        "domain": "python",
+        "qualifier": [
+            "runtime_error"
+        ],
+        "action": [
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "coding",
+        "errors_fixed": 1,
+        "token_length": 164,
+        "mdl_score": 0.0061
+    },
+    {
+        "nl_rule": "\n\n## Fix Instructions\n\n### Root Cause Analysis\nThe `DuplicateError` occurs because the feature selection logic adds the same column names multiple times to `feature_cols` list. This happens when columns match multiple category patterns (e.g., `TOTAL_COMPLAINT_T4` matches both complaint columns and possibly other patterns).\n\n### Actionable Fix Steps\n\n1. **Ensure Unique Column Names Before Scaling**\n   - Before passing data to `StandardScaler.fit_transform()`, verify that the DataFrame has unique column names\n   - Remove duplicate columns by keeping only the first occurrence of each column name\n   - Use `df.loc[:, ~df.columns.duplicated()]` to filter out duplicate columns\n\n2. **Fix Feature Selection Logic**\n   - When building the `feature_cols` list, check if a column already exists before appending\n   - Use a `set` or check `if col not in feature_cols` before adding each column\n   - This prevents the same column from being added through multiple category patterns\n\n3. **Validate Feature Matrix Before Processing**\n   - Add a validation step before scaling that checks for duplicate column names\n   - Print warning if duplicates are detected and automatically remove them\n   - Log the number of duplicate columns removed for debugging\n\n4. **Generalize Column Deduplication**\n   - Apply deduplication at the DataFrame level, not just the column list\n   - Ensure the final feature matrix passed to any sklearn transformer has unique column names\n   - This pattern should be applied before any `fit_transform()` call on DataFrames\n\n5. **Prevent Future Issues**\n   - When combining columns from multiple sources, use set operations to ensure uniqueness\n   - Consider using `pd.concat()` with `ignore_index=True` and then dropping duplicates\n   - Add a pre-processing step that validates column uniqueness as part of the feature engineering pipeline\n\n### Key Principle\n**Always validate that feature matrices have unique column names before passing them to sklearn transformers.** This is a common data quality issue that causes silent failures or runtime errors in machine learning pipelines.",
+        "domain": "python",
+        "qualifier": [
+            "runtime_error"
+        ],
+        "action": [
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "coding",
+        "errors_fixed": 1,
+        "token_length": 300,
+        "mdl_score": 0.0033
+    },
+    {
+        "nl_rule": "\n\n## Fix Instructions\n\n### Root Cause Analysis\nThe error occurs because you're attempting to stack two feature matrices with incompatible row dimensions:\n- **Matrix 1**: Scaled numeric features with 50,000 rows (individual customer records)\n- **Matrix 2**: TF-IDF features with 3 rows (one per cluster persona)\n\nYou cannot combine row-level customer data with cluster-level aggregated data using `hstack`.\n\n### Generalized Fix Steps\n\n1. **Separate Row-Level and Cluster-Level Analysis**\n   - Do NOT attempt to combine individual customer features with cluster-level TF-IDF features\n   - Keep these analyses separate: one for customer-level clustering, one for cluster-level persona generation\n\n2. **Fix TF-IDF Application Scope**\n   - If using TF-IDF for persona text analysis, apply it ONLY to the cluster-level text data (3 rows)\n   - Do NOT try to merge TF-IDF cluster features back to the original customer dataset\n   - Use TF-IDF results only for cluster comparison, not for re-clustering customers\n\n3. **Correct Data Structure for Output**\n   - Ensure persona output is stored as a dictionary list (not dataframe)\n   - Extract values from each dictionary using iteration or list comprehension before passing to visualization functions\n   - Verify all output sequences have matching lengths before plotting\n\n4. **Validate Feature Dimensions Before Stacking**\n   - Always check that matrices being combined have the same number of rows\n   - Use dimension validation: `assert matrix1.shape[0] == matrix2.shape[0]` before any stacking operation\n\n5. **Address Cluster Support Imbalance**\n   - The warning shows clusters with <5% support (0.04%, 2.80%)\n   - Increase K value or adjust features to ensure meaningful cluster separation\n   - Verify churn rate variance between clusters exceeds 5% threshold\n\n6. **Ensure Support Percentage Format**\n   - All `support_pct` values must be in range [0.0, 1.0] (not percentage format like 0.04%)\n   - Convert before passing to visualization/rendering functions\n\n7. **Remove Target Variable from Features**\n   - Verify `RMDT` (churn target) is NOT included in the feature columns used for KMeans training\n   - Drop target variable before scaling and clustering\n\n### Summary\nSeparate row-level customer analysis from cluster-level persona analysis. Do not attempt to combine features with different row dimensions. Ensure all output data structures are compatible with their intended use (visualization, JSON export, model training).",
+        "domain": "python",
+        "qualifier": [
+            "runtime_error"
+        ],
+        "action": [
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "coding",
+        "errors_fixed": 1,
+        "token_length": 350,
+        "mdl_score": 0.0029
+    },
+    {
+        "nl_rule": "\n\n## Fix Instructions\n\n### Root Cause Analysis\nThe error occurs because the code attempts to drop `RMDT` from `features_df` in STEP 12, but this column was already excluded from the feature set in STEP 3. When `drop()` is called on a non-existent column, it raises a `KeyError`.\n\n### Generalizable Fix Steps\n\n1. **Validate Column Existence Before Dropping**\n   - Before calling `drop()` on any column list, verify that each column actually exists in the DataFrame\n   - Use conditional filtering to only drop columns that are present in the target DataFrame\n   - This prevents `KeyError` when columns were previously excluded or renamed\n\n2. **Maintain Column Consistency Across Pipeline Stages**\n   - Track which columns are excluded from feature engineering (like target variables)\n   - When preparing data for downstream tasks (like Decision Tree training), reference the same exclusion list used during feature selection\n   - Document column exclusions at the beginning of the pipeline and reuse them consistently\n\n3. **Handle Missing Columns Gracefully**\n   - Implement a defensive check that filters out non-existent columns before attempting to drop them\n   - Use safe column removal patterns that don't fail when columns are missing\n   - Log warnings when expected columns are not found instead of crashing\n\n4. **Verify Data State Before Critical Operations**\n   - Print or log the available columns before operations that depend on specific column presence\n   - Add validation checks to confirm the DataFrame has the expected structure before proceeding\n   - This helps catch issues early in the pipeline rather than at downstream steps\n\n### Additional Considerations from Error Log\n- **Cluster Support Issue**: The clustering results show extreme imbalance (97.16%, 2.80%, 0.04%). Consider increasing K or adjusting features to achieve better cluster separation (Rule 3)\n- **Column Tracking**: Maintain a consistent list of excluded columns throughout the entire pipeline to avoid mismatches between feature selection and downstream operations",
+        "domain": "python",
+        "qualifier": [
+            "runtime_error"
+        ],
+        "action": [
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "coding",
+        "errors_fixed": 1,
+        "token_length": 303,
+        "mdl_score": 0.0033
+    },
+    {
+        "nl_rule": "\n\n## Fix Instructions\n\n### Primary Error: Feature Names Mismatch in Decision Tree Export\n\n**Problem:** The `export_text()` function requires `feature_names` to exactly match the number of features used during model training. The code slices the feature names list (`[:20]`), causing a mismatch when the model was trained with 90 features.\n\n**Fix Steps:**\n\n1. **Ensure feature names match model features:** When calling `export_text()`, pass the complete list of feature names without slicing. The number of feature names must equal the number of features in the trained model.\n\n2. **Verify feature alignment:** Before exporting, confirm that the feature names list contains exactly the same number of elements as the model's `n_features_` attribute.\n\n3. **Handle feature name extraction properly:** When extracting feature names from the training data, ensure you capture ALL numeric columns used in training, not a subset.\n\n### Secondary Issues to Address (Based on Domain Rules)\n\n**Rule 3 - Churn Variance:**\n- Current implementation sets `churn_rate = 1.0` for ALL clusters, resulting in 0% variance between clusters\n- **Fix:** Calculate actual churn rate per cluster using the target variable from the original dataset, not hardcoded values\n- Ensure churn rate differences between clusters exceed 5% to meaningfully separate risk profiles\n\n**Rule 5 - Unique Persona Names:**\n- Current implementation uses hardcoded persona names with cluster-specific logic\n- **Fix:** Generate persona names dynamically based on actual cluster characteristics (feature means, patterns) rather than pre-defined templates\n- Each cluster must have a unique, descriptive name derived from its actual data profile\n\n**Rule 2 - Support Percentage Format:**\n- Verify `support_pct` values are in decimal format [0.0, 1.0] for chart rendering\n- **Fix:** Ensure division produces decimal values, not percentages (e.g., 0.04 not 4)\n\n### General Principle\nAlways validate that input parameters to library functions match the expected dimensions and formats. When working with model exports, the feature names list must exactly match the trained model's feature count.",
+        "domain": "python",
+        "qualifier": [
+            "runtime_error"
+        ],
+        "action": [
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "coding",
+        "errors_fixed": 1,
+        "token_length": 313,
+        "mdl_score": 0.0032
+    },
+    {
+        "nl_rule": "Semantic check failed: \u26a0 M\u00e2u thu\u1eabn m\u00f4 t\u1ea3: Persona t\u00ean l\u00e0 'R\u1eddi m\u1ea1ng do khi\u1ebfu n\u1ea1i (HAS_COMPLAINT_T2)' nh\u01b0ng m\u00f4 t\u1ea3 (c\u1ee5m 2: khi\u1ebfu n\u1ea1i nhi\u1ec1u (has_complaint_t4), khi\u1ebfu n\u1ea1i nhi\u1ec1u (has_complaint_t3), khi\u1ebfu n\u1ea1i nhi\u1ec1u (has_complaint_t2)) kh\u00f4ng \u0111\u1ec1 c\u1eadp \u0111\u1ebfn y\u1ebfu t\u1ed1 r\u1ee7i ro n\u00e0o (r\u1edbt m\u1ea1ng, cskh, suy hao). H\u00e3y gi\u1ea3i th\u00edch t\u1ea1i sao h\u1ecd l\u1ea1i c\u00f3 nguy c\u01a1!",
+        "domain": "python",
+        "qualifier": [
+            "semantic_error",
+            "business_logic"
+        ],
+        "action": [
+            "add_metrics",
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "data_analysis",
+        "errors_fixed": 1,
+        "token_length": 58,
+        "mdl_score": 0.0172
+    },
+    {
+        "nl_rule": "\n\n### Analysis of Execution Error\nThe error `ImportError: cannot import name 'TfidfVectorizer' from 'sklearn.preprocessing'` occurs because `TfidfVectorizer` is not located in the `sklearn.preprocessing` module. It belongs to `sklearn.feature_extraction.text`. Additionally, the code contains a duplicate import for this class in the subsequent line.\n\n### Fix Instructions\n1.  **Identify the Incorrect Import:** Locate the import statement that attempts to load `TfidfVectorizer` alongside numerical preprocessing tools from `sklearn.preprocessing`.\n2.  **Separate Module Imports:** Remove `TfidfVectorizer` from the `sklearn.preprocessing` import statement. Ensure numerical tools (e.g., `StandardScaler`) remain in this module.\n3.  **Correct Text Tool Import:** Ensure `TfidfVectorizer` is imported exclusively from `sklearn.feature_extraction.text`.\n4.  **Eliminate Duplicates:** Verify that there are no redundant import statements for the same class across different lines to prevent confusion and potential runtime issues.\n5.  **Validate Execution:** Confirm that all scikit-learn components are imported from their respective correct modules before running the clustering logic.",
+        "domain": "python",
+        "qualifier": [
+            "runtime_error"
+        ],
+        "action": [
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "coding",
+        "errors_fixed": 1,
+        "token_length": 142,
+        "mdl_score": 0.007
+    },
+    {
+        "nl_rule": "\n\n**Error Diagnosis:**\nThe execution fails with a `KeyError` because the script attempts to access a specific column in the summary DataFrame that was never created or populated during the data aggregation step. The code assumes the column exists before verifying its presence.\n\n**Fix Instructions:**\n1.  **Verify Column Existence:** Before applying functions or assigning values based on specific columns, ensure the target column exists in the DataFrame. If the column is derived from a separate calculation (e.g., silhouette score), it must be explicitly calculated and stored in the summary DataFrame before being accessed.\n2.  **Eliminate Redundant Logic:** If the logic for calculating the metric or assigning values is already handled in a subsequent loop, remove the earlier code block that attempts to use the non-existent column to prevent execution failures.\n3.  **Enforce Data Pipeline Consistency:** Ensure that all metrics required for downstream visualization or reporting are fully populated in the summary DataFrame before any operations that depend on them are executed. Validate the schema of the DataFrame prior to applying transformations.",
+        "domain": "python",
+        "qualifier": [
+            "runtime_error"
+        ],
+        "action": [
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "coding",
+        "errors_fixed": 1,
+        "token_length": 170,
+        "mdl_score": 0.0059
+    },
+    {
+        "nl_rule": "\n\n### Fix Instructions\n\n1.  **Fix Sparse Matrix Indexing Error:**\n    The combined feature matrix is in a sparse format (COO) that does not support direct boolean indexing. Before attempting to slice the matrix using a boolean mask (e.g., `matrix[mask]`), convert the matrix to **CSR format** or **dense numpy array** to enable row selection.\n\n2.  **Correct Churn Rate Calculation:**\n    Do not hardcode the churn rate value. Instead, calculate the churn rate for each cluster by taking the **mean of the target variable** (e.g., `RMDT`) within that cluster. Ensure this target variable is **excluded** from the feature set used for clustering to prevent data leakage.\n\n3.  **Ensure Feature Integrity:**\n    Verify that the target variable is strictly removed from the list of features passed to the clustering algorithm before scaling and fitting.",
+        "domain": "python",
+        "qualifier": [
+            "runtime_error"
+        ],
+        "action": [
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "coding",
+        "errors_fixed": 1,
+        "token_length": 128,
+        "mdl_score": 0.0078
+    },
+    {
+        "nl_rule": "\n\n### Ph\u00e2n t\u00edch l\u1ed7i v\u00e0 H\u01b0\u1edbng d\u1eabn s\u1eeda l\u1ed7i\n\n**1. Nguy\u00ean nh\u00e2n l\u1ed7i th\u1ef1c thi (ValueError)**\nL\u1ed7i `ValueError: Number of labels is 1` x\u1ea3y ra khi c\u1ed1 g\u1eafng t\u00ednh to\u00e1n ch\u1ec9 s\u1ed1 Silhouette Score tr\u00ean m\u1ed9t t\u1eadp d\u1eef li\u1ec7u con ch\u1ec9 ch\u1ee9a **m\u1ed9t duy nh\u1ea5t nh\u00e3n c\u1ee5m**. H\u00e0m `silhouette_score` y\u00eau c\u1ea7u \u00edt nh\u1ea5t 2 c\u1ee5m \u0111\u1ec3 so s\u00e1nh kho\u1ea3ng c\u00e1ch gi\u1eefa c\u00e1c c\u1ee5m (cohesion vs separation). Vi\u1ec7c t\u00ednh \u0111i\u1ec3m Silhouette cho t\u1eebng c\u1ee5m ri\u00eang l\u1ebb trong v\u00f2ng l\u1eb7p l\u00e0 sai v\u1ec1 m\u1eb7t to\u00e1n h\u1ecdc.\n\n**2. H\u01b0\u1edbng d\u1eabn s\u1eeda l\u1ed7i (Logic Steps)**\n\n*   **S\u1eeda l\u1ed7i th\u1ef1c thi (Crash Fix):**\n    *   **Lo\u1ea1i b\u1ecf v\u00f2ng l\u1eb7p t\u00ednh Silhouette:** D\u1eebng vi\u1ec7c t\u00ednh to\u00e1n `silhouette_score` trong v\u00f2ng l\u1eb7p duy\u1ec7t qua t\u1eebng `cluster_id`.\n    *   **S\u1eed d\u1ee5ng \u0111i\u1ec3m s\u1ed1 to\u00e0n c\u1ee5c:** Thay th\u1ebf ch\u1ec9 s\u1ed1 Silhouette cho t\u1eebng c\u1ee5m b\u1eb1ng \u0111i\u1ec3m s\u1ed1 Silhouette to\u00e0n c\u1ee5c \u0111\u00e3 \u0111\u01b0\u1ee3c t\u00ednh to\u00e1n trong giai \u0111o\u1ea1n ch\u1ecdn tham s\u1ed1 K (giai \u0111o\u1ea1n th\u1eed nghi\u1ec7m K t\u1eeb 3 \u0111\u1ebfn 6).\n    *   **C\u1eadp nh\u1eadt \u0111\u1ed9 tin c\u1eady:** G\u00e1n gi\u00e1 tr\u1ecb \u0111\u1ed9 tin c\u1eady (confidence) d\u1ef1a tr\u00ean \u0111i\u1ec3m Silhouette to\u00e0n c\u1ee5c n\u00e0y cho t\u1ea5t c\u1ea3 c\u00e1c c\u1ee5m, ho\u1eb7c lo\u1ea1i b\u1ecf metric n\u00e0y n\u1ebfu kh\u00f4ng c\u1ea7n thi\u1ebft cho t\u1eebng c\u1ee5m ri\u00eang bi\u1ec7t.\n\n*   **S\u1eeda l\u1ed7i nghi\u1ec7p v\u1ee5 (Business Logic Compliance):**\n    *   **Tr\u00e1nh tr\u00f9ng l\u1eb7p t\u00ean Persona (Quy t\u1eafc 4):** Lo\u1ea1i b\u1ecf logic t\u1ef1 \u0111\u1ed9ng th\u00eam s\u1ed1 h\u1eadu t\u1ed1 (v\u00ed d\u1ee5: \" (1)\", \" (2)\") v\u00e0o t\u00ean c\u1ee5m khi t\u00ean b\u1ecb tr\u00f9ng. Thay v\u00e0o \u0111\u00f3, ph\u1ea3i \u0111\u1ea3m b\u1ea3o thu\u1eadt to\u00e1n \u0111\u1eb7t t\u00ean d\u1ef1a tr\u00ean \u0111\u1eb7c tr\u01b0ng h\u00e0nh vi duy nh\u1ea5t c\u1ee7a t\u1eebng c\u1ee5m m\u00e0 kh\u00f4ng c\u1ea7n d\u00f9ng m\u1eb9o s\u1ed1.\n    *   **T\u00ednh to\u00e1n Churn Rate ch\u00ednh x\u00e1c (Quy t\u1eafc 5):** Lo\u1ea1i b\u1ecf d\u00f2ng l\u1ec7nh \u00e9p gi\u00e1 tr\u1ecb `churn_rate` v\u1ec1 1.0. Ph\u1ea3i t\u00ednh to\u00e1n t\u1ef7 l\u1ec7 r\u1eddi m\u1ea1ng th\u1ef1c t\u1ebf b\u1eb1ng c\u00e1ch l\u1ea5y trung b\u00ecnh c\u1ee7a bi\u1ebfn m\u1ee5c ti\u00eau `RMDT` t\u1eeb t\u1eadp d\u1eef li\u1ec7u g\u1ed1c cho t\u1eebng c\u1ee5m, \u0111\u1ea3m b\u1ea3o c\u00f3 s\u1ef1 ch\u00eanh l\u1ec7ch \u0111\u1ee7 l\u1edbn gi\u1eefa c\u00e1c c\u1ee5m \u0111\u1ec3 ph\u00e2n t\u00e1ch r\u1ee7i ro.\n    *   **Ki\u1ec3m tra r\u00f2 r\u1ec9 d\u1eef li\u1ec7u (Quy t\u1eafc 1):** X\u00e1c nh\u1eadn bi\u1ebfn m\u1ee5c ti\u00eau `RMDT` tuy\u1ec7t \u0111\u1ed1i kh\u00f4ng n\u1eb1m trong danh s\u00e1ch c\u00e1c \u0111\u1eb7c tr\u01b0ng \u0111\u1ea7u v\u00e0o (`features_for_clustering`) d\u00f9ng \u0111\u1ec3 hu\u1ea5n luy\u1ec7n thu\u1eadt to\u00e1n KMeans.\n\n*   **Ki\u1ec3m tra \u0111\u1ecbnh d\u1ea1ng (Quy t\u1eafc 2):**\n    *   \u0110\u1ea3m b\u1ea3o t\u1ef7 l\u1ec7 `support_pct` \u0111\u01b0\u1ee3c t\u00ednh to\u00e1n d\u01b0\u1edbi d\u1ea1ng s\u1ed1 th\u1ef1c (float) n\u1eb1m trong kho\u1ea3ng [0.0, 1.0] tr\u01b0\u1edbc khi xu\u1ea5t ra ho\u1eb7c v\u1ebd bi\u1ec3u \u0111\u1ed3, tr\u00e1nh l\u1ed7i chia s\u1ed1 nguy\u00ean.",
+        "domain": "python",
+        "qualifier": [
+            "runtime_error"
+        ],
+        "action": [
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "coding",
+        "errors_fixed": 1,
+        "token_length": 402,
+        "mdl_score": 0.0025
     }
 ]

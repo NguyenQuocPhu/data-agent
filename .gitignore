@@ -81,3 +81,14 @@ blade_benchmark/
 *.pkl
 *.joblib
 *.png
+
+# ==========================================
+#        Node.js & Frontend Artifacts
+# ==========================================
+node_modules/
+.next/
+out/
+build/
+dist/
+.npm/
+.pnp.*

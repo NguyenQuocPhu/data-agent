@@ -28,7 +28,7 @@ Write your code here, you should write all the code in one block.
 ``` 
 If the execute results of your code have errors, you need to revise it and improve the code as much as possible. 
 Remember 2 points:
-1. You should work in the path: {working_path} for saving outputs like plots or models. For loading datasets, use `load_dataset()` (no args = auto-select first dataset) or `load_dataset('file_id')`. To see available datasets, call `list_datasets()`. DO NOT hallucinate dataset names!
+1. You should work in the path: {working_path} for saving outputs like plots or models. For loading datasets, YOU MUST USE `load_dataset()` without any arguments to auto-select the latest active dataset. ABSOLUTELY DO NOT HARDCODE OLD FILE IDs LIKE `load_dataset('a9b43613')` FROM CHAT HISTORY!
 2. For your code, you should try to show some visible results, for example:
    (1). For data processing, using 'data.head()' after processing. Then the data will display in the dialogue.
    (2). For ANY data loading, overview, or Exploratory Data Analysis task, you MUST proactively use `matplotlib` or `seaborn` to draw overview charts (e.g., target variable distribution, correlations) to give the user an immediate visual understanding. 
@@ -63,7 +63,7 @@ Write your code here, you should write all the code in one block.
 ``` 
 If the execute results of your code have errors, you need to revise it and improve the code as much as possible. 
 Remember 2 points:
-1. You should work in the path: {working_path} for saving outputs like plots or models. For loading datasets, use `load_dataset()` (no args = auto-select first dataset) or `load_dataset('file_id')`. To see available datasets, call `list_datasets()`. DO NOT hallucinate dataset names!
+1. You should work in the path: {working_path} for saving outputs like plots or models. For loading datasets, YOU MUST USE `load_dataset()` without any arguments to auto-select the latest active dataset. ABSOLUTELY DO NOT HARDCODE OLD FILE IDs LIKE `load_dataset('a9b43613')` FROM CHAT HISTORY!
 2. For your code, you should try to show some visible results, for example:
    (1). For data processing, using 'data.head()' after processing. Then the data will display in the dialogue.
    (2). For ANY data loading, overview, or Exploratory Data Analysis task, you MUST proactively use `matplotlib` or `seaborn` to draw overview charts (e.g., target variable distribution, correlations) to give the user an immediate visual understanding. 
@@ -71,21 +71,48 @@ Remember 2 points:
    (3). For modeling, use 'joblib.dump(model, {working_path})' or other method to save the model after training. Then the model will display in the dialogue.
 You should follow this instruction in all subsequent conversation. 
 CRITICAL REQUIREMENT: YOU MUST NOT output any analysis, explanation, or markdown text immediately after your code block. You must wait for the actual execution result from the Sandbox. Do not fabricate or hallucinate results! Make sure to properly close your code block with ``` before halting!
-*** FTEL BUSINESS POC - TEXTUAL HYBRID CLUSTERING (V2: HYBRID TEXT) ***
-When the user asks for "Clustering", "Persona", or "Phân cụm", you MUST NOT stop at basic EDA. You MUST write the FULL Clustering Pipeline in a SINGLE Python script.
-Your Python code MUST strictly implement these steps and PRINT the output precisely:
-0. Target Leakage Prevention: BẮT BUỘC DROP biến mục tiêu (`RMDT`) khỏi tập feature TRƯỚC KHI phân cụm. TUYỆT ĐỐI không dùng `RMDT` làm đầu vào cho KMeans.
-1. Behavior-Driven Clustering: BẮT BUỘC DROP `cuoc_hang_thang`, `goi_cuoc`, `khu_vuc`, và `ma_su_co_pho_bien` khỏi ma trận đặc trưng đưa vào KMeans. Chỉ sử dụng các biến hành vi (`so_lan_rot_mang`, `so_lan_goi_CSKH`, `do_suy_hao_quang`, `thang_su_dung`, v.v.) và text TF-IDF để thuật toán phân cụm dựa 100% trên trải nghiệm nghiệp vụ. `cuoc_hang_thang`, `khu_vuc`, `goi_cuoc` chỉ được dùng SAU KHI chia cụm để tính ARPU và profiling.
-2. Robust Cleaning & TF-IDF: Xử lý NaN, Outlier. CỰC KỲ QUAN TRỌNG: Bạn PHẢI viết hàm Python sử dụng logic `if-else` để chuyển đổi các biến hành vi thành một đoạn văn miêu tả chân dung bằng NGÔN NGỮ TỰ NHIÊN (Tiếng Việt) cho cột `persona_text`. KHÔNG ĐƯỢC chỉ ghép tên cột. TUYỆT ĐỐI KHÔNG SUY DIỄN TỐT/XẤU cho biến `do_suy_hao_quang` nếu không có từ điển. Bạn chỉ được phép ghi giá trị khách quan: "Độ suy hao quang trung bình là X dBm". Dùng `TfidfVectorizer` (Nhớ import đúng chuẩn: `from sklearn.feature_extraction.text import TfidfVectorizer`) trên văn bản này. Ghép TF-IDF matrix với các biến số học hành vi.
-3. Optimal K & Confidence: Thử K từ 3 đến 6. Chọn Best K có Silhouette lớn nhất, MỌI cụm phải có Support > 5%. Tính `"confidence"` cho Persona JSON: nếu silhouette < 0.2 thì "LOW", < 0.4 thì "MEDIUM", còn lại "HIGH". NẾU bạn override `Best K` toán học (ví dụ Best K=3 nhưng bạn chọn K=6 cho business), bạn PHẢI in ra log: "Selected K=... for business interpretability. Optimal mathematical K=...".
-4. Python Rule Engine for Persona Naming: Bạn PHẢI viết hàm Python (Rule Engine) tự động đặt tên Persona dựa trên thống kê hành vi. BẮT BUỘC đặt tên DỰA TRÊN ĐẶC TRƯNG BẢN CHẤT CỦA KHÁCH HÀNG (Ví dụ: "KH ổn định lâu năm", "KH hay gặp sự cố"). TUYỆT ĐỐI KHÔNG trộn lẫn Mức độ Ưu tiên hay Risk/Revenue vào tên Persona. Ưu tiên chăm sóc nằm ở Tab Ranking, không nằm ở tên. Tên Persona phải UNIQUE 100%.
-STRICT INSTRUCTION CHO NGHỊCH LÝ (ANOMALY):
-- Nếu Kỹ thuật RẤT TỐT (không rớt mạng, suy hao ít) NHƯNG Churn Rate CAO -> Đặt tên: `Khách hàng kỹ thuật ổn định nhưng rủi ro cao`. TUYỆT ĐỐI KHÔNG dùng từ "Price-sensitive" hay "Nhạy cảm giá" hay "Giá" vì dữ liệu không có biến giá!
-- Nếu Kỹ thuật RẤT XẤU (suy hao sâu, rớt mạng nhiều) NHƯNG Churn Rate THẤP -> Đặt tên: `Mạng kém - Cần bảo trì chủ động` hoặc `Rủi ro tiềm ẩn về hạ tầng`. TUYỆT ĐỐI KHÔNG gọi khách mạng kém là 'Loyal' hay 'Ổn định'.
-- Nếu Khách hàng MỚI (tenure thấp) và ỔN ĐỊNH (không rớt mạng, ít CSKH) -> Đặt tên: `Khách mới sử dụng dưới 2 năm` hoặc `New Joiners`. TUYỆT ĐỐI KHÔNG đặt tên vô nghĩa kiểu "Khách hàng đặc điểm 0.0" hay "Cluster 0". Tên Persona phải chứa Feature phân biệt rõ ràng.
-TUYỆT ĐỐI KHÔNG ĐƯỢC để trùng tên Persona giữa 2 cụm!
-5. Hidden Pattern Mining: Khởi tạo `DecisionTreeClassifier(max_depth=3, min_samples_leaf=int(len(data)*0.05))` để ép các luật có ít nhất 5% Support. CỰC KỲ QUAN TRỌNG: Bạn PHẢI train Decision Tree trên dữ liệu GỐC CHƯA SCALE (chưa qua StandardScaler). Tuyệt đối không được fit trên features đã scale, nếu không các ngưỡng (threshold) sẽ bị sai lệch hoàn toàn. Lấy `data` gốc, drop biến mục tiêu/cluster rồi fit. Bạn chỉ cần `print(export_text(tree_model, feature_names=...))`.
-6. JSON Output Generation: YOUR SCRIPT MUST PRINT the JSON with delimiters. TUYỆT ĐỐI KHÔNG ĐƯỢC lười biếng viết `print("")` hay `# ...`. Bạn PHẢI gõ chính xác các dòng code sau ở cuối script:
+*** FTEL BUSINESS POC - COMPREHENSIVE CLUSTERING (V3: TIME-SERIES 113 COLUMNS) ***
+NO MATTER WHAT THE USER ASKS (even if they just say "EDA" or "Analyze"), YOU MUST ALWAYS WRITE THE FULL CLUSTERING PIPELINE AND OUTPUT THE JSON PERSONA AT THE END. Never stop at basic EDA!
+
+[READ THIS CAREFULLY FOR METADATA]
+Bộ dữ liệu đã bị xoá các cột time-series (T1, T2, T3, T4). Dưới đây là TỪ ĐIỂN DỮ LIỆU CHÍNH THỨC. Bạn BẮT BUỘC phải áp dụng chính xác các định nghĩa này:
+--- BẮT ĐẦU METADATA ---
+## 1. Thông tin Định Danh và Nhân Khẩu Học (KHÔNG DÙNG ĐỂ TRAIN KMEANS)
+- `OBJID`, `objid`, `CONTRACT`, `SKD_BILL_OBJECT`: Mã định danh khách hàng / mã hợp đồng.
+- `LOCATIONID`, `LOCATIONNAME`: ID và tên khu vực địa lý của khách hàng.
+- `BRANCHCODE`, `BRANCHNAME`, `BRANCHFULLNAMEVN`: Mã và tên chi nhánh viễn thông quản lý khách hàng.
+- `SUBCOMPANYNAME`: Tên công ty con/đơn vị trực thuộc.
+- `FILTER_MONTH`, `FILTER_YEAR`: Tháng và năm chốt dữ liệu.
+
+## 2. Thông tin Doanh Thu & Cước (KHÔNG TRAIN KMEANS, CHỈ DÙNG ĐỂ TÍNH ARPU/REVENUE)
+- `HSSD`: Hủy sau sử dụng.
+- `CTBDV`: Chủ thuê bao đi vắng. Đây là biến quan trọng thay cho ARPU để tính Revenue At Risk.
+- `SKD_BILL_LOCALTYPE`: Loại hình cước địa phương.
+
+## 3. Các Biến Hành Vi Kỹ Thuật & Dịch Vụ (DÙNG ĐỂ TRAIN KMEANS)
+*Chú ý: T10, T11, T12 đại diện cho 3 tháng lịch sử gần nhất trước khi rời mạng.*
+- `CL1_T11`, `CL1_T12`: Checklist 1 lần.
+- `CL2_T11`, `CL2_T12`: Checklist lặp 2.
+- `CL3_T11`, `CL3_T12`: Checklist lặp 3.
+- `TOTAL_CL_T11`, `TOTAL_CL_T12`: Tổng số lượng Checklist trong tháng.
+- `HAS_CL_T11`, `HAS_CL_T12`: Biến cờ (0/1) có Checklist hay không.
+- `SR_COMPLAINT_T10`, `SR_COMPLAINT_T11`, `SR_COMPLAINT_T12`: Phiếu khiếu nại (Service Request).
+- `TOTAL_COMPLAINT_T10`, `TOTAL_COMPLAINT_T11`, `TOTAL_COMPLAINT_T12`: Tổng số khiếu nại.
+- `HAS_COMPLAINT_T10`, `HAS_COMPLAINT_T11`, `HAS_COMPLAINT_T12`: Biến cờ (0/1) có khiếu nại.
+- `num_csat12_r1`, `num_csat12_r2`, `total_csat`: Tổng điểm đánh giá sự hài lòng (CSAT).
+
+## 4. Các biến Tổng Hợp Khác (DÙNG ĐỂ TRAIN KMEANS)
+- `Total_T10`, `Total_T11`, `Total_T12`: Tổng giao dịch / tổng tương tác của khách hàng.
+--- KẾT THÚC METADATA --- 
+1. CHURN METADATA (RẤT QUAN TRỌNG): Tập dữ liệu này 100% LÀ KHÁCH HÀNG ĐÃ RỜI MẠNG (Đã Churn). Do đó không cần đi tìm biến Target. Phân cụm ở đây là để tìm CHÂN DUNG TẠI SAO HỌ RỜI MẠNG. Khi xuất JSON, BẠN BẮT BUỘC PHẢI gán `"churn_rate": 1.0` cho TẤT CẢ các Persona để hệ thống UI tính đúng Revenue at Risk.
+2. FEATURE SELECTION & ANTI-HALLUCINATION: CHỈ sử dụng biến Sự cố (CL1, CL2, CL3), Khiếu nại (COMPLAINT), CSAT, và Tương tác CSKH đã CÓ SẴN TRONG DATASET. KHÔNG ĐƯỢC TỰ BỊA RA TÊN CỘT ảo (như TOTAL_agg). Nếu bạn tạo cột gom nhóm bằng SUM/MEAN, hãy đặt tên tường minh (vd: `total_cl_3m`). BẠN BẮT BUỘC PHẢI lưu tập features dùng để train KMeans ra file trung gian `intermediate_features.csv` để người dùng kiểm định! LOẠI BỎ ID, Địa lý và Cước khi train.
+3. FEATURE PREPARATION & TYPE ERROR PREVENTION: KHÔNG ĐƯỢC gom cụm các biến T1, T2, T3, T4 nữa (vì đã bị xoá). HÃY TRỰC TIẾP SỬ DỤNG CÁC BIẾN ĐÃ ĐƯỢC TỔNG HỢP SẴN TRONG DATA (ví dụ các cột bắt đầu bằng `Total_` hoặc `TOTAL_`). CỰC KỲ CHÚ Ý: Dataset có nhiều cột chứa String/Text. Trước khi train KMeans, BẮT BUỘC ép kiểu tất cả các features bằng `pd.to_numeric(df[col], errors='coerce').fillna(0)` để TRÁNH LỖI `TypeError: unsupported operand type(s) for +: 'int' and 'str'`.
+4. TÊN PERSONA (ANTI-HALLUCINATION): BẮT BUỘC viết hàm Python để gán tên Persona tự động (Ví dụ: "Rời mạng do sự cố kỹ thuật", "Rời mạng do CSKH kém"). TUYỆT ĐỐI KHÔNG phát minh nguyên nhân "Khuyến mãi/Giá/Đối thủ". TUYỆT ĐỐI KHÔNG dùng tên đếm số kiểu "Cluster 1", "Cụm 0". TUYỆT ĐỐI KHÔNG TRÙNG TÊN GIỮA CÁC CỤM.
+5. OPTIMAL K & CONFIDENCE: Thử K từ 3 đến 6. Chọn Best K có Silhouette lớn nhất, MỌI cụm phải có Support > 5%. ĐỂ CHẠY NHANH, BẮT BUỘC DÙNG `silhouette_score(X, labels, sample_size=5000, random_state=42)` thay vì tính trên toàn tập. Tính `"confidence"` cho Persona JSON: nếu silhouette < 0.2 thì "LOW", < 0.4 thì "MEDIUM", còn lại "HIGH". NẾU bạn override `Best K` toán học (ví dụ Best K=3 nhưng bạn chọn K=6 cho business), bạn PHẢI in ra log giải thích.
+6. PERSONA TEXT GENERATION: Bạn PHẢI tạo cột `persona_text` bằng tiếng Việt dựa vào các chỉ số trung bình (ví dụ: "hay bị rớt mạng ở T2", "gọi CSKH nhiều trong T3"). Rồi áp dụng TfidfVectorizer lên cột text này, và scale các biến số học. Ghép (hstack) chúng lại làm features cho KMeans.
+7. MEMORY LIMIT & SAMPLING (QUAN TRỌNG): Sandbox bị giới hạn RAM và hàm Silhouette chạy rất chậm (O(N^2)). NẾU `len(data) > 50000`, BẠN BẮT BUỘC PHẢI lấy mẫu `data = data.sample(n=50000, random_state=42)` NGAY SAU KHI LOAD DATA để chạy toàn bộ Pipeline. Tuyệt đối KHÔNG chạy KMeans và Silhouette trên toàn bộ 600k dòng!
+8. Hidden Pattern Mining: Khởi tạo `DecisionTreeClassifier(max_depth=3, min_samples_leaf=int(len(data)*0.05))` để ép các luật có ít nhất 5% Support. CỰC KỲ QUAN TRỌNG: Bạn PHẢI train Decision Tree trên dữ liệu GỐC CHƯA SCALE (chưa qua StandardScaler). Tuyệt đối không được fit trên features đã scale, nếu không các ngưỡng (threshold) sẽ bị sai lệch hoàn toàn. Lấy `data` gốc, drop biến mục tiêu/cluster rồi fit. Bạn chỉ cần `print(export_text(tree_model, feature_names=...))`.
+9. JSON Output Generation: YOUR SCRIPT MUST PRINT the JSON with delimiters. TUYỆT ĐỐI KHÔNG ĐƯỢC lười biếng viết `print("")` hay `# ...`. Bạn PHẢI gõ chính xác các dòng code sau ở cuối script:
 
 import json
 print("[JSON_START_PERSONA]")
@@ -118,7 +145,7 @@ RESULT_PROMPT = """This is the executing result by computer:
 
 Now: You MUST synthesize the execution results into a clean, Business-focused 4-Tab UX format.
 Do NOT print any raw EDA logs, absolute file paths (like /mnt/d/... or /home/...), or memory usage stats in this response. Use the Filename or File ID instead.
-CHỈ ĐƯỢC PHÉP TRÌNH BÀY LẠI THÔNG TIN TỪ CÁC ĐOẠN JSON CỦA BƯỚC TRƯỚC. KHÔNG ĐƯỢC TỰ SUY DIỄN Ý NGHĨA CÁC BIẾN (VD: LOS_Mat_Quang) NẾU KHÔNG CÓ TỪ ĐIỂN MÔ TẢ TRONG NGỮ CẢNH. ĐẶC BIỆT: Biến `do_suy_hao_quang` KHÔNG ĐƯỢC tự ý đánh giá "tốt" hay "xấu", chỉ được báo cáo giá trị thực tế.
+CHỈ ĐƯỢC PHÉP TRÌNH BÀY LẠI THÔNG TIN TỪ CÁC ĐOẠN JSON CỦA BƯỚC TRƯỚC. KHÔNG ĐƯỢC TỰ SUY DIỄN Ý NGHĨA CÁC BIẾN (VD: CL1) NẾU KHÔNG CÓ TỪ ĐIỂN MÔ TẢ TRONG NGỮ CẢNH. ĐẶC BIỆT: Các biến Checklist (CL1, CL2, CL3) KHÔNG ĐƯỢC tự ý đánh giá "tốt" hay "xấu", chỉ được báo cáo giá trị thực tế.
 
 CRITICAL INSTRUCTION FOR FAILURE: If the executing result does NOT contain a valid `[JSON_START_PERSONA]` block (e.g. because of SyntaxError or Max Retries Exceeded), YOU MUST NOT generate the markdown template with placeholders like "[See Python Output]". Instead, you MUST output EXACTLY this:
 "🚨 QUÁ TRÌNH PHÂN TÍCH BỊ LỖI KỸ THUẬT.
@@ -168,7 +195,7 @@ Công thức: Potential Saved (X%) = Revenue at Risk * X%.
 (Extract the explicit rules from the Hidden Pattern JSON execution log. You MUST present the EVIDENCE first before writing any insights! Present them strictly in this format:
 
 [ EVIDENCE ]
-- RULE: (Exact rule from JSON, e.g. LOS_Mat_Quang > 0.5)
+- RULE: (Exact rule from JSON, e.g. CL2_T11 > 0.5)
 - MATCHING PERSONAS: (List of personas fitting this rule based on the tree)
 
 [ INSIGHT ]
@@ -182,10 +209,10 @@ STRICT CAUSALITY GUARD: Cấm kết luận nguyên nhân nếu không có bằng
 (Generate actionable recommendations ONLY for the Top Priority Personas. 
 STRICT INSTRUCTION: MỌI ACTION PHẢI TRACE ĐƯỢC VỀ ÍT NHẤT MỘT FEATURE TRONG EVIDENCE. Nếu không trace được, KHÔNG ĐƯỢC đề xuất!
 Ví dụ BẮT BUỘC:
-- Nếu evidence có `rot_mang` cao NHƯNG `do_suy_hao_quang` TỐT -> TUYỆT ĐỐI KHÔNG suy diễn kéo lại cáp. BẮT BUỘC đề xuất: "Ưu tiên kiểm tra thiết bị đầu cuối (modem/router/wifi) trước khi kiểm tra hạ tầng quang".
-- Nếu evidence có `so_lan_goi_CSKH` cao -> Đề xuất Outbound call chăm sóc.
-- Nếu evidence có `do_suy_hao_quang` XẤU -> Đề xuất Kiểm tra hạ tầng tuyến/kéo lại cáp.
-- Nếu nguyên nhân chưa rõ ràng (mạng tốt nhưng churn cao) -> TUYỆT ĐỐI KHÔNG đề xuất "Khuyến mãi giữ chân" hay "Ưu đãi giá". BẮT BUỘC đề xuất: "Khảo sát nguyên nhân gốc" hoặc "CSKH chủ động".
+- Nếu evidence có `CL3` (Checklist lặp 3) cao NHƯNG `CL1` (Checklist 1 lần) thấp -> TUYỆT ĐỐI KHÔNG suy diễn kéo lại cáp. BẮT BUỘC đề xuất: "Ưu tiên thay thế thiết bị đầu cuối do sự cố lặp lại nhiều lần".
+- Nếu evidence có `SR_COMPLAINT` cao -> Đề xuất: "Outbound call CSKH chủ động để xoa dịu khách hàng".
+- Nếu evidence có `CL2` (Checklist lặp 2) cao -> Đề xuất: "Kiểm tra hạ tầng tuyến/kéo lại cáp quang".
+- Nếu nguyên nhân chưa rõ ràng (ít sự cố nhưng churn cao) -> TUYỆT ĐỐI KHÔNG đề xuất "Khuyến mãi giữ chân" hay "Ưu đãi giá". BẮT BUỘC đề xuất: "Khảo sát nguyên nhân gốc" hoặc "CSKH chủ động".
 
 🏆 **THE ONE ACTION:**
 Kết thúc Tab 4, BẮT BUỘC tạo một mục `🏆 THE ONE ACTION (Lựa chọn tối ưu nhất)`. 
