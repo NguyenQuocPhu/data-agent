@@ -1,19 +1,51 @@
 version: '3.8'
 
 services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    container_name: lambda-backend
+    ports:
+      - "18000:8000"
+    environment:
+      - GROQ_API_KEY=${GROQ_API_KEY:-}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - QWEN_API_KEY=${QWEN_API_KEY:-}
+    volumes:
+      - .:/app
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./ui/deepanalyze_frontend
+      dockerfile: Dockerfile.frontend
+    container_name: lambda-frontend
+    ports:
+      - "13000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:18000
+    volumes:
+      - ./ui/deepanalyze_frontend:/app
+      - /app/node_modules
+      - /app/.next
+    depends_on:
+      - backend
+    restart: unless-stopped
+
   open-webui:
     image: ghcr.io/open-webui/open-webui:main
     container_name: open-webui
     ports:
-      - "3000:8080"
+      - "18080:8080" # changed from 8080 to 18080
     environment:
-      - OPENAI_API_BASE_URL=http://host.docker.internal:8000/v1
+      - OPENAI_API_BASE_URL=http://backend:8000/v1
       - OPENAI_API_KEY=LAMBDA_KEY
       - WEBUI_AUTH=False
     volumes:
       - open-webui-data:/app/backend/data
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
+    depends_on:
+      - backend
     restart: unless-stopped
 
 volumes:

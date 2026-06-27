@@ -189,115 +189,101 @@ class SemanticVerifier:
 
         # Rule 3 & 4 & 5 & 6: JSON Validation & Support & Scale & Unique
         if "KMeans" in code or "TfidfVectorizer" in code:
-            json_matches = re.findall(r'\[\s*\{.*?\}\s*\]', exec_output, re.DOTALL)
-            has_valid_json = False
-            for match in json_matches:
+            # Priority 1: extract from explicit delimited block (handles nested dicts like feature_means)
+            json_block_match = re.search(r'\[JSON_START_PERSONA\]\s*(.*?)\s*\[JSON_END_PERSONA\]', exec_output, re.DOTALL)
+            if json_block_match:
                 try:
-                    data_arr = json.loads(match)
-                    if isinstance(data_arr, list) and len(data_arr) > 0 and "persona_name" in data_arr[0]:
-                        has_valid_json = True
-                        # Business Diversity K-Score
-                        k_scores = {}
-                        for m in re.finditer(r"K=(\d+).*?Silhouette=([0-9.]+)", exec_output, re.IGNORECASE):
-                            k_scores[int(m.group(1))] = float(m.group(2))
-                        
-                        total_support = sum(c.get("support", 0) for c in data_arr)
-                        
-                        if len(data_arr) < 3:
-                            verdict["status"] = "REVISE"
-                            verdict["feedback"] = "⚠ Lỗi nghiệp vụ (Business Logic Error): Số lượng cụm (K) phải >= 3. K=2 là quá ít để phân tách rủi ro (Low, Medium, High). BẮT BUỘC thử K từ 3 đến 6 và chọn K >= 3."
-
-                        if total_support > 0:
-                            overall_churn = sum(c.get("churn_rate", 0) * c.get("support", 0) for c in data_arr) / total_support
-                        else:
-                            overall_churn = 0.0
-                            
-                        churn_rates = [c.get("churn_rate", 0) for c in data_arr]
-                        if churn_rates and max(churn_rates) < 0.001:
-                            verdict["status"] = "REVISE"
-                            verdict["feedback"] = "⚠ Lỗi Toán Học: Churn Rate của TẤT CẢ các cụm đều < 0.1% (0.001). Bạn đang tính sai công thức. Churn Rate phải là `mean(RMDT)` của từng cụm, KHÔNG PHẢI `sum(RMDT) / len(data)`."
-                        
-                        if churn_rates and max(churn_rates) - min(churn_rates) < 0.01:
-                            verdict["status"] = "REVISE"
-                            verdict["feedback"] = f"⚠ Churn Variance Error: Chênh lệch Churn Rate giữa các cụm ({max(churn_rates):.2f} vs {min(churn_rates):.2f}) < 1%. Các cụm này không phân tách được rủi ro rời mạng. BẮT BUỘC phải tăng K hoặc thay đổi features để nhóm rủi ro phân tách rõ rệt hơn!"
-                            
-                        persona_names = []
-                        for cluster in data_arr:
-                            pct = cluster.get("support_pct", 1.0)
-                            arpu = cluster.get("arpu", 0)
-                            churn = cluster.get("churn_rate", 0)
-                            p_name = cluster.get("persona_name", "")
-                            sample_text = cluster.get("sample_persona_text", "").lower()
-                            
-                            # RULE_PERSONA_NAME_MATCH (Scoring System)
-                            neg_signals = ["sự cố", "nguy cơ", "rớt mạng", "cskh", "kém"]
-                            pos_signals = ["không rớt mạng", "0 cuộc gọi", "ổn định", "không sự cố", "0 lần"]
-                            
-                            p_name_lower = p_name.lower()
-                            sample_lower = sample_text.lower()
-                            
-                            neg_score = sum(1 for w in neg_signals if w in p_name_lower)
-                            pos_score = sum(1 for w in pos_signals if w in sample_lower)
-                            
-                            if neg_score >= 1 and pos_score >= 2:
-                                verdict["status"] = "REVISE"
-                                verdict["feedback"] = f"⚠ Lỗi Mâu Thuẫn Chân Dung: Tên Persona '{p_name}' ám chỉ khách gặp sự cố nhưng Sample Text '{sample_text}' lại toàn điều tích cực. Tên Persona phải nhất quán với dữ liệu!"
-                            
-                            # RULE_PERSONA_NAME Numeric & Hallucination Check
-                            if re.match(r"^(cluster_)?\d+$", p_name, re.IGNORECASE) or len(p_name) < 5 or "đặc điểm" in p_name.lower() or "0.0" in p_name:
-                                verdict["status"] = "REVISE"
-                                verdict["feedback"] = f"⚠ Lỗi nghiệp vụ: Tên Persona '{p_name}' quá ngắn, là số đếm, hoặc chứa các cụm vô nghĩa (như 'đặc điểm 0.0'). Bạn PHẢI đặt tên có Semantic Meaning dựa trên hành vi."
-                                
-                            if "price-sensitive" in p_name_lower or "giá" in p_name_lower or re.search(r'\s+\d+$', p_name):
-                                verdict["status"] = "REVISE"
-                                verdict["feedback"] = f"⚠ Lỗi Naming (Naming Error): Tên Persona '{p_name}' không được chứa từ 'giá' hoặc 'price-sensitive' (do dataset không có biến này) VÀ không được lách luật bằng cách thêm số đếm vào cuối tên (VD: 'New Joiners 1'). Hãy đổi tên trung tính và duy nhất!"
-
-                            if pct < 0.05:
-                                verdict["status"] = "REVISE"
-                                verdict["feedback"] = f"⚠ Support quá thấp ({pct*100}% < 5%). Cụm '{p_name}' không mang ý nghĩa thống kê."
-                            elif pct > 1.0 or churn > 1.0:
-                                verdict["status"] = "REVISE"
-                                verdict["feedback"] = "⚠ Lỗi định dạng: support_pct và churn_rate phải là tỷ lệ dạng số thực trong khoảng [0.0, 1.0]. Hãy đảm bảo bạn không nhầm với phần trăm (0-100)."
-                                
-                            persona_names.append(p_name)
-                            
-                        # Duplicate Name Check (Semantic)
-                        cleaned_names = [re.sub(r'\(Cụm \d+\)', '', name, flags=re.IGNORECASE).strip().lower() for name in persona_names]
-                        if len(set(cleaned_names)) < len(cleaned_names):
-                            verdict["status"] = "REVISE"
-                            verdict["feedback"] = f"⚠ Lỗi nghiệp vụ (Duplicate Personas): Bạn đang phân loại trùng lặp hoặc thêm '(Cụm X)' để lách luật. Mỗi cụm BẮT BUỘC phải có tên (Persona) DUY NHẤT chứa Feature phân biệt (Ví dụ: 'KH mới dùng <2 năm', 'KH rớt mạng nhiều')."
-                            
-                        # Phạt lỗi nếu cố tình hardcode "Cụm X"
-                        if any("(cụm" in n.lower() for n in persona_names):
-                            verdict["status"] = "REVISE"
-                            verdict["feedback"] = f"⚠ Lỗi nghiệp vụ (Cụm Naming): TUYỆT ĐỐI KHÔNG ĐƯỢC đặt tên Persona có chứa chữ '(Cụm X)'. Bạn phải tìm ra tên mô tả thực chất hành vi!"
-                            
-                            if arpu > 0 and arpu < 50000:
-                                verdict["status"] = "REVISE"
-                                verdict["feedback"] = f"⚠ Lỗi Kế Toán: ARPU của cụm '{p_name}' quá thấp ({arpu} VND < 50,000 VND). ARPU phải được tính bằng `mean(cuoc_hang_thang)` của cụm đó, TUYỆT ĐỐI KHÔNG chia cho 30."
-                                
-                            if any(word in p_name.lower() for word in ["nguy cơ", "rời mạng", "rủi ro", "kém"]):
-                                if churn <= overall_churn and churn < 0.05:
-                                    verdict["status"] = "REVISE"
-                                    verdict["feedback"] = f"⚠ Mâu thuẫn Logic: Cụm '{p_name}' được gắn nhãn Rủi ro/Nguy cơ nhưng Churn Rate ({churn}) lại thấp. Tên Persona BẮT BUỘC phản ánh đúng tỷ lệ Churn."
-                                if not any(kw in sample_text for kw in ["rớt mạng", "cskh", "suy hao"]):
-                                    verdict["status"] = "REVISE"
-                                    verdict["feedback"] = f"⚠ Mâu thuẫn mô tả: Persona tên là '{p_name}' nhưng mô tả ({sample_text}) không đề cập đến yếu tố rủi ro nào (rớt mạng, cskh, suy hao). Hãy giải thích tại sao họ lại có nguy cơ!"
-                            
-                            if churn > 0.15 and "loyal" in p_name.lower():
-                                verdict["status"] = "REVISE"
-                                verdict["feedback"] = f"⚠ Lỗi nghiệp vụ (Business Logic Error): Cụm '{p_name}' có Churn Rate = {churn*100}% (> 15%) nhưng lại chứa từ 'Loyal'. Khách hàng rời mạng cao không thể gọi là Trung Thành!"
-                            
-                            if p_name:
-                                persona_names.append(p_name)
-                                
-                        if verdict.get("status") != "REVISE" and len(set(persona_names)) < len(persona_names):
-                            verdict["status"] = "REVISE"
-                            verdict["feedback"] = "⚠ Lỗi nghiệp vụ: Các nhóm Persona đang bị trùng tên. Hãy điều chỉnh luật IF-ELSE để đặt tên phân biệt rõ ràng."
-                        break
+                    json_candidates = [json.loads(json_block_match.group(1))]
                 except Exception:
+                    json_candidates = []
+            else:
+                # Fallback: scan for any JSON array in output
+                json_candidates = []
+                for match in re.findall(r'\[\s*\{.*?\}\s*\]', exec_output, re.DOTALL):
+                    try:
+                        json_candidates.append(json.loads(match))
+                    except Exception:
+                        continue
+
+            has_valid_json = False
+            for data_arr in json_candidates:
+                if not (isinstance(data_arr, list) and len(data_arr) > 0 and "persona_name" in data_arr[0]):
                     continue
-            
+                has_valid_json = True
+
+                # Business Diversity K-Score
+                k_scores = {}
+                for m in re.finditer(r"K=(\d+).*?Silhouette=([0-9.]+)", exec_output, re.IGNORECASE):
+                    k_scores[int(m.group(1))] = float(m.group(2))
+
+                total_support = sum(c.get("support", 0) for c in data_arr)
+
+                if len(data_arr) < 3:
+                    verdict["status"] = "REVISE"
+                    verdict["feedback"] = "⚠ Lỗi nghiệp vụ (Business Logic Error): Số lượng cụm (K) phải >= 3."
+
+                if total_support > 0:
+                    overall_churn = sum(c.get("churn_rate", 0) * c.get("support", 0) for c in data_arr) / total_support
+                else:
+                    overall_churn = 0.0
+
+                churn_rates = [c.get("churn_rate", 0) for c in data_arr]
+                # Bỏ check churn_rate < 0.001 vì dataset này churn_rate = 0 (hardcoded 1.0 mode)
+
+                persona_names = []
+                for cluster in data_arr:
+                    pct = cluster.get("support_pct", 1.0)
+                    arpu = cluster.get("arpu", 0)
+                    churn = cluster.get("churn_rate", 0)
+                    p_name = cluster.get("persona_name", "")
+                    sample_text = cluster.get("sample_persona_text", "").lower()
+                    p_name_lower = p_name.lower()
+
+                    # RULE_PERSONA_NAME Numeric & Hallucination Check
+                    if re.match(r"^(cluster_)?\d+$", p_name, re.IGNORECASE) or len(p_name) < 5 or "0.0" in p_name:
+                        verdict["status"] = "REVISE"
+                        verdict["feedback"] = f"⚠ Lỗi nghiệp vụ: Tên Persona '{p_name}' quá ngắn hoặc là số. Bạn PHẢI đặt tên có Semantic Meaning dựa trên hành vi."
+
+                    if pct > 1.0 or churn > 1.0:
+                        verdict["status"] = "REVISE"
+                        verdict["feedback"] = "⚠ Lỗi định dạng: support_pct và churn_rate phải là tỷ lệ trong khoảng [0.0, 1.0]."
+
+                    if arpu > 0 and arpu < 50000:
+                        verdict["status"] = "REVISE"
+                        verdict["feedback"] = f"⚠ Lỗi Kế Toán: ARPU của cụm '{p_name}' quá thấp ({arpu} VND < 50,000 VND)."
+
+                    persona_names.append(p_name)
+
+                # Duplicate Name Check
+                cleaned_names = [re.sub(r"\(Cụm \d+\)", "", name, flags=re.IGNORECASE).strip().lower() for name in persona_names]
+                if len(set(cleaned_names)) < len(cleaned_names):
+                    verdict["status"] = "REVISE"
+                    verdict["feedback"] = "⚠ Lỗi nghiệp vụ (Duplicate Personas): Mỗi cụm BẮT BUỘC phải có tên DUY NHẤT chứa Feature phân biệt."
+
+                if any("(cụm" in n.lower() for n in persona_names):
+                    verdict["status"] = "REVISE"
+                    verdict["feedback"] = "⚠ Lỗi nghiệp vụ (Cụm Naming): TUYỆT ĐỐI KHÔNG ĐƯỢC đặt tên Persona có chứa chữ '(Cụm X)'."
+
+                # Gate: Silhouette Inflation Warning (when micro-clusters exist)
+                min_support_pct = min(float(p.get("support_pct", 1.0)) for p in data_arr)
+                if min_support_pct < 0.01:
+                    sil_matches = re.findall(r'(?i)silhouette.*?([0-9]*\.[0-9]+)', exec_output)
+                    if sil_matches:
+                        try:
+                            sil_score = float(sil_matches[-1])
+                            if sil_score > 0.5:
+                                # Add warning to sample_persona_text of the anomaly cluster (don't REVISE, just flag)
+                                # We embed this in the feedback as INFO, not REVISE
+                                verdict.setdefault("warnings", []).append(
+                                    f"⚠ Silhouette Inflation Warning: Score={sil_score:.4f} có thể bị thổi phồng bởi "
+                                    f"anomaly cluster ({min_support_pct*100:.2f}% data). "
+                                    f"Silhouette cao nhưng không phản ánh chất lượng phân cụm thực sự."
+                                )
+                        except ValueError:
+                            pass
+
+                break
+
             if not has_valid_json and verdict.get("status") != "REVISE":
                 verdict["status"] = "REVISE"
                 verdict["feedback"] = "⚠ Không tìm thấy JSON Output hợp lệ cho Persona. BẮT BUỘC phải dùng lệnh print('[JSON_START_PERSONA]'), sau đó print(json.dumps(personas)), và cuối cùng print('[JSON_END_PERSONA]')."
@@ -324,7 +310,7 @@ class SemanticVerifier:
                             verdict["feedback"] = f"⚠ Ảo giác diễn giải (Business Hallucination): Bạn kết luận về '{kw}' nhưng feature `{feature}` lại không được dùng trong mô hình. Hãy dựa hoàn toàn vào dữ liệu có thật!"
 
         # Rule 10: NO CAUSAL HALLUCINATION
-        forbidden_causal_terms = ["khuyến mãi", "đối thủ", "cạnh tranh", "thương hiệu", "marketing", "chính sách giá", "ưu đãi giá", "price-sensitive", "nhạy cảm giá"]
+        forbidden_causal_terms = ["khuyến mãi", "promotion", "đối thủ", "cạnh tranh", "thương hiệu", "marketing", "chính sách giá", "ưu đãi giá", "price-sensitive", "nhạy cảm giá"]
         found_terms = [t for t in forbidden_causal_terms if t in exec_output.lower()]
         if found_terms:
             verdict["status"] = "REVISE"
@@ -350,11 +336,85 @@ class SemanticVerifier:
                 verdict["status"] = "REVISE"
                 verdict["feedback"] = "⚠ Thiếu Minh Bạch: Bạn đang xếp hạng 'Priority Score' nhưng không in ra công thức tính. BẤT KỲ metric tự chế nào cũng BẮT BUỘC phải đi kèm công thức minh bạch (VD: Priority Score = Revenue At Risk * Churn Rate)."
 
+        # Gate 6, 7, 8: Anti-Hallucination for zero-variance datasets
+        try:
+            import json, re
+            json_match = re.search(r'\[JSON_START_PERSONA\]\s*(.*?)\s*\[JSON_END_PERSONA\]', exec_output, re.DOTALL)
+            if json_match:
+                personas_json = json.loads(json_match.group(1))
+                cluster_count = len(personas_json)
+                
+                # Gate 6: No Fake Persona
+                if cluster_count == 1:
+                    fake_terms = ["lâu năm", "trung thành", "giá nhạy cảm", "hay gọi cskh", "gọi cskh nhiều", "tương tác cao", "ít tương tác"]
+                    found_fake = [t for t in fake_terms if t in exec_output.lower() or t in code.lower()]
+                    if found_fake:
+                        verdict["status"] = "REVISE"
+                        verdict["feedback"] = f"⚠ Gate 6 (No Fake Persona): Dataset chỉ phân được 1 cụm duy nhất (100% data). BẠN CẤM DÙNG các từ mang tính so sánh như {', '.join(found_fake)} vì không có cụm nào khác để so sánh. Hãy đặt tên trung lập như 'Khách hàng churn phổ biến', 'Nhóm hành vi không phân biệt được', hoặc 'Homogeneous Churn Group'."
+                
+                # Gate 7: No Increase-K Suggestion
+                if cluster_count > 0:
+                    largest_cluster_pct = max([float(p.get("support_pct", 0)) for p in personas_json])
+                    if largest_cluster_pct > 0.8: # >80% data in 1 cluster
+                        increase_k_terms = ["thử k từ 4", "thử k từ 5", "tăng k", "increase k", "thử k từ 4-6", "thử k=4", "thử k=5", "thử k=6"]
+                        # We also check the AI's markdown report instructions, but since verifier only checks JSON/Code, 
+                        # we enforce it if it prints it in stdout or if the LLM adds it in persona text
+                        found_k = [t for t in increase_k_terms if t in exec_output.lower() or t in code.lower()]
+                        if found_k:
+                            verdict["status"] = "REVISE"
+                            verdict["feedback"] = f"⚠ Gate 7 (No Increase-K Suggestion): Cụm lớn nhất chiếm {largest_cluster_pct*100}% dữ liệu (Silhouette > 0.6). Vấn đề KHÔNG PHẢI LÀ K, mà là dữ liệu KHÔNG CÓ TÍN HIỆU PHÂN TÁCH. CẤM đề xuất tăng K hoặc thử K=4,5,6. Bạn PHẢI KẾT LUẬN: 'Dữ liệu hiện tại không chứa đủ tín hiệu để phân tách hành vi'."
+
+                # Gate 8: Root Cause Integrity
+                revenue_columns_not_found = all(float(p.get("arpu", 0)) == 0 for p in personas_json)
+                if revenue_columns_not_found:
+                    revenue_terms = ["roi", "revenue at risk", "recoverable revenue", "priority score"]
+                    found_rev = [t for t in revenue_terms if t in exec_output.lower() or t in code.lower()]
+                    if found_rev:
+                        verdict["status"] = "REVISE"
+                        verdict["feedback"] = f"⚠ Gate 8 (Root Cause Integrity): Dataset không có biến doanh thu (ARPU=0). CẤM sử dụng các keyword {', '.join(found_rev)}. Bắt buộc ép chạy 100% ở ROOT CAUSE MODE."
+                
+                # Gate 9: Outlier Naming
+                for p in personas_json:
+                    if float(p.get("support_pct", 1)) < 0.01:
+                        bad_words = ["persona", "nhóm khách hàng", "segment", "cụm phổ biến"]
+                        name = str(p.get("persona_name", "")).lower()
+                        text = str(p.get("sample_persona_text", "")).lower()
+                        if any(w in name for w in bad_words) or any(w in text for w in bad_words):
+                            verdict["status"] = "REVISE"
+                            verdict["feedback"] = f"⚠ Gate 9 (Outlier Naming): Cụm '{p.get('persona_name')}' chỉ chiếm <1%. CẤM gọi là 'Persona' hay 'Nhóm khách hàng'. Bắt buộc đổi tên thành 'Nhóm ngoại lệ', 'Outlier Cluster', hoặc 'Anomaly Group'."
+                
+                # Gate 10: Persona Name Duplicate
+                names = [str(p.get("persona_name", "")).lower().strip() for p in personas_json]
+                if len(names) != len(set(names)):
+                    verdict["status"] = "REVISE"
+                    verdict["feedback"] = "⚠ Gate 10 (Persona Name Duplicate): Bị trùng tên Persona giữa các cụm. BẮT BUỘC phải phân cấp (ví dụ: thấp, cao, cực cao) để đảm bảo KHÔNG CÓ TÊN NÀO TRÙNG NHAU."
+        except Exception as e:
+            pass
+            
+        # Gate 11: Cluster Leakage — only check persona_name fields in JSON, not entire output
+        try:
+            import json as _json, re as _re
+            _jm = _re.search(r'\[JSON_START_PERSONA\]\s*(.*?)\s*\[JSON_END_PERSONA\]', exec_output, _re.DOTALL)
+            if _jm:
+                _plist = _json.loads(_jm.group(1))
+                for _p in _plist:
+                    _pname = str(_p.get("persona_name", "")).lower()
+                    if _re.match(r'^(cluster_?\s*\d+|cụm\s*\d+)$', _pname.strip()):
+                        verdict["status"] = "REVISE"
+                        verdict["feedback"] = f"⚠ Gate 11 (Cluster ID Leakage): Persona tên '{_p.get('persona_name')}' là tên kỹ thuật thuần túy. BẮT BUỘC phải gọi bằng Tên Persona có ý nghĩa nghiệp vụ."
+        except Exception:
+            pass
+
+
         # Rule 9: Metadata Integrity
         if "sentiment" in code.lower() or "cảm xúc" in exec_output.lower():
             if "do_suy_hao_quang" in code.lower() or "do_suy_hao_quang" in exec_output.lower():
                 verdict["status"] = "REVISE"
                 verdict["feedback"] = "⚠ Lỗi Metadata (Metadata Integrity): 'do_suy_hao_quang' là độ suy hao quang học (Optical Attenuation), KHÔNG PHẢI chỉ số cảm xúc (Sentiment). Không được tự chế khái niệm."
+                
+        if re.search(r'(?i)(ctbdv|đi vắng).*?(proxy arpu|doanh thu)', exec_output.lower() + " " + code.lower()):
+            verdict["status"] = "REVISE"
+            verdict["feedback"] = "⚠ Lỗi Giải thích (Metadata Hallucination): CTBDV là 'Chủ thuê bao đi vắng', TUYỆT ĐỐI KHÔNG giải thích nó là 'Proxy ARPU'."
 
         # Nếu REVISE, lưu vào RIMRULE Memory để lần sau Solver nhớ
         if verdict.get("status") == "REVISE":

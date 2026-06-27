@@ -918,13 +918,16 @@ async def _save_uploads(
         meta_dst = metadata_dir / f"{file_id}.json"
         meta_dst.write_text(json.dumps(metadata, indent=2, ensure_ascii=False), encoding="utf-8")
         
-        # Update index.json
-        index_data[file_id] = {
-            "filename": filename,
-            "path": f"Files/{new_filename}",
-            "metadata_file": f"Metadata/{file_id}.json",
-            "created_at": metadata["created_at"]
-        }
+        # Only register tabular files in the dataset index (not JSON/images/etc.)
+        # This prevents load_dataset() from accidentally picking up metadata files
+        TABULAR_EXTENSIONS = {".csv", ".tsv", ".xlsx", ".xls", ".parquet"}
+        if ext in TABULAR_EXTENSIONS:
+            index_data[file_id] = {
+                "filename": filename,
+                "path": f"Files/{new_filename}",
+                "metadata_file": f"Metadata/{file_id}.json",
+                "created_at": metadata["created_at"]
+            }
         
         saved.append(
             {

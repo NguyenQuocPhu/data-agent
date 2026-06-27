@@ -51,7 +51,7 @@ class OpenAICompatibleClient(ILLMClient):
         prompt: str,
         system_prompt: str = "",
         temperature: float = 0.2,
-        max_tokens: int = 8192,
+        max_tokens: int = 16384,
         stop_sequences: Optional[list[str]] = None
     ) -> str:
         
@@ -79,13 +79,19 @@ class OpenAICompatibleClient(ILLMClient):
                     temperature=temperature,
                     max_tokens=max_tokens,
                     stop=stop_sequences,
-                    extra_body={"cache":{"no-cache":True},"chat_template_kwargs":{"enable_thinking":True},"timeout":120}
-
+                    extra_body={"cache":{"no-cache":True},"chat_template_kwargs":{"enable_thinking":False},"timeout":120}
                 )
                 
                 choice = response.choices[0]
                 content = choice.message.content or ""
                 finish_reason = getattr(choice, "finish_reason", "stop")
+                
+                # Fallback: một số model trả nội dung vào reasoning_content thay vì content
+                if not content.strip():
+                    msg = choice.message
+                    reasoning = getattr(msg, "reasoning_content", None)
+                    if reasoning and reasoning.strip():
+                        content = reasoning.strip()
                 
                 if not content.strip():
                     raise ValueError("Empty response from LLM")
@@ -115,7 +121,7 @@ class OpenAICompatibleClient(ILLMClient):
         system_prompt: str,
         tools: list,
         temperature: float = 0.2,
-        max_tokens: int = 8192
+        max_tokens: int = 16384
     ) -> tuple[str, Optional[dict]]:
         
         req_messages = []

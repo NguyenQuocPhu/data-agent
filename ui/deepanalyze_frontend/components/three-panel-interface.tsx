@@ -741,13 +741,8 @@ export function ThreePanelInterface() {
       configureMonaco();
 
       // 初始化或获取 sessionId
-      let sid = localStorage.getItem("sessionId");
-      if (!sid) {
-        sid = `session_${Date.now()}_${Math.random()
-          .toString(36)
-          .substr(2, 9)}`;
-        localStorage.setItem("sessionId", sid);
-      }
+      let sid = "default";
+      localStorage.setItem("sessionId", sid);
       setSessionId(sid);
 
       const savedTheme = localStorage.getItem("theme");
@@ -1139,6 +1134,7 @@ export function ThreePanelInterface() {
   const [dropActive, setDropActive] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadMsg, setUploadMsg] = useState<string>("");
+  const [uploadProgress, setUploadProgress] = useState<number>(0);
   const [exportingFormat, setExportingFormat] = useState<"md" | "pdf" | null>(
     null
   );
@@ -1917,6 +1913,7 @@ export function ThreePanelInterface() {
   const uploadToDir = async (dirPath: string, files: FileList | File[]) => {
     try {
       setIsUploading(true);
+      setUploadProgress(0);
       const form = new FormData();
       const arr: File[] = Array.from(files as File[]);
       const blockedFiles = arr.filter((file) => {
@@ -1937,27 +1934,52 @@ export function ThreePanelInterface() {
       const url = `${API_URLS.WORKSPACE_UPLOAD_TO}?dir=${encodeURIComponent(
         dirPath || ""
       )}&session_id=${encodeURIComponent(sessionId)}`;
-      await fetch(url, { method: "POST", body: form });
+
+      // Dùng XHR thay fetch để có progress bar
+      await new Promise<void>((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open("POST", url);
+        xhr.upload.onprogress = (event) => {
+          if (event.lengthComputable) {
+            const pct = Math.round((event.loaded / event.total) * 100);
+            setUploadProgress(pct);
+            setUploadMsg(`Đang tải lên... ${pct}%`);
+          }
+        };
+        xhr.onload = () => {
+          if (xhr.status >= 200 && xhr.status < 300) {
+            setUploadProgress(100);
+            resolve();
+          } else {
+            reject(new Error(`HTTP ${xhr.status}: ${xhr.responseText}`));
+          }
+        };
+        xhr.onerror = () => reject(new Error("Network error during upload"));
+        xhr.send(form);
+      });
+
       await loadWorkspaceTree();
       await loadWorkspaceFiles();
       if (blockedFiles.length) {
         setUploadMsg(
           uiLanguage === "zh"
             ? `上传 ${uploadableFiles.length} 个文件，已忽略 ${blockedFiles.length} 个 .py 文件`
-            : `Uploaded ${uploadableFiles.length} file(s), ignored ${blockedFiles.length} .py file(s)`
+            : `✅ Uploaded ${uploadableFiles.length} file(s), ignored ${blockedFiles.length} .py file(s)`
         );
       } else {
+        const totalSize = uploadableFiles.reduce((s, f) => s + f.size, 0);
+        const sizeMB = (totalSize / 1024 / 1024).toFixed(1);
         setUploadMsg(
           uiLanguage === "zh"
-            ? `上传成功 ${uploadableFiles.length} 个文件`
-            : `Uploaded ${uploadableFiles.length} file(s)`
+            ? `✅ 上传成功 ${uploadableFiles.length} 个文件`
+            : `✅ Uploaded ${uploadableFiles.length} file(s) — ${sizeMB} MB`
         );
       }
-      setTimeout(() => setUploadMsg(""), 2000);
+      setTimeout(() => { setUploadMsg(""); setUploadProgress(0); }, 3000);
     } catch (e) {
       console.error("upload to dir error", e);
-      setUploadMsg(uiLanguage === "zh" ? "上传失败" : "Upload failed");
-      setTimeout(() => setUploadMsg(""), 2500);
+      setUploadMsg(uiLanguage === "zh" ? "❌ 上传失败" : `❌ Upload failed: ${(e as Error).message}`);
+      setTimeout(() => { setUploadMsg(""); setUploadProgress(0); }, 4000);
     } finally {
       setIsUploading(false);
     }
@@ -5210,7 +5232,9 @@ export function ThreePanelInterface() {
           if (trimmed === "data: [DONE]") continue;
 
           try {
-            const json = JSON.parse(trimmed);
+            // Strip SSE 'data: ' prefix if present
+            const jsonStr = trimmed.startsWith("data: ") ? trimmed.slice(6) : trimmed;
+            const json = JSON.parse(jsonStr);
             const deltaContent = json.choices?.[0]?.delta?.content;
 
             if (deltaContent) {
@@ -5953,9 +5977,24 @@ export function ThreePanelInterface() {
                     )}
                   </Card>
 
-                  {uploadMsg && (
-                    <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900/50 px-3 py-2 text-[11px] text-gray-500 dark:text-gray-400">
-                      {uploadMsg}
+                  {(uploadMsg || isUploading) && (
+                    <div className="rounded-xl border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950/40 px-3 py-2 space-y-1.5">
+                      <div className="flex items-center justify-between text-[11px]">
+                        <span className={`font-medium ${uploadMsg.startsWith("✅") ? "text-green-600 dark:text-green-400" : uploadMsg.startsWith("❌") ? "text-red-600 dark:text-red-400" : "text-blue-600 dark:text-blue-400"}`}>
+                          {uploadMsg || "Chuẩn bị tải lên..."}
+                        </span>
+                        {isUploading && uploadProgress > 0 && (
+                          <span className="text-blue-500 dark:text-blue-400 font-mono">{uploadProgress}%</span>
+                        )}
+                      </div>
+                      {isUploading && (
+                        <div className="w-full bg-blue-100 dark:bg-blue-900/50 rounded-full h-1.5 overflow-hidden">
+                          <div
+                            className="h-full bg-blue-500 dark:bg-blue-400 rounded-full transition-all duration-300"
+                            style={{ width: `${uploadProgress}%` }}
+                          />
+                        </div>
+                      )}
                     </div>
                   )}
 
@@ -6244,6 +6283,33 @@ export function ThreePanelInterface() {
               {/* Input Area */}
               {!moveDialogToLeftPanel && (
                 <div className="p-4 border-t border-gray-200 dark:border-gray-800 shrink-0 bg-white/80 dark:bg-gray-950/80">
+                  {messages.length > 0 && messages[messages.length - 1].sender === "assistant" && messages[messages.length - 1].content.includes("Chờ phản hồi của bạn để chạy tiếp") && (
+                    <div className="flex gap-2 mb-3">
+                      <Button
+                        size="sm"
+                        className="rounded-full bg-green-600 text-white hover:bg-green-700"
+                        onClick={() => handleSendMessage("Approve")}
+                      >
+                        <Check className="h-4 w-4 mr-1" /> Approve
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="rounded-full border-red-200 text-red-600 hover:bg-red-50 dark:hover:bg-red-950"
+                        onClick={() => setInputValue("Reject (Sửa lại plan): ")}
+                      >
+                        <X className="h-4 w-4 mr-1" /> Reject
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="rounded-full"
+                        onClick={() => setInputValue("Giải thích plan này: ")}
+                      >
+                        <HelpCircle className="h-4 w-4 mr-1" /> Clarify
+                      </Button>
+                    </div>
+                  )}
                   <div className="flex gap-3 items-end">
                     <Button
                       variant="ghost"

@@ -96,7 +96,7 @@ def format_chunk(content: str, model: str) -> str:
             }
         ],
     }
-    return json.dumps(chunk) + "\n"
+    return "data: " + json.dumps(chunk) + "\n\n"
 
 def format_end_chunk(model: str) -> str:
     end_chunk = {
@@ -106,7 +106,7 @@ def format_end_chunk(model: str) -> str:
         "model": model,
         "choices": [{"index": 0, "delta": {}, "finish_reason": "stop"}],
     }
-    return json.dumps(end_chunk) + "\n"
+    return "data: " + json.dumps(end_chunk) + "\n\ndata: [DONE]\n\n"
 
 @router.post("/chat/completions")
 async def chat(body: dict = Body(...), lambda_instance = Depends(get_lambda_agent)):
@@ -143,6 +143,19 @@ async def chat(body: dict = Body(...), lambda_instance = Depends(get_lambda_agen
 """
         user_query += "\n" + domain_knowledge
 
+    # Dynamic Metadata Injection
+    import glob
+    metadata_content = ""
+    for file_path in glob.glob("/app/*metadata*.json"):
+        try:
+            with open(file_path, "r", encoding="utf-8") as f:
+                metadata_content += f"\n--- Metadata từ file: {file_path.split('/')[-1]} ---\n{f.read()}\n"
+        except Exception:
+            pass
+            
+    if metadata_content:
+        user_query += f"\n\n[USER UPLOADED METADATA]\nHãy tham khảo và tuân thủ chặt chẽ metadata sau đây cho dữ liệu:\n{metadata_content}\n"
+
     model_name = body.get("model", "lambda-triadic-agent")
 
     async def event_generator():
@@ -166,7 +179,15 @@ async def chat(body: dict = Body(...), lambda_instance = Depends(get_lambda_agen
             lambda_instance.conv.programmer.messages.append({"role": "user", "content": user_query})
             
             # Start streaming workflow
-            workflow_generator = lambda_instance.conv.stream_workflow(gradio_history, code=None)
+            # ── Phase 1: LangGraph routing ──────────────────────────────────────
+            # If the LAMBDA instance has the LangGraph wrapper, prefer it.
+            # Fallback to the legacy engine.stream_workflow for compatibility.
+            use_lg = getattr(lambda_instance, "USE_LANGGRAPH", False)
+            if use_lg and hasattr(lambda_instance, "lg_graph"):
+                workflow_generator = lambda_instance.lg_graph.stream(user_query, gradio_history, session_id=session_id)
+            else:
+                workflow_generator = lambda_instance.conv.stream_workflow(gradio_history, code=None)
+
             
             last_len = 0
             is_executing = False
@@ -281,8 +302,18 @@ async def chat(body: dict = Body(...), lambda_instance = Depends(get_lambda_agen
             if current_tag == "Answer":
                 yield format_chunk("\n\n", model_name)
             
-            # The UI doesn't necessarily need "Workflow complete" if it's already in Answer.
-            yield format_chunk("Workflow complete.\n\n</Answer>", model_name)
+            # Check if paused
+            config = {"configurable": {"thread_id": session_id}}
+            is_paused_now = False
+            if use_lg and hasattr(lambda_instance, "lg_graph"):
+                final_state = lambda_instance.lg_graph.compiled.get_state(config)
+                if len(final_state.next) > 0:
+                    is_paused_now = True
+
+            if is_paused_now:
+                yield format_chunk("Chờ phản hồi của bạn để chạy tiếp...\n\n</Answer>", model_name)
+            else:
+                yield format_chunk("Workflow complete.\n\n</Answer>", model_name)
 
             # ==== SCAN for newly generated files and notify frontend ====
             try:

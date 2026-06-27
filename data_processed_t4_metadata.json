@@ -1,0 +1,570 @@
+{
+    "dataset_name": "data_processed_t4",
+    "description": "Metadata automatically generated",
+    "columns": [
+        {
+            "column": "cl_total_6m",
+            "type": "int",
+            "sample": "0",
+            "description": "Tổng số Yêu cầu hỗ trợ kĩ thuật (CL) trong 6 tháng"
+        },
+        {
+            "column": "cl_avg_6m",
+            "type": "float",
+            "sample": "0.0",
+            "description": "Trung bình số Yêu cầu hỗ trợ kĩ thuật (CL) mỗi tháng"
+        },
+        {
+            "column": "complaint_total_6m",
+            "type": "int",
+            "sample": "0",
+            "description": "Tổng số Khiếu nại (Complaint) trong 6 tháng"
+        },
+        {
+            "column": "complaint_avg_6m",
+            "type": "float",
+            "sample": "0.0",
+            "description": "Trung bình số Khiếu nại (Complaint) mỗi tháng"
+        },
+        {
+            "column": "active_cl_months",
+            "type": "int",
+            "sample": "0",
+            "description": "Số tháng có phát sinh Yêu cầu hỗ trợ kĩ thuật (CL)"
+        },
+        {
+            "column": "active_complaint_months",
+            "type": "int",
+            "sample": "0",
+            "description": "Số tháng có phát sinh Khiếu nại (Complaint)"
+        },
+        {
+            "column": "cl_std",
+            "type": "float",
+            "sample": "0.0",
+            "description": "Độ lệch chuẩn của Yêu cầu hỗ trợ kĩ thuật (CL) (sự biến động)"
+        },
+        {
+            "column": "complaint_std",
+            "type": "float",
+            "sample": "0.0",
+            "description": "Độ lệch chuẩn của Khiếu nại (Complaint) (sự biến động)"
+        },
+        {
+            "column": "old_cl",
+            "type": "int",
+            "sample": "0",
+            "description": "Số Yêu cầu hỗ trợ kĩ thuật (CL) ở giai đoạn cũ (tháng 4-6)"
+        },
+        {
+            "column": "recent_cl",
+            "type": "int",
+            "sample": "0",
+            "description": "Số Yêu cầu hỗ trợ kĩ thuật (CL) ở giai đoạn gần đây (tháng 1-3)"
+        },
+        {
+            "column": "old_complaint",
+            "type": "int",
+            "sample": "0",
+            "description": "Số Khiếu nại (Complaint) ở giai đoạn cũ (tháng 4-6)"
+        },
+        {
+            "column": "recent_complaint",
+            "type": "int",
+            "sample": "0",
+            "description": "Số Khiếu nại (Complaint) ở giai đoạn gần đây (tháng 1-3)"
+        },
+        {
+            "column": "cl_trend",
+            "type": "int",
+            "sample": "0",
+            "description": "Xu hướng Yêu cầu hỗ trợ kĩ thuật (CL) (dương là tăng, âm là giảm)"
+        },
+        {
+            "column": "complaint_trend",
+            "type": "int",
+            "sample": "0",
+            "description": "Xu hướng Khiếu nại (Complaint) (dương là tăng, âm là giảm)"
+        },
+        {
+            "column": "cl_recent_only",
+            "type": "int",
+            "sample": "0",
+            "description": "Chỉ phát sinh Yêu cầu hỗ trợ kĩ thuật (CL) gần đây (1=Có, 0=Không)"
+        },
+        {
+            "column": "complaint_recent_only",
+            "type": "int",
+            "sample": "0",
+            "description": "Chỉ phát sinh Khiếu nại (Complaint) gần đây (1=Có, 0=Không)"
+        },
+        {
+            "column": "no_cl_all_period",
+            "type": "int",
+            "sample": "1",
+            "description": "Không có sự cố nào trong toàn bộ 6 tháng (1=Đúng, 0=Sai)"
+        },
+        {
+            "column": "no_complaint_all_period",
+            "type": "int",
+            "sample": "1",
+            "description": "Không có khiếu nại nào trong toàn bộ 6 tháng (1=Đúng, 0=Sai)"
+        },
+        {
+            "column": "months_since_last_cl",
+            "type": "int",
+            "sample": "999",
+            "description": "Số tháng kể từ lần có Yêu cầu hỗ trợ kĩ thuật (CL) cuối cùng"
+        },
+        {
+            "column": "frequent_cl",
+            "type": "int",
+            "sample": "0",
+            "description": "Khách hàng thường xuyên gặp Yêu cầu hỗ trợ kĩ thuật (CL) (1=Có, 0=Không)"
+        },
+        {
+            "column": "escalating_cl",
+            "type": "int",
+            "sample": "0",
+            "description": "Tình trạng Yêu cầu hỗ trợ kĩ thuật (CL) đang leo thang (1=Có, 0=Không)"
+        },
+        {
+            "column": "declining_cl",
+            "type": "int",
+            "sample": "0",
+            "description": "Tình trạng Yêu cầu hỗ trợ kĩ thuật (CL) đang giảm (1=Có, 0=Không)"
+        },
+        {
+            "column": "escalating_complaint",
+            "type": "int",
+            "sample": "0",
+            "description": "Tình trạng Khiếu nại (Complaint) đang leo thang (1=Có, 0=Không)"
+        },
+        {
+            "column": "declining_complaint",
+            "type": "int",
+            "sample": "0",
+            "description": "Tình trạng Khiếu nại (Complaint) đang giảm (1=Có, 0=Không)"
+        },
+        {
+            "column": "call_total_6m",
+            "type": "float",
+            "sample": "0.0",
+            "description": "Tổng số Cuộc gọi CSKH (Call) trong 6 tháng"
+        },
+        {
+            "column": "call_avg_6m",
+            "type": "float",
+            "sample": "0.0",
+            "description": "Trung bình số Cuộc gọi CSKH (Call) mỗi tháng"
+        },
+        {
+            "column": "missed_total_6m",
+            "type": "float",
+            "sample": "0.0",
+            "description": "Tổng số Cuộc gọi nhỡ (Missed Call) trong 6 tháng"
+        },
+        {
+            "column": "missed_avg_6m",
+            "type": "float",
+            "sample": "0.0",
+            "description": "Trung bình số Cuộc gọi nhỡ (Missed Call) mỗi tháng"
+        },
+        {
+            "column": "active_call_months",
+            "type": "int",
+            "sample": "0",
+            "description": "Số tháng có phát sinh Cuộc gọi CSKH (Call)"
+        },
+        {
+            "column": "active_missed_months",
+            "type": "int",
+            "sample": "0",
+            "description": "Số tháng có phát sinh Cuộc gọi nhỡ (Missed Call)"
+        },
+        {
+            "column": "missed_ratio_6m",
+            "type": "float",
+            "sample": "0.0",
+            "description": "Tỷ lệ gọi nhỡ trên tổng số cuộc gọi"
+        },
+        {
+            "column": "call_std",
+            "type": "float",
+            "sample": "0.0",
+            "description": "Độ lệch chuẩn của Cuộc gọi CSKH (Call)"
+        },
+        {
+            "column": "call_cv",
+            "type": "float",
+            "sample": "0.0",
+            "description": "Hệ số biến thiên (CV) của Cuộc gọi CSKH (Call)"
+        },
+        {
+            "column": "missed_std",
+            "type": "float",
+            "sample": "0.0",
+            "description": "Độ lệch chuẩn của Cuộc gọi nhỡ (Missed Call)"
+        },
+        {
+            "column": "old_call",
+            "type": "float",
+            "sample": "0.0",
+            "description": "Số Cuộc gọi CSKH (Call) ở giai đoạn cũ"
+        },
+        {
+            "column": "recent_call",
+            "type": "float",
+            "sample": "0.0",
+            "description": "Số Cuộc gọi CSKH (Call) ở giai đoạn gần đây"
+        },
+        {
+            "column": "old_missed",
+            "type": "float",
+            "sample": "0.0",
+            "description": "Số Cuộc gọi nhỡ (Missed Call) ở giai đoạn cũ"
+        },
+        {
+            "column": "recent_missed",
+            "type": "float",
+            "sample": "0.0",
+            "description": "Số Cuộc gọi nhỡ (Missed Call) ở giai đoạn gần đây"
+        },
+        {
+            "column": "call_trend",
+            "type": "float",
+            "sample": "0.0",
+            "description": "Xu hướng Cuộc gọi CSKH (Call)"
+        },
+        {
+            "column": "missed_trend",
+            "type": "float",
+            "sample": "0.0",
+            "description": "Xu hướng Cuộc gọi nhỡ (Missed Call)"
+        },
+        {
+            "column": "call_recent_only",
+            "type": "int",
+            "sample": "0",
+            "description": "Chỉ phát sinh Cuộc gọi CSKH (Call) gần đây"
+        },
+        {
+            "column": "missed_recent_only",
+            "type": "int",
+            "sample": "0",
+            "description": "Chỉ phát sinh Cuộc gọi nhỡ (Missed Call) gần đây"
+        },
+        {
+            "column": "no_call_all_period",
+            "type": "int",
+            "sample": "1",
+            "description": "Không có Cuộc gọi CSKH (Call) trong toàn bộ kỳ (1=Có)"
+        },
+        {
+            "column": "no_missed_all_period",
+            "type": "int",
+            "sample": "1",
+            "description": "Không có Cuộc gọi nhỡ (Missed Call) trong toàn bộ kỳ (1=Có)"
+        },
+        {
+            "column": "months_since_last_call",
+            "type": "int",
+            "sample": "999",
+            "description": "Số tháng kể từ lần Cuộc gọi CSKH (Call) cuối cùng"
+        },
+        {
+            "column": "months_since_first_call",
+            "type": "int",
+            "sample": "999",
+            "description": "Số tháng kể từ lần Cuộc gọi CSKH (Call) đầu tiên"
+        },
+        {
+            "column": "frequent_caller",
+            "type": "int",
+            "sample": "1",
+            "description": "Khách hàng thường xuyên gọi (1=Có, 0=Không)"
+        },
+        {
+            "column": "escalating_contact",
+            "type": "int",
+            "sample": "0",
+            "description": "Tương tác (Contact) đang leo thang (tăng dần)"
+        },
+        {
+            "column": "declining_contact",
+            "type": "int",
+            "sample": "0",
+            "description": "Tương tác (Contact) đang giảm dần"
+        },
+        {
+            "column": "high_missed_ratio",
+            "type": "int",
+            "sample": "1",
+            "description": "Tỷ lệ gọi nhỡ cao bất thường (1=Có, 0=Không)"
+        },
+        {
+            "column": "fee_total",
+            "type": "float",
+            "sample": "900000.0",
+            "description": "Tổng cước phí/doanh thu trong 6 tháng"
+        },
+        {
+            "column": "fee_avg",
+            "type": "float",
+            "sample": "300000.0",
+            "description": "Trung bình cước phí mỗi tháng"
+        },
+        {
+            "column": "fee_max",
+            "type": "float",
+            "sample": "300000.0",
+            "description": "Cước phí cao nhất trong 1 tháng"
+        },
+        {
+            "column": "fee_std",
+            "type": "float",
+            "sample": "0.0",
+            "description": "Độ biến động của cước phí"
+        },
+        {
+            "column": "active_fee_months",
+            "type": "int",
+            "sample": "3",
+            "description": "Số tháng có phát sinh cước phí"
+        },
+        {
+            "column": "fee_old",
+            "type": "float",
+            "sample": "300000.0",
+            "description": "Cước phí trung bình giai đoạn cũ"
+        },
+        {
+            "column": "fee_recent",
+            "type": "float",
+            "sample": "300000.0",
+            "description": "Cước phí trung bình giai đoạn gần đây"
+        },
+        {
+            "column": "fee_trend",
+            "type": "float",
+            "sample": "0.0",
+            "description": "Xu hướng cước phí (dương = tăng, âm = giảm)"
+        },
+        {
+            "column": "no_fee_all_period",
+            "type": "int",
+            "sample": "0",
+            "description": "Không có cước phí trong cả 6 tháng"
+        },
+        {
+            "column": "segment_avg",
+            "type": "float",
+            "sample": "3.0",
+            "description": "Phân khúc khách hàng (Trung bình 6 tháng)"
+        },
+        {
+            "column": "segment_latest",
+            "type": "int",
+            "sample": "3",
+            "description": "Phân khúc khách hàng hiện tại"
+        },
+        {
+            "column": "segment_oldest",
+            "type": "int",
+            "sample": "3",
+            "description": "Phân khúc khách hàng 6 tháng trước"
+        },
+        {
+            "column": "segment_trend",
+            "type": "int",
+            "sample": "0",
+            "description": "Xu hướng hạng phân khúc (dương = nâng hạng, âm = tụt hạng)"
+        },
+        {
+            "column": "segment_downgrade_count",
+            "type": "int",
+            "sample": "0",
+            "description": "Số lần tụt hạng phân khúc"
+        },
+        {
+            "column": "segment_upgrade_count",
+            "type": "int",
+            "sample": "0",
+            "description": "Số lần nâng hạng phân khúc"
+        },
+        {
+            "column": "segment_std",
+            "type": "float",
+            "sample": "0.0",
+            "description": "Độ biến động phân khúc"
+        },
+        {
+            "column": "high_spender",
+            "type": "int",
+            "sample": "1",
+            "description": "Chỉ số high_spender"
+        },
+        {
+            "column": "spending_decline",
+            "type": "int",
+            "sample": "0",
+            "description": "Khách hàng có chi tiêu đang giảm dần (1=Có)"
+        },
+        {
+            "column": "spending_growth",
+            "type": "int",
+            "sample": "0",
+            "description": "Khách hàng có chi tiêu đang tăng (1=Có)"
+        },
+        {
+            "column": "segment_branch_avg",
+            "type": "float",
+            "sample": "1.5714285714285714",
+            "description": "Phân khúc theo chi nhánh (Trung bình)"
+        },
+        {
+            "column": "segment_branch_std",
+            "type": "float",
+            "sample": "0.7867957924694431",
+            "description": "Độ biến động phân khúc theo chi nhánh"
+        },
+        {
+            "column": "segment_branch_latest",
+            "type": "int",
+            "sample": "2",
+            "description": "Phân khúc chi nhánh hiện tại"
+        },
+        {
+            "column": "segment_branch_trend",
+            "type": "int",
+            "sample": "0",
+            "description": "Xu hướng hạng phân khúc chi nhánh"
+        },
+        {
+            "column": "segment_branch_upgrade_count",
+            "type": "int",
+            "sample": "2",
+            "description": "Số lần nâng hạng phân khúc chi nhánh"
+        },
+        {
+            "column": "segment_branch_downgrade_count",
+            "type": "int",
+            "sample": "1",
+            "description": "Số lần tụt hạng phân khúc chi nhánh"
+        },
+        {
+            "column": "segment_branch_drop_recent",
+            "type": "int",
+            "sample": "0",
+            "description": "Có tụt hạng phân khúc chi nhánh gần đây không (1=Có)"
+        },
+        {
+            "column": "cnt_DEFAULT",
+            "type": "int",
+            "sample": "1",
+            "description": "Chỉ số cnt_DEFAULT"
+        },
+        {
+            "column": "cnt_Binh_thuong",
+            "type": "int",
+            "sample": "1",
+            "description": "Chỉ số cnt_Binh_thuong"
+        },
+        {
+            "column": "cnt_Dao_dong",
+            "type": "int",
+            "sample": "1",
+            "description": "Chỉ số cnt_Dao_dong"
+        },
+        {
+            "column": "cnt_Giam_nhe",
+            "type": "int",
+            "sample": "0",
+            "description": "Chỉ số cnt_Giam_nhe"
+        },
+        {
+            "column": "cnt_Giam_manh",
+            "type": "int",
+            "sample": "1",
+            "description": "Chỉ số cnt_Giam_manh"
+        },
+        {
+            "column": "ever_giam_nhe",
+            "type": "int",
+            "sample": "0",
+            "description": "Từng có tháng bị Giảm nhẹ (1=Có)"
+        },
+        {
+            "column": "ever_giam_manh",
+            "type": "int",
+            "sample": "1",
+            "description": "Từng có tháng bị Giảm mạnh (1=Có)"
+        },
+        {
+            "column": "persistent_giam_manh",
+            "type": "int",
+            "sample": "0",
+            "description": "Bị giảm mạnh liên tục nhiều tháng (1=Có)"
+        },
+        {
+            "column": "status_change_count",
+            "type": "int",
+            "sample": "3",
+            "description": "Số lần thay đổi trạng thái thuê bao"
+        },
+        {
+            "column": "status_trend",
+            "type": "int",
+            "sample": "-2",
+            "description": "Xu hướng thay đổi trạng thái"
+        },
+        {
+            "column": "status_worsening",
+            "type": "int",
+            "sample": "0",
+            "description": "Trạng thái thuê bao đang xấu đi (ví dụ: Chuyển sang tạm ngưng/rời mạng)"
+        },
+        {
+            "column": "CUSTOMER_TYPE",
+            "type": "string",
+            "sample": "Cá nhân",
+            "description": "Loại khách hàng (ví dụ: Cá nhân, Doanh nghiệp)"
+        },
+        {
+            "column": "VIP_TYPE",
+            "type": "int",
+            "sample": "-1",
+            "description": "Loại VIP của khách hàng"
+        },
+        {
+            "column": "LOYALTY_RANK",
+            "type": "int",
+            "sample": "0",
+            "description": "Hạng hạng thẻ khách hàng thân thiết"
+        },
+        {
+            "column": "LOYALTY_STATUS",
+            "type": "int",
+            "sample": "0",
+            "description": "Trạng thái chương trình khách hàng thân thiết"
+        },
+        {
+            "column": "LOYALTY_POINT",
+            "type": "int",
+            "sample": "-1",
+            "description": "Điểm xét hạng khách hàng thân thiết"
+        },
+        {
+            "column": "LOYALTY_COIN",
+            "type": "int",
+            "sample": "-1",
+            "description": "Điểm tiêu dùng (coin) khách hàng thân thiết"
+        },
+        {
+            "column": "OBJID_mask",
+            "type": "string",
+            "sample": "ID_000001",
+            "description": "Mã định danh khách hàng (đã che)"
+        }
+    ]
+}

@@ -34,12 +34,27 @@ def load_dataset(file_id=None):
     
     # If no file_id provided, load latest dataset
     if file_id is None:
-        dated = [(fid, info.get('created_at','')) for fid, info in index_data.items() if info.get('created_at')]
-        if dated:
-            dated.sort(key=lambda x: x[1], reverse=True)
-            file_id = dated[0][0]
+        # Prioritize tabular files (CSV/Excel) over other types like JSON
+        tabular_exts = {{'.csv', '.tsv', '.xlsx', '.xls', '.parquet'}}
+        
+        # Filter to tabular files only first
+        tabular_entries = [
+            (fid, info) for fid, info in index_data.items()
+            if os.path.splitext(info.get('filename', info.get('path', '')))[1].lower() in tabular_exts
+        ]
+        
+        if tabular_entries:
+            # Sort by created_at descending → pick latest tabular file
+            tabular_entries.sort(key=lambda x: x[1].get('created_at', ''), reverse=True)
+            file_id = tabular_entries[0][0]
         else:
-            file_id = list(index_data.keys())[-1]
+            # Fallback: pick latest file of any type
+            dated = [(fid, info.get('created_at','')) for fid, info in index_data.items() if info.get('created_at')]
+            if dated:
+                dated.sort(key=lambda x: x[1], reverse=True)
+                file_id = dated[0][0]
+            else:
+                file_id = list(index_data.keys())[-1]
         print(f"Auto-selecting dataset: {{index_data[file_id].get('filename', file_id)}} (ID: {{file_id}})")
     
     # Try exact match first

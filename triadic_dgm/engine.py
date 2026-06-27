@@ -4,7 +4,7 @@ import json
 import random
 from triadic_dgm.agent.programmer import Programmer
 from triadic_dgm.agent.verifier import SemanticVerifier
-from cache.cache import *
+import pandas as pd
 from triadic_dgm.prompts.prompts import *
 from triadic_dgm.benchmark.core.proposer_agent import ProposerAgent
 from triadic_dgm.benchmark.implementations.llm_unified import UnifiedLLMClient

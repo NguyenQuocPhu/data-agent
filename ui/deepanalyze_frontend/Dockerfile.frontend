@@ -1,0 +1,20 @@
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Copy package files and scripts folder (needed for postinstall)
+COPY package.json package-lock.json* pnpm-lock.yaml* ./
+COPY scripts ./scripts
+
+# Install dependencies
+# Using npm install since we'll run npm run dev
+RUN npm install
+
+# Copy application source
+COPY . .
+
+# Expose port
+EXPOSE 3000
+
+# Start development server
+CMD ["npm", "run", "dev"]

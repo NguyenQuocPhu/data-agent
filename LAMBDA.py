@@ -6,6 +6,7 @@ import random
 import logging
 from triadic_dgm import TriadicAgent
 from triadic_dgm.prompts.prompts import *
+from langgraph_agent import DataAgentGraph
 import yaml
 from utils.utils import *
 import sys
@@ -95,7 +96,13 @@ class LAMBDA:
 
         if self.conv.retrieval:
             self.conv.programmer.messages[0]["content"] += KNOWLEDGE_INTEGRATION_SYSTEM
-            
+
+        # ── LangGraph wrapper (Phase 1) ─────────────────────────────────────
+        # DataAgentGraph wraps the existing TriadicAgent into a LangGraph
+        # StateGraph. Set USE_LANGGRAPH=False to fall back to the old engine.
+        self.USE_LANGGRAPH = True
+        self.lg_graph = DataAgentGraph(self.conv)
+
         # Log evolutionary parameters
         logger.info(f"Evolutionary Parameters - epiplexity_min: {self.epiplexity_min}, "
                    f"epiplexity_max: {self.epiplexity_max}, vocab_dropout_rate: {self.vocab_dropout_rate}")
