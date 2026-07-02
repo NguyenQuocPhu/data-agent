@@ -22,7 +22,7 @@ services:
       dockerfile: Dockerfile.frontend
     container_name: lambda-frontend
     ports:
-      - "13000:3000"
+      - "3014:3000"
     environment:
       - NEXT_PUBLIC_API_URL=http://localhost:18000
     volumes:

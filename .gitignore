@@ -92,3 +92,4 @@ build/
 dist/
 .npm/
 .pnp.*
+out.log

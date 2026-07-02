@@ -132,9 +132,9 @@
         ],
         "strength": "MUST",
         "tool_category": "data_analysis",
-        "errors_fixed": 66,
+        "errors_fixed": 67,
         "token_length": 32,
-        "mdl_score": 2.0625
+        "mdl_score": 2.0938
     },
     {
         "nl_rule": "\n\n1.  **Verify Registry Schema:** Inspect the internal dataset registry structure to confirm the actual keys present for the selected dataset identifier, ensuring they match the loader's expectations.\n2.  **Update Access Logic:** Modify the data loading function to validate the existence of required metadata fields before attempting to access them, preventing crashes on missing keys.\n3.  **Refine Selection Criteria:** Adjust the dataset selection logic to ensure only entries with complete and valid metadata are chosen automatically, filtering out incomplete records.\n4.  **Implement Error Handling:** Add conditional checks or try-except blocks to gracefully handle missing metadata keys, allowing the system to fallback to alternative loading methods or report the schema mismatch clearly.",
@@ -1386,9 +1386,9 @@
         ],
         "strength": "MUST",
         "tool_category": "data_analysis",
-        "errors_fixed": 41,
+        "errors_fixed": 112,
         "token_length": 26,
-        "mdl_score": 1.5769
+        "mdl_score": 4.3077
     },
     {
         "nl_rule": "Semantic check failed: \u26a0 L\u1ed7i M\u00e2u Thu\u1eabn Ch\u00e2n Dung: T\u00ean Persona 'Kh\u00e1ch h\u00e0ng hay g\u1eb7p s\u1ef1 c\u1ed1 - c\u1ea7n h\u1ed7 tr\u1ee3' \u00e1m ch\u1ec9 kh\u00e1ch g\u1eb7p s\u1ef1 c\u1ed1 nh\u01b0ng Sample Text 'k\u1ebft n\u1ed1i m\u1ea1ng \u1ed5n \u0111\u1ecbnh | \u0111\u1ed9 suy hao quang trung b\u00ecnh l\u00e0 -16.4 dbm | \u00edt g\u1ecdi cskh | kh\u00e1ch h\u00e0ng l\u00e2u n\u0103m' l\u1ea1i to\u00e0n \u0111i\u1ec1u t\u00edch c\u1ef1c. T\u00ean Persona ph\u1ea3i nh\u1ea5t qu\u00e1n v\u1edbi d\u1eef li\u1ec7u!",
@@ -2007,9 +2007,9 @@
         ],
         "strength": "MUST",
         "tool_category": "coding",
-        "errors_fixed": 1,
+        "errors_fixed": 2,
         "token_length": 77,
-        "mdl_score": 0.013
+        "mdl_score": 0.026
     },
     {
         "nl_rule": "\n\n1. **Identify Missing Dependency:** Review the `ModuleNotFoundError` traceback to determine the specific library name that is not installed in the current environment.\n2. **Install Required Libraries:** Use the environment's package manager (e.g., `pip` or `conda`) to install the missing library and any other uninstalled imports found in the script header.\n3. **Verify All Imports:** Ensure all external libraries referenced in the import statements are present to prevent cascading `ModuleNotFoundError` exceptions.\n4. **Manage Dependencies:** Maintain a centralized dependency file (e.g., `requirements.txt`) listing all required packages to ensure environment consistency and prevent future import failures.\n5. **Re-run Execution:** After installation, re-execute the script to confirm the import error is resolved before proceeding to semantic validation checks.",
@@ -2566,9 +2566,9 @@
         ],
         "strength": "MUST",
         "tool_category": "data_analysis",
-        "errors_fixed": 6,
+        "errors_fixed": 12,
         "token_length": 36,
-        "mdl_score": 0.1667
+        "mdl_score": 0.3333
     },
     {
         "nl_rule": "\n\n## Fix Instructions\n\n### Root Cause Analysis\nThe error occurs because the boolean filtering on line 46 uses Python's `and` operator instead of element-wise operations. When filtering a list with `and`, Python evaluates the entire expression as a single boolean, causing the result to be a pandas Series instead of a list. This makes `X` a Series instead of a DataFrame, leading to the `'Series' object has no attribute 'columns'` error.\n\n### Generalized Fix Steps\n\n1. **Replace `and` with element-wise filtering**: When filtering column lists or arrays, use list comprehension or numpy boolean indexing instead of Python's `and`/`or` operators.\n\n2. **Use proper list filtering syntax**: Change from:\n   ```python\n   numeric_cols[numeric_cols != 'A' and numeric_cols != 'B' and numeric_cols != 'C']\n   ```\n   To:\n   ```python\n   [col for col in numeric_cols if col not in ['A', 'B', 'C']]\n   ```\n\n3. **Ensure DataFrame consistency**: After filtering, verify that the resulting object is a DataFrame before accessing `.columns` attribute.\n\n4. **Handle column name variations**: When excluding columns, check for both exact matches and case variations (e.g., 'OBJID_mask' vs 'objid') using a set for efficient lookup.\n\n5. **Validate feature list before use**: After creating `usable_features`, confirm it's a list with at least 1 element before using it to select columns from the DataFrame.\n\n### Key Principle\n**Never use Python's `and`/`or` operators for element-wise filtering on lists or arrays.** Always use list comprehension, numpy boolean arrays, or pandas `.isin()`/`.notin()` methods for proper element-wise operations.",
@@ -2750,9 +2750,9 @@
         ],
         "strength": "MUST",
         "tool_category": "data_analysis",
-        "errors_fixed": 8,
+        "errors_fixed": 19,
         "token_length": 32,
-        "mdl_score": 0.25
+        "mdl_score": 0.5938
     },
     {
         "nl_rule": "\n\n1. **Identify Data Structure Mismatch**: Recognize that the output of the scaling function is a NumPy array, which does not possess a `.columns` attribute. Attempting to access this attribute will raise an `AttributeError`.\n\n2. **Remove Invalid Attribute Access**: Eliminate any code logic that attempts to inspect column names (e.g., `.columns`) directly on the scaled numerical matrix.\n\n3. **Shift Validation to Input Stage**: Perform all feature exclusion checks (such as ensuring the target variable is not included) on the input DataFrame or feature list *before* the scaling transformation occurs, where column metadata is available.\n\n4. **Convert if Inspection is Required**: If column inspection is absolutely necessary on the transformed data, explicitly convert the NumPy array back to a DataFrame using the original feature names prior to performing the check.",
@@ -2843,5 +2843,470 @@
         "errors_fixed": 1,
         "token_length": 265,
         "mdl_score": 0.0038
+    },
+    {
+        "nl_rule": "\n\n1. **Resolve Missing Dependencies**: Identify the specific library name reported in the `ModuleNotFoundError` traceback and install it using the environment's package manager (e.g., `pip install`). Repeat this process for any other libraries imported at the top of the script that are not currently available to prevent cascading import failures.\n\n2. **Validate Business Logic Compliance**: Before re-running the script, review the code logic against the provided \"Past Errors\" rules. Specifically, ensure that the target variable is strictly excluded from the feature set used for clustering to prevent data leakage, and verify that prohibited metrics (such as priority scoring) are not generated when revenue data is unavailable or zero.\n\n3. **Verify Output Format**: Ensure the final output generation follows the required JSON structure markers (start/end tags) to pass semantic validation checks.",
+        "domain": "python",
+        "qualifier": [
+            "runtime_error"
+        ],
+        "action": [
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "coding",
+        "errors_fixed": 1,
+        "token_length": 129,
+        "mdl_score": 0.0078
+    },
+    {
+        "nl_rule": "\n\n## Fix Instructions\n\n### Root Cause Analysis\nThe error `TypeError: 'numpy.ndarray' object is not callable` occurs because `cluster_sizes` is being treated as a numpy array when `.values()` is called with parentheses. Numpy arrays have `.values` as an attribute (not a method), so calling `.values()` attempts to call the array as a function.\n\n### Generalized Fix Steps\n\n1. **Verify Data Structure Before Method Calls**\n   - Before calling `.values()` on any variable, confirm it's a pandas Series/DataFrame, not a numpy array\n   - Use `type(variable)` or `isinstance(variable, pd.Series)` to check the data type\n\n2. **Use Correct Attribute Access for Numpy Arrays**\n   - If the variable is a numpy array, use `.values` (without parentheses) to access the underlying data\n   - If the variable is a pandas Series, use `.values` or `.tolist()` to convert to list for `max()` function\n\n3. **Ensure Consistent Data Type Handling**\n   - When using `value_counts()`, ensure the result remains a pandas Series\n   - If conversion to numpy array occurs, use `.values` attribute instead of `.values()` method call\n   - Consider using `.tolist()` for list operations to avoid type confusion\n\n4. **Add Type Safety Checks**\n   - Before operations that assume pandas methods, add validation: `if isinstance(cluster_sizes, pd.Series):`\n   - Handle both pandas Series and numpy array cases explicitly\n\n5. **Alternative Approach for Robustness**\n   - Use `cluster_sizes.max()` directly if it's a pandas Series\n   - Or use `max(cluster_sizes)` if it's a numpy array\n   - Avoid `.values()` method calls on variables that might be numpy arrays\n\n### Prevention Guidelines\n- Always check variable types before calling methods that may not exist on all data structures\n- Prefer pandas native methods over numpy conversions when working with tabular data\n- Use `.tolist()` for converting to Python lists instead of `.values()` when uncertain about data type\n- Add defensive programming checks before critical operations that depend on specific data structures",
+        "domain": "python",
+        "qualifier": [
+            "runtime_error"
+        ],
+        "action": [
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "coding",
+        "errors_fixed": 1,
+        "token_length": 301,
+        "mdl_score": 0.0033
+    },
+    {
+        "nl_rule": "\n\n## Fix Instructions\n\n### Problem Analysis\nThe error `TypeError: 'numpy.ndarray' object is not callable` occurs because `cluster_sizes` is a pandas Series, and `.values()` returns a numpy array. When Python tries to call the array with `()`, it fails because numpy arrays are not callable objects.\n\n### Generalized Fix Steps\n\n1. **Identify all pandas Series objects** that are being converted to lists for plotting or other operations\n\n2. **Replace `.values()` with `.tolist()`** for all pandas Series objects when converting to lists:\n   - Change `list(series.values())` to `list(series.tolist())`\n   - Or simply use `series.tolist()` directly without the outer `list()` call\n\n3. **Apply this fix to all visualization sections** where Series data is being passed to plotting functions:\n   - Check all `plt.figure()`, `sns.barplot()`, `sns.heatmap()` calls\n   - Ensure any Series `.values()` usage is replaced with `.tolist()`\n\n4. **Verify the fix** by checking that:\n   - No `.values()` is used on pandas Series objects\n   - All Series-to-list conversions use `.tolist()` method\n   - The plotting functions receive proper list objects, not numpy arrays\n\n### Key Principle\n**Never use `.values()` on pandas Series for list conversion** - always use `.tolist()` instead to avoid numpy array type errors in plotting and data processing operations.",
+        "domain": "python",
+        "qualifier": [
+            "runtime_error"
+        ],
+        "action": [
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "coding",
+        "errors_fixed": 1,
+        "token_length": 193,
+        "mdl_score": 0.0052
+    },
+    {
+        "nl_rule": "\n\n## Fix Instructions\n\n### Root Cause Analysis\nThe `TypeError` occurs because `pd.to_numeric()` is being called on columns that may contain non-numeric data types (e.g., strings, objects). The function expects a 1-dimensional Series or array, but some columns in the feature set contain incompatible data types.\n\n### Generalized Fix Steps\n\n1. **Validate Column Types Before Conversion**\n   - Before applying `pd.to_numeric()`, check each column's dtype\n   - Only apply numeric conversion to columns with numeric dtypes (int, float)\n   - Skip or handle columns with object/string types separately\n\n2. **Ensure Target Variable Exclusion**\n   - Verify the target variable (e.g., `RMDT`) is NOT included in the feature list for clustering\n   - Add explicit exclusion for any target/categorical columns before feature selection\n\n3. **Add Type-Safe Conversion**\n   - Use a try-except block around the conversion to catch and handle non-numeric columns gracefully\n   - Alternatively, filter columns by dtype before the conversion loop:\n     ```\n     numeric_features = [col for col in final_features if data[col].dtype in ['int', 'float', 'int64', 'float64']]\n     ```\n\n4. **Verify Feature List Composition**\n   - After feature selection, confirm all selected columns are numeric\n   - Print column dtypes to debug any unexpected types\n   - Ensure string/object columns (like `OBJID_mask`, `CUSTOMER_TYPE`) are excluded via `exclude_prefixes`\n\n5. **Add Pre-Conversion Validation**\n   - Before the conversion loop, validate that each column can be converted to numeric\n   - If a column fails conversion, log a warning and exclude it from the feature set\n\n### Key Principle\n**Never assume all selected features are numeric.** Always validate data types before applying numeric operations to prevent type errors during preprocessing.",
+        "domain": "python",
+        "qualifier": [
+            "runtime_error"
+        ],
+        "action": [
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "coding",
+        "errors_fixed": 1,
+        "token_length": 254,
+        "mdl_score": 0.0039
+    },
+    {
+        "nl_rule": "\n\n## Fix Instructions\n\n### Primary Issue: File Path Configuration Error\n\n**Problem:** The `working_path` variable contains a literal placeholder string `\"{working_path}\"` instead of an actual directory path, causing `OSError` when attempting to save files.\n\n**Fix Steps:**\n\n1. **Replace placeholder with actual path:** Before executing the code, ensure `working_path` is assigned a valid directory path (e.g., `working_path = \"/workspace/output\"` or `working_path = os.getcwd()`).\n\n2. **Validate directory exists:** Before any file write operations, verify the directory exists using `os.makedirs(working_path, exist_ok=True)` to create it if missing.\n\n3. **Use absolute paths:** Prefer absolute paths over relative paths to avoid path resolution issues in different execution environments.\n\n### Secondary Issues to Address (Based on Past Error Rules)\n\n4. **Data Leakage Prevention:** Before KMeans clustering, ensure the target variable `RMDT` (if present in dataset) is excluded from `final_features` list.\n\n5. **JSON Output Format:** Ensure Persona output follows the required format:\n   - Print `[JSON_START_PERSONA]`\n   - Print `json.dumps(personas)`\n   - Print `[JSON_END_PERSONA]`\n\n6. **Support Threshold Validation:** Filter clusters where `support_pct < 0.05` (5%) before including them in final persona output.\n\n7. **Feature Quality Check:** Ensure at least 3 valid numeric features remain after zero-inflation filtering before proceeding with clustering.\n\n### Implementation Pattern\n\n```python\n# Correct pattern for path handling\nworking_path = os.path.abspath(working_path)  # Convert to absolute path\nos.makedirs(working_path, exist_ok=True)       # Ensure directory exists\n# Then proceed with file operations\n```\n\n**Note:** Apply these fixes before running the clustering pipeline to prevent cascading errors.",
+        "domain": "python",
+        "qualifier": [
+            "runtime_error"
+        ],
+        "action": [
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "coding",
+        "errors_fixed": 1,
+        "token_length": 233,
+        "mdl_score": 0.0043
+    },
+    {
+        "nl_rule": "\n\n## Fix Instructions\n\n### Root Cause Analysis\nThe error `TypeError: 'numpy.ndarray' object is not callable` occurs when trying to access cluster statistics. This typically happens when:\n1. A variable name shadows a built-in function (like `max`, `list`, or `values`)\n2. The cluster size object is not a pandas Series as expected\n3. Data type conversion issues between numpy arrays and pandas objects\n\n### Actionable Fix Steps\n\n**1. Ensure Proper Data Type Handling**\n- Before accessing cluster statistics, verify the cluster assignment column is a pandas Series\n- Use `.astype()` to ensure the cluster column is properly typed before calling `.value_counts()`\n- If `.value_counts()` returns unexpected types, explicitly convert to pandas Series\n\n**2. Avoid Built-in Function Shadowing**\n- Check that no variable in the code shadows built-in functions like `max`, `list`, `values`, or `sum`\n- Rename any custom variables that conflict with Python built-ins\n- Use `dir()` or `globals()` to audit variable names if uncertain\n\n**3. Use Safe Access Patterns**\n- When getting cluster sizes, use `.to_numpy()` or `.values` explicitly with proper indexing\n- Calculate maximum percentage using `max()` on a list, not directly on the Series object\n- Add type checking before critical operations: `isinstance(cluster_sizes, pd.Series)`\n\n**4. Add Defensive Programming**\n- Wrap cluster statistics calculations in try-except blocks\n- Add validation checks before accessing `.values`, `.index`, or `.max()`\n- Ensure the cluster column exists and is numeric before calling `.value_counts()`\n\n**5. Verify Feature Selection Doesn't Include Target Variables**\n- Cross-check that no target/label variables (like churn indicators) are included in clustering features\n- Remove any columns that could cause data leakage before KMeans execution\n\n### Prevention Checklist\n- [ ] Audit all variable names for conflicts with Python built-ins\n- [ ] Validate data types before calling pandas methods\n- [ ] Use explicit type conversions when mixing numpy and pandas objects\n- [ ] Add unit tests for cluster statistics calculations\n- [ ] Document expected return types for all data transformation steps",
+        "domain": "python",
+        "qualifier": [
+            "runtime_error"
+        ],
+        "action": [
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "coding",
+        "errors_fixed": 1,
+        "token_length": 324,
+        "mdl_score": 0.0031
+    },
+    {
+        "nl_rule": "\n\n## Fix Instructions\n\n### Problem Analysis\nThe error `TypeError: 'numpy.ndarray' object is not callable` occurs because `.values` is being called as a method with parentheses `()`, but it's actually an attribute that returns a numpy array.\n\n### Generalized Fix Steps\n\n1. **Identify the value_counts() output**: When using `.value_counts()` on a pandas Series, the result is a pandas Series object.\n\n2. **Access array values correctly**: To get the underlying numpy array from a pandas Series, use `.values` as an **attribute** (without parentheses), not as a method call.\n\n3. **Apply the fix pattern**:\n   - \u274c Wrong: `cluster_sizes.values()` \n   - \u2705 Correct: `cluster_sizes.values`\n\n4. **Verify the fix**: After removing the parentheses, the expression should be:\n   ```python\n   dominant_cluster_pct = max(cluster_sizes.values) / len(data)\n   ```\n\n5. **Check similar patterns**: Review all other places in the code where `.values` is used on pandas Series/DataFrame objects to ensure they're not being called with parentheses.\n\n### Prevention Rule\nWhen accessing `.values` attribute on pandas objects (Series, DataFrame), always use it as `object.values` (no parentheses). Only use parentheses when calling actual methods like `.to_dict()`, `.tolist()`, etc.",
+        "domain": "python",
+        "qualifier": [
+            "runtime_error"
+        ],
+        "action": [
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "coding",
+        "errors_fixed": 1,
+        "token_length": 175,
+        "mdl_score": 0.0057
+    },
+    {
+        "nl_rule": "\n\n1. **Correct Syntax for Python Structures:** Replace all instances of double curly braces `{{` and `}}` used for defining dictionaries or string interpolation with standard Python single curly braces `{` and `}`. The current code uses template syntax which is invalid for standard Python execution and causes the `TypeError`.\n\n2. **Prevent Data Leakage:** Verify that the target variable (e.g., churn indicator) is explicitly excluded from the feature selection list passed to the clustering algorithm. Ensure the exclusion logic covers the target column name to prevent it from being used as an input feature.\n\n3. **Ensure Valid JSON Output:** Confirm that the final persona generation step wraps the output with the required JSON start and end markers (`[JSON_START_PERSONA]`, `print(json.dumps(...))`, `[JSON_END_PERSONA]`) to ensure downstream systems can parse the result correctly.",
+        "domain": "python",
+        "qualifier": [
+            "runtime_error"
+        ],
+        "action": [
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "coding",
+        "errors_fixed": 1,
+        "token_length": 128,
+        "mdl_score": 0.0078
+    },
+    {
+        "nl_rule": "\n\n## Fix Instructions\n\n### 1. [Data Leakage Prevention]\n**Problem:** Target variables (like `RMDT`, `cnt_`, `segment_`, `status_`) may be included in clustering features, causing data leakage.\n\n**Fix:** Before clustering, explicitly exclude all columns that represent:\n- Target/churn indicators (`cnt_*`, `status_*`, `rmdt*`)\n- Segment labels (`segment_*`)\n- Any column that could be derived from the target\n\n**Action:** Filter features to only include behavioral/interaction data, not outcome labels.\n\n---\n\n### 2. [Zero-Inflation Handling]\n**Problem:** Many features have >95% zeros, causing >80% of customers to cluster together, triggering \"Clustering Failed\" exit.\n\n**Fix:** Before clustering:\n- Calculate zero-inflation ratio for each feature\n- Remove features with zero-inflation > threshold (e.g., 90%)\n- OR use alternative clustering (e.g., DBSCAN, hierarchical) for sparse data\n- OR apply feature engineering (e.g., create binary flags for non-zero values)\n\n**Action:** Add zero-inflation filtering step before `KMeans.fit_predict()`.\n\n---\n\n### 3. [JSON Output Format]\n**Problem:** Early exit with `sys.exit(0)` may skip proper JSON formatting for personas.\n\n**Fix:** Ensure JSON output follows this exact pattern:\n```\nprint('[JSON_START_PERSONA]')\nprint(json.dumps(personas, ensure_ascii=False))\nprint('[JSON_END_PERSONA]')\n```\n\n**Action:** Never exit before printing the complete JSON block. If clustering fails, still output valid JSON with failure indicators.\n\n---\n\n### 4. [Cluster Support Threshold]\n**Problem:** Clusters with <5% support lack statistical significance (Rule 3).\n\n**Fix:** After clustering:\n- Calculate support percentage for each cluster\n- Merge clusters with support <5% into a \"Minority/Anomaly\" group\n- OR increase `n_clusters` to find more balanced segmentation\n- OR use minimum sample size constraint in clustering\n\n**Action:** Add post-clustering validation to ensure all clusters meet minimum support threshold before output.\n\n---\n\n### 5. [Silhouette Score Validation]\n**Problem:** High silhouette score (0.82) with 92% in one cluster indicates poor clustering quality.\n\n**Fix:** Add quality check:\n- Silhouette > 0.7 AND dominant cluster < 80% = GOOD\n- Silhouette > 0.7 AND dominant cluster > 80% = RE-EVALUATE FEATURES\n- Silhouette < 0.15 = WEAK SEGMENTATION\n\n**Action:** Use combined metrics (silhouette + cluster balance) to determine segmentation quality, not silhouette alone.",
+        "domain": "python",
+        "qualifier": [
+            "runtime_error"
+        ],
+        "action": [
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "coding",
+        "errors_fixed": 1,
+        "token_length": 324,
+        "mdl_score": 0.0031
+    },
+    {
+        "nl_rule": "\n\n## Fix Instructions\n\n### Primary Error: KeyError for 'cluster_pct'\n\n**Root Cause:** The code attempts to access `global_mean[feat]` for ALL features in `feature_means`, but `global_mean` only contains the original behavioral features. Metadata columns like `cluster_pct` are added to cluster statistics but don't exist in the global mean.\n\n**Fix Steps:**\n\n1. **Filter feature comparison:** When iterating through `feature_means` to calculate evidence, only access `global_mean` for features that actually exist in the global mean series.\n\n2. **Validate feature existence:** Before accessing any feature from `global_mean`, verify that the feature key exists in the global mean index.\n\n3. **Separate metadata from features:** Distinguish between behavioral features (used for clustering) and metadata columns (like cluster percentages) that are added during analysis.\n\n4. **Use safe access pattern:** Implement a conditional check or use `.get()` method to safely access features without raising KeyError.\n\n### Secondary Issues to Address (Based on Metadata Rules)\n\n**Rule 1 - Data Leakage Prevention:**\n- Verify no target/outcome variables are included in the behavioral feature list before clustering\n- Ensure all columns with patterns like `segment_`, `cnt_`, `status_`, `rmdt` are excluded from clustering features\n\n**Rule 2 - JSON Output Format:**\n- Ensure Persona output uses the required format: `[JSON_START_PERSONA]`, `json.dumps(personas)`, `[JSON_END_PERSONA]`\n- Verify the JSON is valid and properly formatted\n\n**Rule 3 - Minimum Support Threshold:**\n- Filter out clusters with support percentage below 5% before generating personas\n- Add validation to skip clusters that don't meet statistical significance requirements\n\n### Implementation Pattern\n\n```\nFor each feature in cluster statistics:\n    If feature exists in global statistics:\n        Calculate comparison metrics\n    Else:\n        Skip or handle as metadata\n```\n\nThis approach ensures the code handles both behavioral features and metadata columns correctly without hardcoding specific column names.",
+        "domain": "python",
+        "qualifier": [
+            "runtime_error"
+        ],
+        "action": [
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "coding",
+        "errors_fixed": 1,
+        "token_length": 281,
+        "mdl_score": 0.0036
+    },
+    {
+        "nl_rule": "\n\n## Fix Instructions\n\n### 1. **Fix KeyError: Missing Column Access**\n**Problem:** The code attempts to access a column `'support'` that was never added to the DataFrame.\n\n**Solution:**\n- Either add the `'support'` column to the DataFrame by mapping cluster sizes to each row, OR\n- Remove `'support'` from the column list in the print statement since it's only available in the persona JSON output\n\n**General Rule:** Before accessing any column in a DataFrame, verify it exists in `data.columns`. If the column is computed at the cluster level (not row level), either aggregate it to row level or remove it from row-level operations.\n\n---\n\n### 2. **Fix Data Leakage Prevention**\n**Problem:** The `leakage_patterns` list includes `'rmdt'` but the metadata shows no `RMDT` column exists. However, ensure no target/outcome variables are used as features.\n\n**Solution:**\n- Add a semantic check before clustering: verify that no column containing target/outcome keywords (e.g., `rmdt`, `churn`, `default`, `status_`) is included in `behavioral_features`\n- Drop any column that matches target variable patterns from the feature set before KMeans training\n\n**General Rule:** Always exclude target/outcome variables from feature selection in unsupervised learning to prevent data leakage.\n\n---\n\n### 3. **Fix JSON Output Format**\n**Problem:** Ensure persona JSON output follows the required format with delimiters.\n\n**Solution:**\n- Verify the JSON output uses the exact delimiter pattern: `print('[JSON_START_PERSONA]')`, `print(json.dumps(personas, ensure_ascii=False))`, `print('[JSON_END_PERSONA]')`\n- Ensure the JSON is valid and parseable\n\n**General Rule:** Always wrap structured output with explicit start/end markers for reliable parsing.\n\n---\n\n### 4. **Fix Low Support Clusters**\n**Problem:** Clusters 4 and 5 have <5% support (2.29% and 4.83%), which is statistically insignificant.\n\n**Solution:**\n- Filter out clusters with support <5% from the final persona output, OR\n- Merge small clusters with the nearest larger cluster based on feature similarity\n- Add a warning when small clusters are excluded from the final report\n\n**General Rule:** Apply a minimum support threshold (\u22655%) to ensure clusters are statistically meaningful before including them in final personas.\n\n---\n\n### 5. **General Column Access Safety**\n**Problem:** The code assumes columns exist without validation.\n\n**Solution:**\n- Use `if col in data.columns:` before accessing any column\n- Use `.get()` method for optional columns with default values\n- Add assertions or try-except blocks for critical column access\n\n**General Rule:** Never assume column existence. Always validate before access to prevent KeyError exceptions.",
+        "domain": "python",
+        "qualifier": [
+            "runtime_error"
+        ],
+        "action": [
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "coding",
+        "errors_fixed": 1,
+        "token_length": 384,
+        "mdl_score": 0.0026
+    },
+    {
+        "nl_rule": "\n\n1. **Feature Sparsity Filtering:** Before scaling and clustering, filter out numerical columns where the proportion of zero values exceeds a high threshold (e.g., 90%) to prevent data sparsity from collapsing clusters into a single dominant group.\n2. **Target Variable Exclusion:** Explicitly exclude the target variable (e.g., churn indicator) from the feature matrix used for the clustering algorithm to prevent data leakage and ensure unbiased segmentation.\n3. **Clustering Fallback Logic:** Remove the script termination command triggered by dominant cluster checks. Instead, log the quality metrics and proceed to generate personas based on the available clusters, adjusting confidence scores to reflect the clustering quality.\n4. **Dynamic Metric Mapping:** Validate the existence of required metric columns defined in domain knowledge against the dataset metadata. If the exact column is missing, map to the closest available equivalent column rather than assuming values or crashing.\n5. **Output Integrity:** Ensure the JSON output block is generated with the required start and end markers in all execution paths, including fallback scenarios, to maintain downstream parsing compatibility.",
+        "domain": "python",
+        "qualifier": [
+            "runtime_error"
+        ],
+        "action": [
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "coding",
+        "errors_fixed": 1,
+        "token_length": 169,
+        "mdl_score": 0.0059
+    },
+    {
+        "nl_rule": "\n\n## Fix Instructions for ValueError: Axes Mismatch\n\n### Problem Analysis\nThe error occurs because the number of subplot axes (3 in the first row) does not match the number of features being plotted (6 columns). The `hist()` method requires the axes count to equal the data columns count.\n\n### Generalizable Fix Steps\n\n1. **Match Subplot Dimensions to Feature Count**\n   - Calculate the number of features to visualize before creating subplots\n   - Create subplot grid with dimensions that accommodate all features (e.g., if plotting N features, use `plt.subplots(rows, cols)` where rows \u00d7 cols \u2265 N)\n   - Alternatively, limit the feature subset to match available axes\n\n2. **Dynamic Subplot Calculation**\n   - Compute subplot rows and columns based on feature count: `rows = ceil(feature_count / cols)` or vice versa\n   - Ensure the total subplot count equals or exceeds the number of columns being plotted\n\n3. **Flexible Plotting Approach**\n   - If using a fixed subplot grid, slice the feature list to match available axes\n   - If using a dynamic approach, calculate subplot dimensions before calling `hist()`\n   - Consider using a loop to plot each feature individually if the number varies\n\n4. **Validation Before Plotting**\n   - Add a check to verify `len(features_to_plot) == len(available_axes)` before calling `hist()`\n   - If mismatch detected, either reduce features or increase subplot dimensions\n\n5. **Alternative Visualization Strategy**\n   - For large feature sets, consider using smaller subplot grids (e.g., 2\u00d72 or 3\u00d73) and plot only top N features by variance\n   - Use separate figures for different feature categories if needed\n\n### Prevention Checklist\n- [ ] Count features before creating subplot grid\n- [ ] Calculate subplot dimensions dynamically based on feature count\n- [ ] Verify axes count matches feature count before plotting\n- [ ] Handle edge cases where feature count is 0 or exceeds reasonable subplot limits\n\n### Key Principle\n**Always ensure the number of subplot axes equals the number of columns being visualized in a single `hist()` call.** This applies to any pandas plotting method that requires axis matching.",
+        "domain": "python",
+        "qualifier": [
+            "runtime_error"
+        ],
+        "action": [
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "coding",
+        "errors_fixed": 1,
+        "token_length": 332,
+        "mdl_score": 0.003
+    },
+    {
+        "nl_rule": "\n\n## Fix Instructions\n\n### Problem Analysis\nThe clustering failed because 93.1% of data falls into a single cluster, indicating insufficient feature variance for meaningful segmentation.\n\n### Generalizable Fix Steps\n\n**1. Feature Variance Enhancement**\n- Before clustering, calculate variance/standard deviation for each feature\n- Exclude features with near-zero variance (e.g., >95% identical values)\n- Add interaction features or derived metrics that capture customer behavior differences\n- Consider feature engineering: create ratio features, trend features, or composite scores from existing columns\n\n**2. Feature Selection Strategy**\n- Remove highly correlated features (correlation > 0.85) to reduce redundancy\n- Prioritize features with higher entropy/variance for clustering\n- Ensure at least 5-10 diverse behavioral features with meaningful spread\n- Validate feature distribution before clustering (check histograms, boxplots)\n\n**3. Clustering Quality Gates**\n- Implement dynamic K selection based on silhouette score AND cluster balance\n- Add minimum cluster size constraint (e.g., each cluster must have \u22655% of total data)\n- If dominant cluster > 70%, automatically increase K or add more discriminative features\n- Consider alternative algorithms (DBSCAN, hierarchical) if K-means consistently produces unbalanced clusters\n\n**4. Data Leakage Prevention**\n- Verify target variables (churn, revenue) are NOT included in clustering features\n- Keep target columns separate from feature matrix X\n- Document which columns are excluded from clustering and why\n\n**5. Fallback Strategy**\n- If clustering fails quality gates, implement rule-based segmentation as backup\n- Use business rules (e.g., high call volume + high complaints = at-risk)\n- Ensure JSON output always contains valid persona structure even when clustering fails\n- Add confidence scores to personas based on clustering quality metrics\n\n**6. Validation Requirements**\n- After clustering, verify: silhouette score > 0.2, max cluster < 70%, min cluster > 5%\n- Check churn rate variance between clusters (should differ by at least 5%)\n- Ensure all personas have meaningful support percentages for statistical significance\n\n### Critical Implementation Notes\n- Do NOT hardcode feature names - use dynamic column selection based on metadata\n- Do NOT hardcode K values - use silhouette score optimization with quality constraints\n- Always validate clustering quality before generating personas\n- Maintain JSON output format compliance regardless of clustering success",
+        "domain": "python",
+        "qualifier": [
+            "runtime_error"
+        ],
+        "action": [
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "coding",
+        "errors_fixed": 1,
+        "token_length": 358,
+        "mdl_score": 0.0028
+    },
+    {
+        "nl_rule": "\n\n## Fix Instructions\n\n### Problem Analysis\nThe error `TypeError: unhashable type: 'dict'` occurs because the code uses double curly braces `{{` and `}}` instead of single curly braces `{` and `}` for dictionary literals. This is a syntax error that prevents proper dictionary creation.\n\n### General Fix Steps\n\n1. **Replace all double curly braces with single curly braces for dictionary literals**\n   - Search for all instances of `{{` and `}}` that are used to create dictionaries\n   - Replace them with `{` and `}` respectively\n   - These should NOT be used in f-strings (where `{{` and `}}` are valid for escaping)\n\n2. **Verify dictionary syntax in all return statements**\n   - Check all `return` statements that create dictionaries\n   - Ensure they use `{` and `}` for dictionary creation\n   - Ensure they do NOT use `{{` and `}}` unless inside an f-string context\n\n3. **Check all variable assignments that create dictionaries**\n   - Look for patterns like `variable = {{` and change to `variable = {`\n   - Look for patterns like `}}` at the end of dictionary blocks and change to `}`\n\n4. **Validate JSON output format**\n   - Ensure `json.dumps()` calls use proper Python dictionary syntax\n   - Verify that the `personas` list contains valid Python dictionaries\n\n### Prevention Guidelines\n- Use single `{` and `}` for dictionary literals in Python code\n- Only use `{{` and `}}` when inside f-strings to escape literal curly braces\n- After code generation, always verify dictionary syntax before execution\n- Run a syntax check on all dictionary creation patterns in the codebase\n\n### Critical Check\nBefore running the code again, search the entire file for `{{` and `}}` patterns and confirm they are only used in f-string contexts (e.g., `f\"{{key}}\"`), not for dictionary creation.",
+        "domain": "python",
+        "qualifier": [
+            "runtime_error"
+        ],
+        "action": [
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "coding",
+        "errors_fixed": 1,
+        "token_length": 286,
+        "mdl_score": 0.0035
+    },
+    {
+        "nl_rule": "\n\n## Fix Instructions\n\n### Root Cause Analysis\nThe error occurs because the variable `working_path` is referenced but never defined in the code. This is a variable initialization issue.\n\n### Generalized Fix Steps\n\n1. **Identify All Undefined Variables**\n   - Scan the entire code for any variable names used in string formatting, function calls, or operations\n   - Check if each variable has been declared before its first use\n   - Pay special attention to path variables, configuration variables, and environment variables\n\n2. **Initialize Missing Variables**\n   - Define all path variables at the beginning of the script (e.g., `working_path = './workspace'` or use `os.getcwd()`)\n   - Ensure all configuration variables are set before they are referenced\n   - Use default values for optional variables to prevent runtime errors\n\n3. **Verify Variable Scope**\n   - Confirm variables are defined in the correct scope (global vs. local)\n   - Check that variables are not accidentally shadowed by function parameters\n   - Ensure variables persist across function calls if needed\n\n4. **Add Defensive Programming**\n   - Use `os.path.join()` for path concatenation instead of string formatting\n   - Add validation checks before using path variables\n   - Consider using `pathlib.Path` for more robust path handling\n\n5. **Prevent Future Occurrences**\n   - Create a configuration section at the top of the script for all path and environment variables\n   - Use constants or configuration objects for shared variables\n   - Implement a variable initialization check before critical operations\n\n### Key Principle\n**Always define a variable before using it.** This applies to all programming contexts, not just this specific error.",
+        "domain": "python",
+        "qualifier": [
+            "runtime_error"
+        ],
+        "action": [
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "coding",
+        "errors_fixed": 1,
+        "token_length": 249,
+        "mdl_score": 0.004
+    },
+    {
+        "nl_rule": "\n\n**Root Cause Analysis:**\nThe `IndentationError` indicates that the Python script contains inconsistent indentation levels, likely caused by mixing tabs and spaces or incorrect dedentation within code blocks (loops, conditionals, or functions). This prevents the interpreter from parsing the code structure correctly.\n\n**Fix Instructions:**\n\n1.  **Standardize Whitespace:** Review the entire script to ensure all indentation uses spaces exclusively (e.g., 4 spaces per level). Remove any tabs that may have been inadvertently introduced during editing or copying.\n2.  **Verify Block Alignment:** Check all code blocks (such as loops, `if` statements, and function definitions) to ensure their closing indentation levels match their opening levels. Ensure no block is closed at an indentation level that does not correspond to an active parent scope.\n3.  **Automated Formatting:** Run an automated code formatter (e.g., `black` or `autopep8`) on the script to resolve all whitespace inconsistencies before execution.\n4.  **Preserve Business Logic Constraints:** While fixing the syntax, ensure that:\n    *   The final output generation section retains the required JSON structure markers (start/end tags and dump command).\n    *   The feature selection logic for clustering continues to exclude the target variable to prevent data leakage.",
+        "domain": "python",
+        "qualifier": [
+            "runtime_error"
+        ],
+        "action": [
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "coding",
+        "errors_fixed": 1,
+        "token_length": 186,
+        "mdl_score": 0.0054
+    },
+    {
+        "nl_rule": "\n\n### Ph\u00e2n t\u00edch L\u1ed7i\nL\u1ed7i x\u1ea3y ra do **Gate Ki\u1ec3m tra Ph\u00e2n c\u1ee5m (Step 7)** k\u00edch ho\u1ea1t `sys.exit(0)` v\u00ec m\u1ed9t c\u1ee5m chi\u1ebfm qu\u00e1 80% d\u1eef li\u1ec7u (91.74%). Nguy\u00ean nh\u00e2n g\u1ed1c r\u1ec5 n\u1eb1m \u1edf **B\u01b0\u1edbc 2 (Zero-Inflation Analysis)**: Logic l\u1ecdc b\u1ecf qu\u00e1 58 \u0111\u1eb7c tr\u01b0ng do t\u1ef7 l\u1ec7 gi\u00e1 tr\u1ecb 0 qu\u00e1 cao (>95%), ch\u1ec9 c\u00f2n l\u1ea1i 8 \u0111\u1eb7c tr\u01b0ng. Vi\u1ec7c thi\u1ebfu \u0111a d\u1ea1ng \u0111\u1eb7c tr\u01b0ng khi\u1ebfn thu\u1eadt to\u00e1n K-Means kh\u00f4ng th\u1ec3 t\u00e1ch bi\u1ec7t kh\u00e1ch h\u00e0ng, d\u1eabn \u0111\u1ebfn m\u1ed9t c\u1ee5m \"b\u00ecnh th\u01b0\u1eddng\" kh\u1ed5ng l\u1ed3.\n\n### H\u01b0\u1edbng d\u1eabn S\u1eeda l\u1ed7i (T\u1ed5ng qu\u00e1t)\n\n1.  **\u0110i\u1ec1u ch\u1ec9nh Logic L\u1ecdc \u0110\u1eb7c tr\u01b0ng:**\n    -   Kh\u00f4ng lo\u1ea1i b\u1ecf \u0111\u1eb7c tr\u01b0ng ch\u1ec9 d\u1ef1a tr\u00ean ng\u01b0\u1ee1ng tr\u00e0n ng\u1eadp gi\u00e1 tr\u1ecb 0 qu\u00e1 kh\u1eaft khe (v\u00ed d\u1ee5: >95%). H\u00e3y n\u1edbi l\u1ecfng ng\u01b0\u1ee1ng n\u00e0y (v\u00ed d\u1ee5: >98% ho\u1eb7c >99%) \u0111\u1ec3 gi\u1eef l\u1ea1i nhi\u1ec1u \u0111\u1eb7c tr\u01b0ng h\u00e0nh vi h\u01a1n.\n    -   \u0110\u1ea3m b\u1ea3o c\u00e1c \u0111\u1eb7c tr\u01b0ng t\u00e0i ch\u00ednh (doanh thu, c\u01b0\u1edbc ph\u00ed) **lu\u00f4n \u0111\u01b0\u1ee3c \u0111\u01b0a v\u00e0o** t\u1eadp h\u1ee3p \u0111\u1eb7c tr\u01b0ng hu\u1ea5n luy\u1ec7n, v\u00ec ch\u00fang th\u01b0\u1eddng cung c\u1ea5p \u0111\u1ed9 bi\u1ebfn thi\u00ean (variance) c\u1ea7n thi\u1ebft \u0111\u1ec3 ph\u00e2n t\u00e1ch kh\u00e1ch h\u00e0ng, ngay c\u1ea3 khi nhi\u1ec1u kh\u00e1ch h\u00e0ng c\u00f3 gi\u00e1 tr\u1ecb 0.\n\n2.  **C\u1ea3i thi\u1ec7n Chi\u1ebfn l\u01b0\u1ee3c Ph\u00e2n c\u1ee5m:**\n    -   N\u1ebfu v\u1eabn xu\u1ea5t hi\u1ec7n c\u1ee5m chi\u1ebfm \u0111a s\u1ed1 (>80%), \u0111\u1eebng d\u1eebng ngay l\u1eadp t\u1ee9c. H\u00e3y th\u1eed t\u0103ng s\u1ed1 l\u01b0\u1ee3ng c\u1ee5m `K` ho\u1eb7c thay \u0111\u1ed5i thu\u1eadt to\u00e1n ph\u00e2n c\u1ee5m \u0111\u1ec3 t\u00ecm c\u1ea5u tr\u00fac t\u1ed1t h\u01a1n.\n    -   N\u1ebfu ph\u00e2n c\u1ee5m v\u1eabn kh\u00f4ng c\u00e2n b\u1eb1ng, h\u00e3y ti\u1ebfp t\u1ee5c quy tr\u00ecnh t\u1ea1o Persona nh\u01b0ng \u0111\u00e1nh d\u1ea5u ch\u1ea5t l\u01b0\u1ee3ng ph\u00e2n c\u1ee5m l\u00e0 \"Th\u1ea5p\" ho\u1eb7c \"C\u1ea3nh b\u00e1o\" thay v\u00ec b\u00e1o l\u1ed7i \"Clustering Failed\".\n\n3.  **\u0110\u1ea3m b\u1ea3o \u0110\u1ea7u ra JSON H\u1ee3p l\u1ec7:**\n    -   Ngay c\u1ea3 khi ph\u00e2n c\u1ee5m kh\u00f4ng ho\u00e0n h\u1ea3o, h\u00e3y \u0111\u1ea3m b\u1ea3o l\u1ec7nh in JSON (`[JSON_START_PERSONA]`...`[JSON_END_PERSONA]`) v\u1eabn \u0111\u01b0\u1ee3c th\u1ef1c thi v\u1edbi d\u1eef li\u1ec7u Persona th\u1ef1c t\u1ebf (d\u1ef1a tr\u00ean c\u00e1c c\u1ee5m hi\u1ec7n c\u00f3) thay v\u00ec ch\u1ec9 in th\u00f4ng b\u00e1o l\u1ed7i, \u0111\u1ec3 h\u1ec7 th\u1ed1ng downstream kh\u00f4ng b\u1ecb l\u1ed7i parsing.",
+        "domain": "python",
+        "qualifier": [
+            "runtime_error"
+        ],
+        "action": [
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "coding",
+        "errors_fixed": 1,
+        "token_length": 315,
+        "mdl_score": 0.0032
+    },
+    {
+        "nl_rule": "\n\n## Fix Instructions\n\n### Root Cause Analysis\nThe error occurs because the code attempts to calculate variance on columns containing string data (e.g., `CUSTOMER_TYPE` with value 'C\u00e1 nh\u00e2n'). Variance calculation requires numeric data types only.\n\n### Generalizable Fix Steps\n\n**Step 1: Filter Columns by Data Type Before Statistical Operations**\n- Before calculating variance or any statistical measure, verify that each column contains only numeric data types\n- Exclude all string/object type columns from clustering feature lists\n- Use type checking to identify numeric vs categorical columns\n\n**Step 2: Ensure Feature Selection Excludes Categorical Variables**\n- When building feature lists for clustering algorithms, explicitly filter out:\n  - String/object type columns\n  - ID columns (e.g., customer identifiers)\n  - Categorical columns that require encoding before use\n- Do not rely solely on pattern-based exclusion; validate actual data types\n\n**Step 3: Add Type Validation Before Variance Calculation**\n- Before computing variance on any column, check if the column dtype is numeric\n- Skip columns with non-numeric dtypes (object, string, category)\n- Only include columns with numeric dtype in the variance filtering step\n\n**Step 4: Implement Pre-Clustering Data Quality Checks**\n- Add a validation step that confirms all features in the clustering dataset are numeric\n- Raise an error or warning if non-numeric columns are detected before clustering\n- Document which columns were excluded and why\n\n**Step 5: Handle Categorical Features Separately**\n- If categorical features are needed for analysis, encode them (one-hot, label encoding) before clustering\n- Do not use raw categorical columns directly in KMeans or variance calculations\n\n### Key Principle\n**Always validate data types before performing numerical operations.** Statistical functions like variance, mean, and standard deviation require numeric input. Never assume column types based on metadata alone\u2014verify at runtime.",
+        "domain": "python",
+        "qualifier": [
+            "runtime_error"
+        ],
+        "action": [
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "coding",
+        "errors_fixed": 1,
+        "token_length": 287,
+        "mdl_score": 0.0035
+    },
+    {
+        "nl_rule": "\n\n## Fix Instructions for JSON Serialization Error\n\n### Root Cause\nThe error `TypeError: Object of type int64 is not JSON serializable` occurs because numpy/pandas numeric types (int64, float64) are not natively JSON serializable in Python.\n\n### Generalized Fix Steps\n\n1. **Create a JSON Serialization Helper Function**\n   - Define a function that recursively converts all numpy/pandas numeric types to native Python types\n   - Handle `numpy.int64`, `numpy.int32`, `numpy.float64`, `numpy.float32`, and `numpy.bool_` types\n   - Apply this conversion to all data structures before JSON serialization\n\n2. **Apply Conversion to Persona Data Structure**\n   - Before calling `json.dumps(personas, ...)`, convert the entire `personas` list using the helper function\n   - Ensure nested dictionaries (like `feature_means`, `evidence`, `recommended_actions`) are also converted\n   - Handle all numeric values in the persona entries (support, support_pct, arpu, churn_rate, priority_score, etc.)\n\n3. **Prevent Future Type Issues**\n   - When creating dictionaries from pandas/numpy operations, explicitly cast values to native Python types using `.item()` or `int()/float()`\n   - For dictionary values from `value_counts()`, `mean()`, `sum()`, etc., apply conversion immediately\n   - Consider using `pd.to_numeric().astype('float')` or `.astype('int')` during data preparation\n\n4. **Validation Before JSON Output**\n   - Add a check that all values in the `personas` list are JSON-serializable before calling `json.dumps()`\n   - Verify no numpy types remain in the final data structure\n\n### Implementation Pattern\n```python\n# Convert numpy types to native Python types recursively\ndef convert_to_native(obj):\n    if isinstance(obj, dict):\n        return {k: convert_to_native(v) for k, v in obj.items()}\n    elif isinstance(obj, list):\n        return [convert_to_native(item) for item in obj]\n    elif hasattr(obj, 'item'):  # numpy types\n        return obj.item()\n    else:\n        return obj\n\n# Apply before JSON serialization\npersonas = [convert_to_native(p) for p in personas]\n```\n\n### Critical Reminder\nAlways ensure all numeric values in data structures destined for JSON serialization are native Python `int` or `float` types, not numpy/pandas types.",
+        "domain": "python",
+        "qualifier": [
+            "runtime_error"
+        ],
+        "action": [
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "coding",
+        "errors_fixed": 1,
+        "token_length": 288,
+        "mdl_score": 0.0035
+    },
+    {
+        "nl_rule": "\n\n## Fix Instructions\n\n### Root Cause Analysis\nThe error `TypeError: 'numpy.ndarray' object is not callable` occurs because `cluster_sizes.values` is being called with parentheses `()` when it should be accessed as an attribute without parentheses. In pandas, `.values` is an attribute that returns a numpy array, not a method.\n\n### Generalizable Fix Steps\n\n1. **Identify all `.values()` calls in the code** - Search for any instance where `.values` is followed by parentheses `()`\n\n2. **Convert `.values()` to `.values`** - Remove the parentheses from all `.values` attribute accesses:\n   - Change `cluster_sizes.values()` to `cluster_sizes.values`\n   - Change any other `.values()` to `.values` throughout the codebase\n\n3. **Verify pandas Series vs DataFrame distinction** - Ensure you're using the correct attribute:\n   - For pandas Series/DataFrame: use `.values` (attribute, no parentheses)\n   - For methods that return values: use `.method()` (with parentheses)\n\n4. **Check for similar attribute/method confusion** - Review other pandas attributes that are commonly confused:\n   - `.index` (attribute, not method)\n   - `.columns` (attribute, not method)\n   - `.shape` (attribute, not method)\n   - `.dtype` (attribute, not method)\n\n5. **Test the fix** - After making changes, verify that:\n   - The code runs without TypeError\n   - The cluster distribution statistics are calculated correctly\n   - The dominant cluster percentage is computed properly\n\n### Prevention Guidelines\n- When accessing pandas attributes (`.values`, `.index`, `.columns`, `.shape`, `.dtype`), do NOT use parentheses\n- When calling pandas methods (`.mean()`, `.sum()`, `.count()`, `.describe()`), DO use parentheses\n- Use IDE autocomplete to distinguish between attributes and methods",
+        "domain": "python",
+        "qualifier": [
+            "runtime_error"
+        ],
+        "action": [
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "coding",
+        "errors_fixed": 1,
+        "token_length": 240,
+        "mdl_score": 0.0042
+    },
+    {
+        "nl_rule": "\n\n## Error Analysis\n\n**Error Type:** `TypeError: 'numpy.ndarray' object is not callable`\n\n**Root Cause:** The `cluster_sizes` variable is being treated as a function call instead of a Series object. This typically occurs when:\n1. Variable naming conflicts with built-in functions\n2. Incorrect method access pattern (using `()` instead of `.` for array access)\n3. Data structure type mismatch between expected Series and actual numpy array\n\n## General Fix Instructions\n\n1. **Verify Variable Type Before Access:**\n   - Ensure `cluster_sizes` is a pandas Series object before calling `.values`\n   - Use `type(cluster_sizes)` to confirm it's not a numpy array\n\n2. **Correct Method Access Pattern:**\n   - When accessing Series values, use `.values` (attribute access) not `.values()` (function call)\n   - For numpy arrays, use direct indexing or `.tolist()` instead of calling as function\n\n3. **Add Type Safety Check:**\n   - Before accessing `.values`, verify the object type matches expected structure\n   - If it's already a numpy array, use it directly without calling `.values()`\n\n4. **Prevent Naming Conflicts:**\n   - Ensure variable names don't shadow built-in functions or methods\n   - Use descriptive names that clearly indicate data structure type\n\n5. **Handle Both Series and Array Cases:**\n   - Write code that works whether `cluster_sizes` is a Series or numpy array\n   - Use conditional checks or type conversion to normalize the data structure\n\n6. **Validate Data Structure Before Operations:**\n   - Before performing arithmetic operations on cluster sizes, confirm the structure supports the expected methods\n   - Add error handling for unexpected data types\n\n**Key Principle:** Always verify the actual data structure type before accessing methods or attributes, and use the correct access pattern for that specific type (Series vs numpy array).",
+        "domain": "python",
+        "qualifier": [
+            "runtime_error"
+        ],
+        "action": [
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "coding",
+        "errors_fixed": 1,
+        "token_length": 269,
+        "mdl_score": 0.0037
+    },
+    {
+        "nl_rule": "\n\n## Fix Instructions\n\n### Root Cause Analysis\nThe error `TypeError: 'numpy.ndarray' object is not callable` occurs because `cluster_sizes.values` is being accessed after `values` may have been shadowed or reassigned elsewhere in the code. The code already has logic to convert `cluster_sizes` to a list (`cluster_size_values`), but this converted variable is not being used in the visualization section.\n\n### Generalized Fix Steps\n\n1. **Use Already-Converted Variables**: Instead of calling `.values` again on pandas objects, use the pre-converted list variables that were already created earlier in the code (e.g., `cluster_size_values` instead of `list(cluster_sizes.values)`).\n\n2. **Avoid Attribute Shadowing**: Ensure no variable in the code shadows built-in pandas/numpy attributes like `values`, `index`, `columns`, etc. Check for any reassignments of these names.\n\n3. **Consistent Variable Usage**: When converting pandas Series/DataFrame attributes to lists, store the result in a variable and reuse that variable throughout the code instead of re-accessing the attribute multiple times.\n\n4. **Verify Variable Types Before Access**: Before accessing `.values` or similar attributes on pandas objects, verify the object type hasn't been changed by checking `type(variable)` or using `isinstance()` checks.\n\n5. **Use Explicit Conversion**: When working with pandas Series for plotting, explicitly convert to list using `list(series)` or `series.tolist()` rather than `list(series.values)` to avoid potential attribute conflicts.\n\n### Application to This Code\nReplace `list(cluster_sizes.values)` with the already-converted `cluster_size_values` variable that was created earlier in the code. This ensures consistency and avoids re-accessing potentially shadowed attributes.",
+        "domain": "python",
+        "qualifier": [
+            "runtime_error"
+        ],
+        "action": [
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "coding",
+        "errors_fixed": 1,
+        "token_length": 232,
+        "mdl_score": 0.0043
+    },
+    {
+        "nl_rule": "\n\n## Error Analysis\n\n**Root Cause:** The `cluster_sizes` variable is being treated as a numpy array instead of a pandas Series. When calling `.values()` on a numpy array, it returns the array itself rather than a dictionary-like object, causing the `TypeError: 'numpy.ndarray' object is not callable` error.\n\n## Generalized Fix Instructions\n\n1. **Verify Data Structure Type:** Before accessing `.values()` on any aggregation result, confirm the variable is a pandas Series or DataFrame, not a numpy array.\n\n2. **Use Consistent Aggregation Methods:** When using `.value_counts()` or similar aggregation functions, ensure the result is stored as a pandas Series. If needed, explicitly convert using `pd.Series()` wrapper.\n\n3. **Access Values Correctly:** For pandas Series, use `.values` (attribute, not method) or `.to_numpy()` to extract the underlying array. Do not use `.values()` with parentheses.\n\n4. **Alternative Approach:** Instead of `list(cluster_sizes.values())`, use `cluster_sizes.values` (without parentheses) or `cluster_sizes.to_numpy()` to get the array of values.\n\n5. **Defensive Programming:** Add a type check before accessing values: `if isinstance(cluster_sizes, pd.Series):` to ensure proper data structure before proceeding.\n\n6. **Verify Aggregation Output:** After any aggregation operation, print the type using `type(variable_name)` to confirm it matches expected pandas structures before using it in calculations.",
+        "domain": "python",
+        "qualifier": [
+            "runtime_error"
+        ],
+        "action": [
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "coding",
+        "errors_fixed": 1,
+        "token_length": 191,
+        "mdl_score": 0.0052
+    },
+    {
+        "nl_rule": "\n\n1. **Fix Runtime Error**: The function used to calculate silhouette samples does not support the `sample_size` argument. Remove this parameter from the function call to resolve the `TypeError` and allow the visualization step to execute.\n\n2. **Comply with Output Rules**: The task rules explicitly forbid the use of the `priority_score` keyword in the persona output. Remove this field from the persona dictionary construction to ensure the JSON output adheres to the Root Cause Integrity requirements.\n\n3. **Prevent Data Leakage**: Ensure the target variable (e.g., `RMDT`) is explicitly excluded from the feature list passed to the clustering algorithm. Add this variable to the exclusion patterns to prevent data leakage during model training.\n\n4. **Verify JSON Structure**: Ensure the final output is strictly wrapped with the required `[JSON_START_PERSONA]` and `[JSON_END_PERSONA]` markers and printed using the standard JSON dump function to satisfy the Semantic Check requirements.",
+        "domain": "python",
+        "qualifier": [
+            "runtime_error"
+        ],
+        "action": [
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "coding",
+        "errors_fixed": 1,
+        "token_length": 143,
+        "mdl_score": 0.007
+    },
+    {
+        "nl_rule": "\n\n## Fix Instructions\n\n### Root Cause Analysis\nThe error `TypeError: euclidean_distances() got an unexpected keyword argument 'random_state'` occurs because `silhouette_samples()` from sklearn does not accept a `random_state` parameter. This parameter is only valid for clustering algorithms (KMeans), not for silhouette evaluation functions.\n\n### Generalized Fix Instructions\n\n1. **Remove Invalid Parameters from Evaluation Functions**\n   - When calling any sklearn evaluation/metrics function (silhouette_score, silhouette_samples, etc.), verify the function signature accepts all passed parameters\n   - Do NOT pass `random_state` to evaluation functions - only pass it to clustering algorithms (KMeans, etc.)\n   - Check sklearn documentation for each function's valid parameters before implementation\n\n2. **Ensure Feature Exclusion for Target Variables**\n   - Before clustering, identify and drop all target/label variables from the feature matrix\n   - This prevents data leakage where the model learns from the outcome it's supposed to predict\n   - Apply this exclusion consistently across all clustering pipelines\n\n3. **Calculate Metrics from Actual Data Columns**\n   - Revenue metrics (ARPU) must be calculated from the actual revenue column in the dataset using mean()\n   - Churn metrics must be calculated from the actual churn column using mean()\n   - Do NOT hardcode values like 0 - always compute from the clustered data\n\n4. **Validate JSON Output Format**\n   - Ensure all JSON output uses the required wrapper format: `[JSON_START_PERSONA]`, `json.dumps()`, `[JSON_END_PERSONA]`\n   - Verify the JSON is valid and parseable before printing\n   - Include all required fields in the persona objects\n\n5. **Remove Prohibited Keywords**\n   - Do NOT use `priority_score` or similar ranking keywords in the output\n   - Follow ROOT CAUSE MODE requirements - focus on actual data patterns, not artificial scoring\n\n6. **Verify Function Compatibility**\n   - Before using any sklearn function, check version compatibility and parameter requirements\n   - Some functions have changed signatures across sklearn versions\n   - Test function calls with minimal parameters first, then add optional parameters\n\n### Prevention Checklist\n- [ ] All sklearn function parameters match the official API documentation\n- [ ] Target variables are excluded from feature matrices before clustering\n- [ ] All metrics are calculated from actual data columns, not hardcoded\n- [ ] JSON output follows the exact required format with start/end markers\n- [ ] No prohibited keywords appear in the final output\n- [ ] All clustering features have variance > 0 before fitting",
+        "domain": "python",
+        "qualifier": [
+            "runtime_error"
+        ],
+        "action": [
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "coding",
+        "errors_fixed": 1,
+        "token_length": 376,
+        "mdl_score": 0.0027
+    },
+    {
+        "nl_rule": "\n\n## Fix Instructions\n\n### Root Cause Analysis\nThe error `NameError: name 'working_path' is not defined` occurs because the variable `working_path` is referenced multiple times in the code but was never initialized or defined before use.\n\n### Fix Steps\n\n1. **Identify All Undefined Variables**: Before executing any code that uses file paths or working directories, verify that all path-related variables are properly defined at the beginning of the script.\n\n2. **Initialize Working Path Variable**: Define the `working_path` variable early in the code execution flow, before any file operations that reference it. This should be done before the first occurrence where `working_path` is used.\n\n3. **Ensure Variable Scope**: Make sure the variable is defined in the global scope or passed as a parameter to functions that need it, so it's accessible throughout the code execution.\n\n4. **Add Validation Check**: Before using any path variable in file operations, add a validation check to ensure the variable is not `None` or empty. If undefined, either set a default value or raise a clear error message.\n\n5. **Consistent Naming Convention**: Use consistent naming for all path-related variables throughout the codebase to avoid similar issues with other undefined path variables.\n\n### Prevention Guidelines\n\n- Always define path/directory variables at the top of the script before any file operations\n- Use a configuration section or constants block for all path-related variables\n- Add defensive programming checks before any file I/O operations\n- Review all variable references before execution to catch undefined variable issues early",
+        "domain": "python",
+        "qualifier": [
+            "runtime_error"
+        ],
+        "action": [
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "coding",
+        "errors_fixed": 1,
+        "token_length": 247,
+        "mdl_score": 0.004
+    },
+    {
+        "nl_rule": "\n\n## Fix Instructions\n\n### Root Cause Analysis\nThe error `TypeError: 'numpy.ndarray' object is not callable` occurs because built-in Python functions (`max`, `list`, or similar) are being shadowed by numpy arrays elsewhere in the code execution environment.\n\n### Actionable Fix Steps\n\n1. **Check for Built-in Function Shadowing**\n   - Search the entire codebase for any variable assignments that use Python built-in names like `max`, `list`, `sum`, `dict`, `str`, `int`, `float`, `len`, `values`, `keys`, `items`\n   - Rename any such variables to avoid conflicts (e.g., `max_score` instead of `max`, `list_data` instead of `list`)\n\n2. **Verify Variable Naming Conventions**\n   - Ensure no variable names conflict with pandas/numpy methods (e.g., `values`, `index`, `columns`, `shape`)\n   - Use descriptive prefixes for custom variables (e.g., `cluster_sizes` is fine, but avoid `values` as a variable name)\n\n3. **Use Explicit Function Calls**\n   - Replace `max()` with `builtins.max()` if shadowing persists\n   - Replace `list()` with `builtins.list()` if shadowing persists\n   - This ensures built-in functions are always accessible\n\n4. **Validate Data Structure Before Operations**\n   - Before calling `.values` on a pandas object, verify it's a Series/DataFrame: `isinstance(cluster_sizes, pd.Series)`\n   - If it's already a numpy array, use it directly without `.values`\n\n5. **Environment Cleanup**\n   - If running in an interactive environment, restart the kernel to clear any shadowed built-ins\n   - Ensure no global variables are polluting the namespace with built-in names\n\n### Prevention Guidelines\n- Never use Python built-in names as variable identifiers\n- Use IDE linting tools to catch naming conflicts\n- Follow PEP 8 naming conventions (lowercase with underscores for variables)\n- Document any intentional overrides of built-in functions with clear comments",
+        "domain": "python",
+        "qualifier": [
+            "runtime_error"
+        ],
+        "action": [
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "coding",
+        "errors_fixed": 1,
+        "token_length": 260,
+        "mdl_score": 0.0038
+    },
+    {
+        "nl_rule": "\n\n## Fix Instructions\n\n### Root Cause Analysis\nThe error `TypeError: 'numpy.ndarray' object is not callable` occurs because the `builtins.max` reference is being shadowed or reassigned to a numpy array somewhere in the code execution context, making it non-callable.\n\n### Generalized Fix Steps\n\n1. **Replace Built-in Function Reference**\n   - Do NOT use `builtins.max()` or any module-qualified built-in function calls\n   - Use the standard Python `max()` function directly without module prefix\n   - This avoids potential namespace shadowing issues\n\n2. **Ensure Built-in Function Integrity**\n   - Verify no variable in the code is named `max`, `min`, `len`, `sum`, or other built-in function names\n   - If such variables exist, rename them to avoid shadowing built-in functions\n   - Never reassign built-in function names to data structures or arrays\n\n3. **Alternative Implementation Pattern**\n   - When computing statistics from Series/DataFrame values, use:\n     - `max(values)` instead of `builtins.max(values)`\n     - `len(series)` instead of `builtins.len(series)`\n   - This ensures the actual built-in functions are called, not shadowed references\n\n4. **Validation Check**\n   - Before using any built-in function, verify it's callable: `callable(max)`\n   - If not callable, the namespace has been corrupted and needs cleanup\n\n### Critical Rule Compliance\n- **Rule 1**: Ensure JSON output uses the required format with `[JSON_START_PERSONA]` and `[JSON_END_PERSONA]` markers\n- **Rule 2**: Drop any target variable (like `RMDT`) from clustering features before KMeans\n- **Rule 3**: Since dataset has no revenue variable (ARPU=0), use ROOT CAUSE MODE and avoid priority score keywords\n\n### Action Required\nReplace all `builtins.max()` calls with direct `max()` function calls throughout the codebase to prevent namespace shadowing errors.",
+        "domain": "python",
+        "qualifier": [
+            "runtime_error"
+        ],
+        "action": [
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "coding",
+        "errors_fixed": 1,
+        "token_length": 253,
+        "mdl_score": 0.004
+    },
+    {
+        "nl_rule": "\n\n## Fix Instructions\n\n### Root Cause Analysis\nThe error `TypeError: 'numpy.ndarray' object is not callable` occurs because `cluster_sizes` is being treated as a numpy array instead of a pandas Series. This happens when `value_counts()` result is incorrectly assigned or overwritten.\n\n### Actionable Fix Steps\n\n1. **Verify Variable Type Before Use**\n   - Ensure `cluster_sizes` is assigned from `data['cluster'].value_counts().sort_index()` and remains a pandas Series\n   - Add type validation: `assert isinstance(cluster_sizes, pd.Series)` before using it\n\n2. **Correct the Calculation**\n   - Use `cluster_sizes.values` (attribute, not method call) to get the numpy array\n   - Then convert to list: `list(cluster_sizes.values)`\n   - Calculate percentage: `max(cluster_sizes.values) / len(data)`\n\n3. **Prevent Variable Overwrite**\n   - Check if `cluster_sizes` is reassigned anywhere in the code\n   - Rename if there's a naming conflict with other variables\n\n4. **Add Error Handling**\n   - Wrap the calculation in try-except to catch type errors\n   - Print debug info: `print(f\"cluster_sizes type: {type(cluster_sizes)}\")`\n\n5. **Generalize for Future**\n   - Always verify pandas Series methods return expected types\n   - Use `.values` (attribute) not `.values()` (method) for Series\n   - Validate data structures before mathematical operations\n\n### Key Principle\nNever assume variable types - always verify pandas Series remain Series throughout execution, especially after operations that might return numpy arrays.",
+        "domain": "python",
+        "qualifier": [
+            "runtime_error"
+        ],
+        "action": [
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "coding",
+        "errors_fixed": 1,
+        "token_length": 198,
+        "mdl_score": 0.0051
+    },
+    {
+        "nl_rule": "\n\n1. **Eliminate Premature Exit:** Remove any `sys.exit()` or similar termination commands triggered by clustering quality checks or missing data. The script must complete execution to ensure the JSON output is fully captured and parsed, adhering to the requirement to run 100% in Root Cause Mode.\n2. **Prevent Data Leakage:** Explicitly exclude the target variable (e.g., churn indicator) from the feature matrix used for clustering, ensuring it is not included in the input data for the algorithm, regardless of whether it is in the initial feature list.\n3. **Handle Missing Metrics Gracefully:** If the expected revenue or target columns are missing, dynamically search for available alternative columns in the dataset to calculate metrics, rather than defaulting to zero or stopping the process.\n4. **Ensure JSON Integrity:** Print the JSON output block as the final step of the script, strictly adhering to the required start and end tags, ensuring no subsequent commands interfere with the output stream.",
+        "domain": "python",
+        "qualifier": [
+            "runtime_error"
+        ],
+        "action": [
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "coding",
+        "errors_fixed": 1,
+        "token_length": 155,
+        "mdl_score": 0.0065
     }
 ]

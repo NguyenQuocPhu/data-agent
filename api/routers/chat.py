@@ -180,9 +180,8 @@ async def chat(body: dict = Body(...), lambda_instance = Depends(get_lambda_agen
             
             # Start streaming workflow
             # ── Phase 1: LangGraph routing ──────────────────────────────────────
-            # If the LAMBDA instance has the LangGraph wrapper, prefer it.
-            # Fallback to the legacy engine.stream_workflow for compatibility.
-            use_lg = getattr(lambda_instance, "USE_LANGGRAPH", False)
+            # USER KHUYẾN NGHỊ TẮT LANGGRAPH DO LỖI, SỬ DỤNG LUỒNG CŨ
+            use_lg = False
             if use_lg and hasattr(lambda_instance, "lg_graph"):
                 workflow_generator = lambda_instance.lg_graph.stream(user_query, gradio_history, session_id=session_id)
             else:

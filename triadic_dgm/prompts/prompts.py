@@ -61,7 +61,8 @@ def get_metric(m, keywords):
             return float(v)
     return 0.0
 
-def apply_business_rules(m, support_pct):
+def apply_business_rules(m, support_pct, profile=None):
+    profile = profile or {{}}
     cl = get_metric(m, ['cl_total', 'cl', 'sự cố'])
     comp = get_metric(m, ['complaint', 'khiếu nại'])
     call = get_metric(m, ['call_total', 'call', 'gọi', 'cuộc gọi'])
@@ -131,7 +132,22 @@ def apply_business_rules(m, support_pct):
     else:
         name = "Nhóm hành vi chưa rõ"
         priority_score = 15 + (support_pct * 10)
-        
+
+    # 5. Composite Signal Overrides — CHỈ áp dụng khi base engine (bước 2-4 ở trên) CHƯA phân loại
+    # cụm này là HIGH/EXTREME (severity hoặc risk). Nếu base engine đã tìm ra tín hiệu mạnh và
+    # đặc trưng (vd: "Liên hệ CSKH nhiều", "Khách hàng bất mãn"), TUYỆT ĐỐI KHÔNG ghi đè bằng tên
+    # chung chung ở đây — nếu không TẤT CẢ các cụm HIGH-risk khác nhau sẽ bị gộp về CÙNG 1 TÊN.
+    if severity not in ("HIGH", "EXTREME") and risk not in ("HIGH", "EXTREME"):
+        if profile.get('high_spender_pct', 0) >= 0.5 and (profile.get('tier_downgrade_rate', 0) > 0 or profile.get('usage_decline_mild_pct', 0) >= 0.3):
+            name = "Khách hàng chi tiêu cao có dấu hiệu suy giảm"
+            priority_score = max(priority_score, 85 + (support_pct * 10))
+        elif profile.get('status_worsening_pct', 0) >= 0.3:
+            name = "Khách hàng có dấu hiệu tạm ngưng dịch vụ"
+            priority_score = max(priority_score, 75 + (support_pct * 10))
+        elif profile.get('usage_decline_strong_pct', 0) >= 0.3:
+            name = "Khách hàng giảm sử dụng mạnh"
+            priority_score = max(priority_score, 60 + (support_pct * 10))
+
     return {{
         "persona_type": persona_type,
         "severity": severity,
@@ -140,12 +156,94 @@ def apply_business_rules(m, support_pct):
         "priority_score": round(priority_score)
     }}
 
+4b. POST-HOC PROFILING ATTRIBUTES (BẮT BUỘC COPY-PASTE NGUYÊN VẸN, không tự sáng tạo tên biến khác): Đây là các thuộc tính MÔ TẢ (KHÔNG dùng để train KMeans), tính TRỰC TIẾP từ DataFrame `data` gốc (đã có cột 'cluster'), KHÔNG dùng `X`/`X_raw`. Tự động tìm cột theo từ khóa nên hoạt động với MỌI bộ dữ liệu, kể cả khi thiếu một vài cột (sẽ tự bỏ qua, KHÔNG bịa giá trị):
+```python
+def get_column(cols, keywords):
+    for c in cols:
+        cl = str(c).lower()
+        if any(kw in cl for kw in keywords):
+            return c
+    return None
+
+def compute_profile_attributes(df, cluster_col='cluster'):
+    cols = df.columns
+    col_map = {{
+        'spend_flag':   get_column(cols, ['high_spender']),
+        'fee':          get_column(cols, ['fee_total', 'fee_avg']),
+        'tier_upgrade': get_column(cols, ['segment_upgrade_count']),
+        'tier_downgrade': get_column(cols, ['segment_downgrade_count']),
+        # ƯU TIÊN cột boolean 0/1 (ever_*/persistent_*) hơn cột đếm số tháng (cnt_*), vì ta cần
+        # TỶ LỆ khách hàng (0-1) chứ không phải trung bình SỐ THÁNG. get_column() chỉ nhận 1 danh
+        # sách từ khóa và trả về cột ĐẦU TIÊN theo thứ tự cột trong DataFrame (không theo độ ưu
+        # tiên từ khóa) — nên phải gọi riêng từng bước và dùng `or` để đảm bảo đúng thứ tự ưu tiên.
+        'usage_giam_nhe':  get_column(cols, ['ever_giam_nhe']),
+        'usage_giam_manh': get_column(cols, ['persistent_giam_manh']) or get_column(cols, ['ever_giam_manh']),
+        'usage_dao_dong_cnt':  get_column(cols, ['cnt_dao_dong']),  # cột đếm số tháng (0-6), KHÔNG phải tỷ lệ — phải chia cho 6
+        'status_worsening': get_column(cols, ['status_worsening']),
+        'loyalty_rank':   get_column(cols, ['loyalty_rank']),
+        'csat':           get_column(cols, ['total_csat', 'csat']),
+        'ces':            get_column(cols, ['ces', 'customer_effort']),
+        'package_type':   get_column(cols, ['goi_cuoc', 'package_type', 'skd_bill_localtype']),
+    }}
+    profiles = {{}}
+    for cid, grp in df.groupby(cluster_col):
+        p = {{}}
+        if col_map['spend_flag']:
+            p['high_spender_pct'] = round(float(pd.to_numeric(grp[col_map['spend_flag']], errors='coerce').fillna(0).mean()), 4)
+        if col_map['fee']:
+            p['avg_fee'] = round(float(pd.to_numeric(grp[col_map['fee']], errors='coerce').fillna(0).mean()), 2)
+        if col_map['tier_upgrade']:
+            p['tier_upgrade_rate'] = round(float(pd.to_numeric(grp[col_map['tier_upgrade']], errors='coerce').fillna(0).mean()), 4)
+        if col_map['tier_downgrade']:
+            p['tier_downgrade_rate'] = round(float(pd.to_numeric(grp[col_map['tier_downgrade']], errors='coerce').fillna(0).mean()), 4)
+        if col_map['usage_giam_manh']:
+            p['usage_decline_strong_pct'] = round(float(pd.to_numeric(grp[col_map['usage_giam_manh']], errors='coerce').fillna(0).mean()), 4)
+        if col_map['usage_giam_nhe']:
+            p['usage_decline_mild_pct'] = round(float(pd.to_numeric(grp[col_map['usage_giam_nhe']], errors='coerce').fillna(0).mean()), 4)
+        if col_map['usage_dao_dong_cnt']:
+            # cnt_Dao_dong đếm SỐ THÁNG (0-6) bị dao động trong kỳ 6 tháng — chia cho 6 để ra tỷ lệ 0-1
+            raw_months = float(pd.to_numeric(grp[col_map['usage_dao_dong_cnt']], errors='coerce').fillna(0).mean())
+            p['usage_unstable_pct'] = round(min(raw_months / 6.0, 1.0), 4)
+        if col_map['status_worsening']:
+            p['status_worsening_pct'] = round(float(pd.to_numeric(grp[col_map['status_worsening']], errors='coerce').fillna(0).mean()), 4)
+        if col_map['loyalty_rank']:
+            p['loyalty_rank_avg'] = round(float(pd.to_numeric(grp[col_map['loyalty_rank']], errors='coerce').fillna(0).mean()), 2)
+        if col_map['csat']:
+            p['csat_avg'] = round(float(pd.to_numeric(grp[col_map['csat']], errors='coerce').fillna(0).mean()), 2)
+        if col_map['ces']:
+            p['ces_avg'] = round(float(pd.to_numeric(grp[col_map['ces']], errors='coerce').fillna(0).mean()), 2)
+        if col_map['package_type']:
+            vc = grp[col_map['package_type']].astype(str).value_counts(normalize=True)
+            p['package_composition'] = vc.round(4).to_dict()
+        profiles[cid] = p
+    return profiles
+
+def classify_risk_tier(meta, profile):
+    severity = meta.get('severity', 'LOW')
+    risk = meta.get('risk', 'LOW')
+    persona_type = meta.get('persona_type', 'SEGMENT')
+    if persona_type == "ANOMALY":
+        return "Nhóm bị động – theo dõi & cảnh báo"
+    if severity == "EXTREME" or risk == "EXTREME" or profile.get('status_worsening_pct', 0) >= 0.3:
+        return "Nhóm rủi ro cao – cần hành động ưu tiên"
+    if profile.get('high_spender_pct', 0) >= 0.5 and (profile.get('tier_downgrade_rate', 0) > 0 or profile.get('usage_decline_mild_pct', 0) >= 0.3):
+        return "Nhóm cần giữ chân ngay – ưu tiên giữ chân"
+    if severity in ("HIGH", "MEDIUM") or risk in ("HIGH", "MEDIUM"):
+        return "Nhóm rủi ro cao – cần hành động ưu tiên"
+    return "Nhóm bị động – theo dõi & cảnh báo"
+```
+GỌI NGAY SAU KHI CÓ `data['cluster']` VÀ TRƯỚC VÒNG LẶP BUSINESS RULES BÊN DƯỚI:
+```python
+profile_attributes = compute_profile_attributes(data, cluster_col='cluster')
+```
+`profile_attributes` sẽ được dùng lại ở bước tính `business_metadata` (item 4) và ở bước xuất JSON cuối cùng (item 11) — KHÔNG được tính lại hàm này ở nơi khác.
+
 SAU KHI TÍNH cluster_stats, GỌI HÀM NHƯ SAU (BẮT BUỘC, KHÔNG THAY ĐỔI):
 business_metadata = {{}}
 base_names = {{}}
 for cid, row in cluster_stats.iterrows():
     sp = persona_metrics.loc[cid, 'cluster_pct'] if 'cluster_pct' in persona_metrics.columns else (cluster_sizes[cid] / len(data))
-    meta = apply_business_rules(row.to_dict(), sp)
+    meta = apply_business_rules(row.to_dict(), sp, profile_attributes.get(cid, {{}}))
     business_metadata[cid] = meta
     base_names[cid] = meta['persona_name']
 
@@ -167,9 +265,10 @@ NẾU CÓ 2 CỤM CÙNG RULE → Hàm trên đã tự động thêm số thứ t
 `print("[JSON_END_PERSONA]")`
 `sys.exit(0)`
 6. OPTIMAL K & CONFIDENCE & SEGMENTATION QUALITY: Thử K từ 3 đến 6. Chọn Best K có Silhouette lớn nhất. BẮT BUỘC DÙNG `silhouette_score(X, labels, sample_size=5000, random_state=42)`.
-BẠN BẮT BUỘC THÊM ĐOẠN CODE NÀY ĐỂ XÁC ĐỊNH CHẤT LƯỢNG PHÂN CỤM:
+BẠN BẮT BUỘC THÊM ĐOẠN CODE NÀY ĐỂ XÁC ĐỊNH CHẤT LƯỢNG PHÂN CỤM. LƯU Ý QUAN TRỌNG (LỖI NÀY ĐÃ XẢY RA NHIỀU LẦN — ĐỌC KỸ): `cluster_sizes` PHẢI được tạo bằng ĐÚNG dòng sau (BẮT BUỘC dùng `.to_dict()` để nó luôn là dict thuần). TUYỆT ĐỐI CẤM gọi `cluster_sizes.values()` (dấu ngoặc đơn) ở BẤT KỲ ĐÂU trong code — nếu `cluster_sizes` lỡ là pandas Series (không phải dict) thì `.values` là ATTRIBUTE (không có dấu ngoặc), gọi `.values()` như một HÀM sẽ ném lỗi `TypeError: 'numpy.ndarray' object is not callable`. Vì vậy DÒNG `dominant_cluster_pct` BẮT BUỘC PHẢI TÍNH TRỰC TIẾP TỪ `data['cluster']` NHƯ SAU (KHÔNG được viết `max(list(cluster_sizes.values()))` hay bất kỳ biến thể nào dùng `.values()`):
 ```python
-dominant_cluster_pct = max(list(cluster_sizes.values())) / len(data)
+cluster_sizes = data['cluster'].value_counts().sort_index().to_dict()
+dominant_cluster_pct = data['cluster'].value_counts(normalize=True).max()
 silhouette_score_val = silhouette_score(X, labels, sample_size=5000, random_state=42)
 if silhouette_score_val > 0.7 and dominant_cluster_pct > 0.8:
     segmentation_quality = "OUTLIER_DRIVEN"
@@ -203,7 +302,7 @@ LÝ DO: min_samples_leaf=500 ngăn Tree overfit trên 1 outlier duy nhất. clas
 import os
 os.makedirs('workspace/generated/reports', exist_ok=True)
 plt.figure(figsize=(10,6))
-sns.barplot(x=list(final_names.values()), y=list(cluster_sizes.values()))
+sns.barplot(x=list(final_names.values()), y=[cluster_sizes[cid] for cid in final_names.keys()])
 plt.xticks(rotation=45, ha='right')
 plt.title('Cluster Distribution')
 plt.tight_layout()
@@ -261,7 +360,11 @@ for p in personas:
     p['risk'] = meta['risk']
     p['persona_name'] = final_names[cid]
     p['priority_score'] = meta['priority_score']
-    
+
+    # Profile Attributes & Risk Tier (post-hoc, item 4b)
+    p['profile_attributes'] = profile_attributes.get(cid, {{}})
+    p['risk_tier'] = classify_risk_tier(meta, p['profile_attributes'])
+
     # Anomaly Gate
     p['is_anomaly'] = bool(meta['persona_type'] == "ANOMALY")
     if p['is_anomaly']:
@@ -501,6 +604,8 @@ Please check and fix the code based on the modification method.
 
 - modification method:
 {fix_method}
+
+CRITICAL — INCREMENTAL FIX, NOT A REDESIGN: The kernel executing this code is a live, STATEFUL Jupyter session — any variable that was already successfully assigned by the code above (everything executed BEFORE the line that raised the error) is still in memory right now. Treat `- bug code` as your starting point: copy it AS-IS and change ONLY the specific lines needed to resolve `{error_message}`. Do NOT rename variables, do NOT restructure the pipeline, do NOT rewrite or remove business-rules/profiling/JSON-output logic that has nothing to do with this error. The one exception: if the error happened before any variable in the code was ever assigned (e.g. failure on the very first line, or `load_dataset()` itself), then a fuller rewrite from the start is fine.
 
 The code you modified (should be wrapped in ```python```):
 

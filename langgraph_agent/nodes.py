@@ -8,6 +8,7 @@ Phase 2: Nodes will be broken apart further and interrupt points added.
 """
 from __future__ import annotations
 
+import re
 import traceback
 from typing import TYPE_CHECKING
 
@@ -277,7 +278,16 @@ def repair_code(state: dict, agent: "TriadicAgent") -> dict:
 
     agent.programmer.messages.append({
         "role": "user",
-        "content": f"Fix this bug:\n{error_msg}\n\nSuggestion: {hypotheses}",
+        "content": (
+            f"Fix this bug:\n{error_msg}\n\nSuggestion: {hypotheses}\n\n"
+            "CRITICAL — INCREMENTAL FIX, NOT A REDESIGN: The kernel is a live, STATEFUL Jupyter session — "
+            "any variable already successfully assigned by your previous code (everything executed BEFORE "
+            "the line that raised the error) is still in memory. Copy your previous code AS-IS and change "
+            "ONLY the specific lines needed to resolve this error. Do NOT rename variables, do NOT "
+            "restructure the pipeline, do NOT rewrite business-rules/profiling/JSON-output logic unrelated "
+            "to this error. Exception: if the error happened before any variable was ever assigned, a fuller "
+            "rewrite from the start is fine."
+        ),
     })
 
     # Ask Programmer for repaired code
@@ -381,25 +391,41 @@ def generate_report(state: dict, agent: "TriadicAgent") -> dict:
     exe_result = state.get("exe_result", "")
     chat_history = state["chat_history_display"]
 
-    # Truncate very long results to avoid LLM gateway timeout
+    # Truncate very long results to avoid LLM gateway timeout, but never cut into the
+    # [JSON_START_PERSONA]...[JSON_END_PERSONA] block — persona profiling data can push
+    # this past 4000 chars, and a truncated tail marker would break ReportGenerator's parse.
     if len(exe_result) > 4000:
-        exe_result = exe_result[:2000] + "\n...[TRUNCATED]...\n" + exe_result[-2000:]
+        json_match = re.search(r'\[JSON_START_PERSONA\].*?\[JSON_END_PERSONA\]', exe_result, re.DOTALL)
+        if json_match:
+            before, json_block, after = exe_result[:json_match.start()], json_match.group(0), exe_result[json_match.end():]
+            before = before[-1000:] if len(before) > 1000 else before
+            after = after[:1000] if len(after) > 1000 else after
+            exe_result = f"{before}\n...[TRUNCATED PROSE]...\n{json_block}\n...[TRUNCATED PROSE]...\n{after}"
+        else:
+            exe_result = exe_result[:2000] + "\n...[TRUNCATED]...\n" + exe_result[-2000:]
 
-    final_prompt = (
-        RESULT_PROMPT.format(exe_result)
-        + "\n\nCRITICAL: DO NOT WRITE ANY PYTHON CODE! "
-        "Output ONLY the 5-Tab Markdown report starting with '### 🚨 EXECUTIVE SUMMARY'!"
-    )
-    agent.programmer.messages.append({"role": "user", "content": final_prompt})
+    # ========== MỚI: Tích hợp Structured Output (SOLID) ==========
+    from triadic_dgm.services.report_generator import ReportGenerator
 
     if chat_history:
-        chat_history[-1]["content"] += "\n\n**Final Report:**\n\n"
+        chat_history[-1]["content"] += "\n\n**Đang sinh Báo cáo phân tích (Structured Output)...**\n\n"
 
-    report = ""
-    for message in agent.programmer._call_chat_model_streaming():
-        report += message
+    try:
+        generator = ReportGenerator(
+            api_key=agent.config['api_key'],
+            base_url=agent.config['base_url_programmer'],
+            model_name=agent.config['programmer_model']
+        )
+        report = generator.generate_markdown_report(exe_result)
+        
         if chat_history:
-            chat_history[-1]["content"] += message
+            chat_history[-1]["content"] = chat_history[-1]["content"].replace("**Đang sinh Báo cáo phân tích (Structured Output)...**\n\n", "")
+            chat_history[-1]["content"] += report
+            
+    except Exception as e:
+        report = f"[LLM ERROR: {e}]"
+        if chat_history:
+            chat_history[-1]["content"] += f"\n{report}\n"
 
     agent.programmer.messages.append({"role": "assistant", "content": report})
 

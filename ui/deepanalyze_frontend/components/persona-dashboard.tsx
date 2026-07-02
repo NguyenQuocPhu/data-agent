@@ -23,7 +23,22 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Users, AlertTriangle, Coins } from "lucide-react";
 
-interface Persona {
+export interface ProfileAttributes {
+  high_spender_pct?: number;
+  avg_fee?: number;
+  tier_upgrade_rate?: number;
+  tier_downgrade_rate?: number;
+  usage_decline_strong_pct?: number;
+  usage_decline_mild_pct?: number;
+  usage_unstable_pct?: number;
+  status_worsening_pct?: number;
+  loyalty_rank_avg?: number;
+  csat_avg?: number;
+  ces_avg?: number;
+  package_composition?: Record<string, number>;
+}
+
+export interface Persona {
   cluster_id: number;
   persona_name: string;
   support: number;
@@ -32,6 +47,11 @@ interface Persona {
   churn_rate: number;
   confidence: string;
   sample_persona_text: string;
+  severity?: string;
+  risk?: string;
+  risk_tier?: string;
+  profile_attributes?: ProfileAttributes;
+  recommended_actions?: string[];
 }
 
 interface PersonaDashboardProps {

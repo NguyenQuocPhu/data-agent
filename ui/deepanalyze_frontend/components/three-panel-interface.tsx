@@ -113,6 +113,7 @@ import {
   type UILanguage,
 } from "@/lib/prompt-presets";
 import { PersonaDashboard } from "@/components/persona-dashboard";
+import { PersonaCards } from "@/components/persona-cards";
 
 interface Message {
   id: string;
@@ -3441,19 +3442,20 @@ export function ThreePanelInterface() {
       let personaJson = null;
       let cleanContent = content;
 
-      const jsonMatch = content.match(/\[JSON_START_PERSONA\]([\s\S]*?)\[JSON_END_PERSONA\]/);
+      const matches = Array.from(content.matchAll(/\[JSON_START_PERSONA\]([\s\S]*?)\[JSON_END_PERSONA\]/g));
+      const jsonMatch = matches.length > 0 ? matches[matches.length - 1] : null;
       if (jsonMatch) {
         try {
           // AI sometimes hallucinates literal newlines in strings, which breaks JSON.parse
           // We can try to fix it by replacing literal newlines with \\n, but it's tricky.
-          // For now, we just parse and fallback to console.warn to avoid Next.js Error Overlay
-          const rawJson = jsonMatch[1].trim();
+          // Replace unquoted NaN with null to prevent JSON.parse from failing
+          const sanitizedJson = jsonMatch[1].trim().replace(/NaN/g, 'null');
 
           try {
-            personaJson = JSON.parse(rawJson);
+            personaJson = JSON.parse(sanitizedJson);
           } catch (e1) {
             // Attempt to fix unescaped newlines inside strings
-            const fixedJson = rawJson.replace(/\n/g, "\\n")
+            const fixedJson = sanitizedJson.replace(/\n/g, "\\n")
               .replace(/\\n\s*\]/g, "\n]")
               .replace(/\[\s*\\n/g, "[\n")
               .replace(/\{\s*\\n/g, "{\n")
@@ -3471,7 +3473,12 @@ export function ThreePanelInterface() {
       return (
         <div className="flex flex-col gap-4">
           {cleanContent.trim() && renderMarkdownContent(cleanContent, { withinSection: true })}
-          {personaJson && <PersonaDashboard data={personaJson} />}
+          {personaJson && (
+            <>
+              <PersonaDashboard data={personaJson} />
+              <PersonaCards data={personaJson} />
+            </>
+          )}
         </div>
       );
     },

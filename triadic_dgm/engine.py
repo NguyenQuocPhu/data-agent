@@ -1,4 +1,5 @@
 import os
+import re
 import openai
 import json
 import random
@@ -361,9 +362,18 @@ class TriadicAgent:
         display, link_info = self.check_folder()
         chat_history_display[-1]["content"] += f"{link_info}" if display else ''
 
-        # TRUNCATE msg_llm to prevent 400 Bad Request and LLM Gateway Timeout
+        # TRUNCATE msg_llm to prevent 400 Bad Request and LLM Gateway Timeout, but never cut into the
+        # [JSON_START_PERSONA]...[JSON_END_PERSONA] block — persona profiling data can push this past
+        # 4000 chars, and a truncated tail marker would break ReportGenerator.generate_markdown_report().
         if len(msg_llm) > 4000:
-            msg_llm = msg_llm[:2000] + "\n...[TRUNCATED_DUE_TO_LENGTH]...\n" + msg_llm[-2000:]
+            json_match = re.search(r'\[JSON_START_PERSONA\].*?\[JSON_END_PERSONA\]', msg_llm, re.DOTALL)
+            if json_match:
+                before, json_block, after = msg_llm[:json_match.start()], json_match.group(0), msg_llm[json_match.end():]
+                before = before[-1000:] if len(before) > 1000 else before
+                after = after[:1000] if len(after) > 1000 else after
+                msg_llm = f"{before}\n...[TRUNCATED_DUE_TO_LENGTH]...\n{json_block}\n...[TRUNCATED_DUE_TO_LENGTH]...\n{after}"
+            else:
+                msg_llm = msg_llm[:2000] + "\n...[TRUNCATED_DUE_TO_LENGTH]...\n" + msg_llm[-2000:]
 
         # ========== SEMANTIC VERIFICATION GATE (Chiều 2) ==========
         user_task = self._get_user_task()
@@ -462,19 +472,27 @@ class TriadicAgent:
         if len(self.programmer.messages) > 10:
             self.programmer.messages = [self.programmer.messages[0]] + self.programmer.messages[-6:]
 
-        final_prompt = RESULT_PROMPT.format(msg_llm) + "\n\nCRITICAL: DO NOT WRITE ANY PYTHON CODE! DO NOT start your response with ```python or any code block. You MUST ONLY output the 5-Tab Markdown report starting with '### 🚨 EXECUTIVE SUMMARY'!"
-        self.add_programmer_msg({"role": "user", "content": final_prompt})
-
-        chat_history_display[-1]["content"] += "\n\n**Final Report:**\n\n"
+        # ========== MỚI: Tích hợp Structured Output (SOLID) ==========
+        from triadic_dgm.services.report_generator import ReportGenerator
+        
+        chat_history_display[-1]["content"] += "\n\n**[Hệ thống đang sinh Báo cáo phân tích...]**\n\n"
         yield chat_history_display
 
         prog_response = ''
         try:
-            print(f"DEBUG: Calling LLM. msg_llm length={len(msg_llm)}")
-            for message in self.programmer._call_chat_model_streaming():
-                chat_history_display[-1]["content"] += message
-                yield chat_history_display
-                prog_response += message
+            print(f"DEBUG: Calling LLM via Instructor for Structured Output.")
+            generator = ReportGenerator(
+                api_key=self.config['api_key'],
+                base_url=self.config['base_url_programmer'],
+                model_name=self.config['programmer_model']
+            )
+            # Dùng msg_llm (Raw JSON Python Output) làm input
+            prog_response = generator.generate_markdown_report(msg_llm)
+            
+            # CHÚ Ý: KHÔNG ĐƯỢC REPLACE CHUỖI CŨ, SẼ LÀM HỎNG LOGIC STREAMING CỦA NEXT.JS
+            chat_history_display[-1]["content"] += prog_response
+            yield chat_history_display
+            
         except Exception as e:
             print(f"DEBUG LLM CALL FAILED: {e}")
             chat_history_display[-1]["content"] += f"\n[LLM ERROR: {e}]\n"
