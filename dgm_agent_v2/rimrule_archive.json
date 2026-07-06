@@ -132,9 +132,9 @@
         ],
         "strength": "MUST",
         "tool_category": "data_analysis",
-        "errors_fixed": 67,
+        "errors_fixed": 68,
         "token_length": 32,
-        "mdl_score": 2.0938
+        "mdl_score": 2.125
     },
     {
         "nl_rule": "\n\n1.  **Verify Registry Schema:** Inspect the internal dataset registry structure to confirm the actual keys present for the selected dataset identifier, ensuring they match the loader's expectations.\n2.  **Update Access Logic:** Modify the data loading function to validate the existence of required metadata fields before attempting to access them, preventing crashes on missing keys.\n3.  **Refine Selection Criteria:** Adjust the dataset selection logic to ensure only entries with complete and valid metadata are chosen automatically, filtering out incomplete records.\n4.  **Implement Error Handling:** Add conditional checks or try-except blocks to gracefully handle missing metadata keys, allowing the system to fallback to alternative loading methods or report the schema mismatch clearly.",
@@ -1386,9 +1386,9 @@
         ],
         "strength": "MUST",
         "tool_category": "data_analysis",
-        "errors_fixed": 112,
+        "errors_fixed": 114,
         "token_length": 26,
-        "mdl_score": 4.3077
+        "mdl_score": 4.3846
     },
     {
         "nl_rule": "Semantic check failed: \u26a0 L\u1ed7i M\u00e2u Thu\u1eabn Ch\u00e2n Dung: T\u00ean Persona 'Kh\u00e1ch h\u00e0ng hay g\u1eb7p s\u1ef1 c\u1ed1 - c\u1ea7n h\u1ed7 tr\u1ee3' \u00e1m ch\u1ec9 kh\u00e1ch g\u1eb7p s\u1ef1 c\u1ed1 nh\u01b0ng Sample Text 'k\u1ebft n\u1ed1i m\u1ea1ng \u1ed5n \u0111\u1ecbnh | \u0111\u1ed9 suy hao quang trung b\u00ecnh l\u00e0 -16.4 dbm | \u00edt g\u1ecdi cskh | kh\u00e1ch h\u00e0ng l\u00e2u n\u0103m' l\u1ea1i to\u00e0n \u0111i\u1ec1u t\u00edch c\u1ef1c. T\u00ean Persona ph\u1ea3i nh\u1ea5t qu\u00e1n v\u1edbi d\u1eef li\u1ec7u!",
@@ -2750,9 +2750,9 @@
         ],
         "strength": "MUST",
         "tool_category": "data_analysis",
-        "errors_fixed": 19,
+        "errors_fixed": 25,
         "token_length": 32,
-        "mdl_score": 0.5938
+        "mdl_score": 0.7812
     },
     {
         "nl_rule": "\n\n1. **Identify Data Structure Mismatch**: Recognize that the output of the scaling function is a NumPy array, which does not possess a `.columns` attribute. Attempting to access this attribute will raise an `AttributeError`.\n\n2. **Remove Invalid Attribute Access**: Eliminate any code logic that attempts to inspect column names (e.g., `.columns`) directly on the scaled numerical matrix.\n\n3. **Shift Validation to Input Stage**: Perform all feature exclusion checks (such as ensuring the target variable is not included) on the input DataFrame or feature list *before* the scaling transformation occurs, where column metadata is available.\n\n4. **Convert if Inspection is Required**: If column inspection is absolutely necessary on the transformed data, explicitly convert the NumPy array back to a DataFrame using the original feature names prior to performing the check.",
@@ -3308,5 +3308,155 @@
         "errors_fixed": 1,
         "token_length": 155,
         "mdl_score": 0.0065
+    },
+    {
+        "nl_rule": "\n\n1. **X\u1eed l\u00fd \u0111\u1eb7c tr\u01b0ng b\u1ecb tr\u00e0n s\u1ed1 0 (Zero-Inflation):** Thay v\u00ec d\u1eebng ch\u01b0\u01a1ng tr\u00ecnh (`sys.exit(0)`) khi ph\u00e1t hi\u1ec7n b\u1ea5t k\u1ef3 \u0111\u1eb7c tr\u01b0ng n\u00e0o c\u00f3 t\u1ef7 l\u1ec7 s\u1ed1 0 qu\u00e1 cao (>99%), h\u00e3y lo\u1ea1i b\u1ecf c\u00e1c \u0111\u1eb7c tr\u01b0ng \u0111\u00f3 kh\u1ecfi t\u1eadp d\u1eef li\u1ec7u \u0111\u1ea7u v\u00e0o cho thu\u1eadt to\u00e1n ph\u00e2n c\u1ee5m (KMeans). \u0110\u1ea3m b\u1ea3o ki\u1ec3m tra xem s\u1ed1 l\u01b0\u1ee3ng \u0111\u1eb7c tr\u01b0ng c\u00f2n l\u1ea1i c\u00f3 \u0111\u1ee7 \u0111\u1ec3 hu\u1ea5n luy\u1ec7n m\u00f4 h\u00ecnh hay kh\u00f4ng tr\u01b0\u1edbc khi ti\u1ebfp t\u1ee5c.\n\n2. **Lo\u1ea1i b\u1ecf \u0111i\u1ec3m \u01b0u ti\u00ean (Priority Score):** X\u00f3a ho\u00e0n to\u00e0n logic t\u00ednh to\u00e1n v\u00e0 xu\u1ea5t ra tr\u01b0\u1eddng `priority_score` trong k\u1ebft qu\u1ea3 JSON. Tu\u00e2n th\u1ee7 quy t\u1eafc \"Root Cause Integrity\" b\u1eb1ng c\u00e1ch ch\u1ec9 t\u1eadp trung v\u00e0o m\u00f4 t\u1ea3 \u0111\u1eb7c \u0111i\u1ec3m h\u00e0nh vi v\u00e0 r\u1ee7i ro th\u1ef1c t\u1ebf thay v\u00ec g\u00e1n \u0111i\u1ec3m s\u1ed1.\n\n3. **\u0110\u1ea3m b\u1ea3o lu\u1ed3ng x\u1eed l\u00fd li\u00ean t\u1ee5c:** \u0110i\u1ec1u ch\u1ec9nh logic ki\u1ec3m tra ch\u1ea5t l\u01b0\u1ee3ng d\u1eef li\u1ec7u \u0111\u1ec3 cho ph\u00e9p quy tr\u00ecnh ph\u00e2n c\u1ee5m ti\u1ebfp di\u1ec5n ngay c\u1ea3 khi m\u1ed9t s\u1ed1 \u0111\u1eb7c tr\u01b0ng b\u1ecb lo\u1ea1i b\u1ecf do ch\u1ea5t l\u01b0\u1ee3ng th\u1ea5p, mi\u1ec5n l\u00e0 t\u1eadp \u0111\u1eb7c tr\u01b0ng h\u1ee3p l\u1ec7 c\u00f2n l\u1ea1i \u0111\u00e1p \u1ee9ng y\u00eau c\u1ea7u t\u1ed1i thi\u1ec3u c\u1ee7a thu\u1eadt to\u00e1n.",
+        "domain": "python",
+        "qualifier": [
+            "runtime_error"
+        ],
+        "action": [
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "coding",
+        "errors_fixed": 1,
+        "token_length": 185,
+        "mdl_score": 0.0054
+    },
+    {
+        "nl_rule": "\n\n1. **Modify Control Flow Logic:** Remove any explicit script termination commands (e.g., `sys.exit`) triggered by data quality checks or clustering warnings. The pipeline must continue execution to attempt processing with cleaned data rather than halting immediately.\n\n2. **Implement Feature Filtering:** Before passing data to the clustering algorithm, add a preprocessing step that identifies and removes features exceeding a defined zero-inflation threshold (e.g., >99% zeros) to ensure the model receives sufficient variance.\n\n3. **Validate Feature Set:** Verify that the remaining feature set after filtering meets the minimum dimensionality requirements for the clustering algorithm. If valid features remain, proceed with training; otherwise, log a warning but do not crash.\n\n4. **Ensure Output Schema Compliance:** Update the JSON generation logic to exclude prohibited fields (such as `priority_score`) and strictly adhere to the required persona output structure, ensuring valid JSON formatting is maintained throughout the process.",
+        "domain": "python",
+        "qualifier": [
+            "runtime_error"
+        ],
+        "action": [
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "coding",
+        "errors_fixed": 2,
+        "token_length": 142,
+        "mdl_score": 0.0141
+    },
+    {
+        "nl_rule": "\n\n### Fix Instructions\n\n1.  **Adjust Feature Selection Criteria:** Modify the preprocessing logic to calculate the zero-inflation rate for all candidate features. Automatically exclude any column where the percentage of zero values exceeds a defined threshold (e.g., 90%) before passing the dataset to the clustering algorithm. This prevents the model from training on sparse data that causes convergence failure.\n\n2.  **Implement Fallback Segmentation Logic:** Replace the hard `SystemExit` call triggered by clustering failure with a conditional fallback mechanism. If the selected behavioral features are insufficient (e.g., too few columns remain after filtering), switch to a segmentation strategy using available demographic or categorical attributes (such as customer type, loyalty status, or VIP type) to generate valid clusters instead of terminating the script.\n\n3.  **Ensure Valid JSON Output Compliance:** Update the output generation logic to ensure that regardless of the segmentation method used (behavioral or fallback), the final JSON structure strictly adheres to the required schema (including `cluster_id`, `persona_name`, `support`, `arpu`, `churn_rate`, etc.). Do not output a \"Clustering Failed\" message as the final persona; instead, generate a valid persona object based on the fallback results to satisfy the semantic check.",
+        "domain": "python",
+        "qualifier": [
+            "runtime_error"
+        ],
+        "action": [
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "coding",
+        "errors_fixed": 1,
+        "token_length": 187,
+        "mdl_score": 0.0053
+    },
+    {
+        "nl_rule": "\n\n## Fix Instructions\n\n### Root Cause Analysis\nThe error occurs because `persona_metrics` DataFrame is created with a default RangeIndex (0, 1, 2, 3, 4), but the cluster IDs after Stage-2 sub-clustering include ID 5. When the code tries to access `persona_metrics.loc[cid, 'cluster_pct']` where `cid=5`, it fails because index 5 doesn't exist in the DataFrame.\n\n### Generalizable Fix Steps\n\n1. **Ensure Index Alignment**: When creating any DataFrame that will be indexed by cluster IDs, explicitly set the index to match the cluster IDs being used. Do not rely on default RangeIndex.\n\n2. **Use Cluster IDs as Index**: When building `persona_metrics`, use the cluster IDs from `cluster_stats.index` as the DataFrame index, not a sequential RangeIndex.\n\n3. **Verify Index Consistency**: Before accessing data by cluster ID, ensure the DataFrame's index contains all expected cluster IDs. If using `.loc[]` with cluster IDs, the index must be set to those IDs.\n\n4. **Handle Dynamic Cluster IDs**: When cluster IDs are modified (e.g., through sub-clustering that reassigns IDs), rebuild any dependent DataFrames with the updated cluster IDs as their index.\n\n5. **Use Safe Access Pattern**: When accessing data by cluster ID, use `.get()` or check if the key exists before accessing, or ensure the index is properly aligned before iteration.\n\n### Key Principle\n**Always align DataFrame indices with the keys you will use to access data.** When cluster IDs change dynamically (through sub-clustering, merging, or splitting), any dependent DataFrames must be rebuilt with the correct index values.",
+        "domain": "python",
+        "qualifier": [
+            "runtime_error"
+        ],
+        "action": [
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "coding",
+        "errors_fixed": 1,
+        "token_length": 241,
+        "mdl_score": 0.0041
+    },
+    {
+        "nl_rule": "\n\n### Root Cause Analysis\nThe error `KeyError: 5` occurs because the code attempts to access a row in a lookup DataFrame using a cluster identifier that does not exist in the DataFrame's index. Specifically, the iteration loop uses cluster IDs from a source DataFrame (e.g., `cluster_stats`), but the target lookup DataFrame (e.g., `persona_metrics`) was initialized with a default sequential index (RangeIndex) that does not match the dynamic cluster IDs generated during the sub-clustering process. When the loop encounters a cluster ID (e.g., 5) that exceeds the default index range, the lookup fails.\n\n### Generalizable Fix Steps\n\n1.  **Align DataFrame Indices**: Before performing lookups, ensure the index of the lookup DataFrame explicitly matches the set of keys being iterated over. Do not rely on default sequential indexing when the keys are non-sequential or dynamically generated.\n\n2.  **Rebuild Dependent Data Structures**: If cluster IDs are modified or expanded during intermediate processing steps (such as sub-clustering), any dependent DataFrames used for metrics or profiles must be rebuilt or re-indexed to reflect the updated set of cluster IDs.\n\n3.  **Use Safe Access Patterns**: When accessing data by key, implement a fallback mechanism (e.g., checking for key existence or using a safe retrieval method) to handle cases where the key is missing, preventing runtime crashes.\n\n4.  **Verify Index Consistency**: Add a validation step to confirm that all cluster IDs in the iteration source exist in the lookup DataFrame's index before entering the processing loop.\n\n5.  **Preserve Stateful Variables**: In a stateful environment, reuse existing in-memory variables for the lookup table but modify their index property to match the current cluster IDs rather than creating a new table with a default index.",
+        "domain": "python",
+        "qualifier": [
+            "runtime_error"
+        ],
+        "action": [
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "coding",
+        "errors_fixed": 1,
+        "token_length": 276,
+        "mdl_score": 0.0036
+    },
+    {
+        "nl_rule": "\n\n### Root Cause Analysis\nThe error `NameError: name 'generate_actions' is not defined` occurs because the execution script attempts to call a custom utility function that has not been defined or imported in the current execution scope. This typically happens during incremental code updates where helper functions (e.g., for generating actions, classifying risk, or exporting text) are omitted from the new code block while the main logic still references them. The execution environment does not retain definitions from previous sessions unless explicitly re-declared or imported.\n\n### Generalizable Fix Steps\n\n1.  **Identify Missing Dependencies**: Scan the execution block for all function calls that are not built-in Python functions. List every custom utility function referenced in the logic (e.g., action generation, risk classification, text export).\n\n2.  **Verify Function Definitions**: Ensure that the definitions for all identified custom functions are present in the current code cell or have been imported from a valid module. Do not assume definitions persist from previous cells unless they are explicitly re-executed.\n\n3.  **Consolidate Utility Logic**: If the script is being split into incremental cells, ensure that all shared utility functions are defined in a dedicated initialization cell that runs before any logic depending on them.\n\n4.  **Check Scope Consistency**: Before running the main processing loop, validate that the execution environment contains all necessary helper functions. If a function is missing, locate its original definition in the full project script and include it in the current execution context.\n\n5.  **Avoid Omission During Refactoring**: When modifying code to fix previous errors (such as index alignment), carefully review the diff to ensure no function calls were left behind without their corresponding definitions.",
+        "domain": "python",
+        "qualifier": [
+            "runtime_error"
+        ],
+        "action": [
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "coding",
+        "errors_fixed": 1,
+        "token_length": 271,
+        "mdl_score": 0.0037
+    },
+    {
+        "nl_rule": "\n\n## Fix Instructions\n\n### Root Cause Analysis\nThe error `TypeError: can only concatenate str (not \"int\") to str` occurs because the code attempts to calculate `.mean()` on columns containing string/object data types. The `behavioral_features` list includes non-numeric columns (e.g., `CUSTOMER_TYPE`, `OBJID_mask`, `services`) that were not properly filtered before statistical operations.\n\n### Generalizable Fix Steps\n\n1. **Filter Non-Numeric Columns Before Statistical Operations**\n   - Before calling `.mean()` or any aggregation function on grouped data, explicitly filter the feature list to include only numeric columns\n   - Use `select_dtypes(include=[np.number])` or equivalent to identify numeric columns from the feature list\n   - Apply this filter consistently across all sections where statistics are computed\n\n2. **Ensure Consistent Dataframe Usage**\n   - The code converts `df_cluster` to numeric but then uses the original `data` dataframe for grouping and statistics\n   - Use the same preprocessed dataframe (`df_cluster`) for all clustering and statistical operations, OR convert `data` to numeric before grouping\n   - Do not mix the original raw dataframe with the preprocessed version for the same operation\n\n3. **Exclude Non-Feature Columns from Clustering Features**\n   - Explicitly exclude all non-numeric columns (IDs, categorical strings, text fields) from the `behavioral_features` list\n   - Create a dedicated numeric feature list that only contains columns suitable for mathematical operations\n   - Apply this exclusion rule at the feature preparation stage, not just during clustering\n\n4. **Add Type Validation Before Aggregation**\n   - Before any `.mean()`, `.sum()`, or similar aggregation, validate that all selected columns are numeric\n   - If non-numeric columns are detected, either exclude them or convert them appropriately before proceeding\n   - This validation should be applied consistently across all statistical computation sections\n\n5. **Maintain Feature List Consistency**\n   - Ensure the `behavioral_features` list used for clustering is the same list used for computing cluster statistics\n   - Do not redefine or modify the feature list between clustering and statistics sections without proper validation\n\n### Critical Rule Compliance\n- **Rule 1**: Ensure JSON output format is correct with proper print statements\n- **Rule 2**: Verify target variables are excluded from clustering features before KMeans\n- **Rule 3**: Confirm dataset integrity and avoid using prohibited keywords when applicable",
+        "domain": "python",
+        "qualifier": [
+            "runtime_error"
+        ],
+        "action": [
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "coding",
+        "errors_fixed": 2,
+        "token_length": 347,
+        "mdl_score": 0.0058
+    },
+    {
+        "nl_rule": "\n\n### Root Cause Analysis\nThe `ValueError: cannot insert cluster, already exists` occurs because the code attempts to aggregate the grouping column (`'cluster'`) using `agg({'cluster': 'count'})` and then calls `reset_index()`. Since the grouping column becomes a column in the dataframe after `reset_index()`, and the aggregation also creates a column with the same name, a duplicate column name collision occurs. Additionally, the code violates **Rule 3** by including `priority_score` in the JSON output, which is prohibited for this dataset integrity mode.\n\n### Generalizable Fix Steps\n\n1.  **Resolve Aggregation Column Collision**\n    -   When grouping by a column and counting rows, avoid aggregating the grouping column itself if it will result in duplicate names after `reset_index()`.\n    -   Use the `.size()` method for counting rows per group, or explicitly rename the aggregated column to a unique name (e.g., `'count'` or `'support'`) before or after `reset_index()`.\n    -   Ensure the resulting dataframe has unique column names before proceeding to further calculations or merging.\n\n2.  **Comply with Prohibited Keywords (Rule 3)**\n    -   Remove `priority_score` from the JSON output structure entirely.\n    -   Replace any logic dependent on `priority_score` with valid metrics allowed by the dataset integrity constraints (e.g., use `support_pct` or `severity` for sorting if necessary).\n    -   Verify that no other prohibited keywords are used in the final persona dictionary.\n\n3.  **Ensure JSON Output Compliance (Rule 1)**\n    -   Maintain the strict print sequence for JSON output: `print('[JSON_START_PERSONA]')`, `print(json.dumps(personas))`, `print('[JSON_END_PERSONA]')`.\n    -   Ensure the `personas` list is fully constructed and valid before printing.\n\n4.  **Verify Data Integrity (Rule 2)**\n    -   Confirm that target variables (e.g., `RMDT`) were excluded from the clustering feature set before the KMeans execution.\n    -   Ensure the dataframe used for statistics (`data`) is the same one that contains the cluster assignments.\n\n5.  **Validate Column Existence**\n    -   Before any `groupby` or `agg` operation, verify that the grouping column exists in the target dataframe.\n    -   If the column is missing, locate the correct dataframe containing the cluster assignments or regenerate the cluster column.",
+        "domain": "python",
+        "qualifier": [
+            "runtime_error"
+        ],
+        "action": [
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "coding",
+        "errors_fixed": 1,
+        "token_length": 323,
+        "mdl_score": 0.0031
+    },
+    {
+        "nl_rule": "\n\n1.  **Root Cause Analysis**: The error `TypeError: agg function failed [how->mean,dtype->object]` indicates that the list of features used for the `groupby().mean()` operation contains non-numeric columns (e.g., strings or objects). Pandas cannot calculate the mean of non-numeric data.\n\n2.  **Fix Instruction**:\n    *   **Filter Features**: Before performing the aggregation, filter the feature list variable to include **only** columns with numeric data types (int or float). Exclude any columns that contain string or object data.\n    *   **Data Leakage Check**: Ensure that the target variable `RMDT` is explicitly removed from the feature list before clustering or aggregation to prevent data leakage (Rule 2).\n    *   **JSON Compliance**: When generating the final JSON output, ensure the `priority_score` field is **excluded** from the persona dictionary to comply with Root Cause Integrity rules (Rule 3).\n    *   **Output Format**: Ensure the JSON output is wrapped with the specific markers `[JSON_START_PERSONA]` and `[JSON_END_PERSONA]` and printed using `json.dumps` (Rule 1).\n    *   **Incremental Execution**: Since the session is stateful, apply the filtering logic to the existing feature list variable in memory without re-executing the entire data loading or preprocessing pipeline.\n\n3.  **Actionable Steps**:\n    *   Identify the variable holding the list of features.\n    *   Apply a filter to select only numeric columns from this list.\n    *   Use this filtered list for the `groupby().mean()` operation.\n    *   Verify the final JSON structure excludes `priority_score` and includes the required markers.",
+        "domain": "python",
+        "qualifier": [
+            "runtime_error"
+        ],
+        "action": [
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "coding",
+        "errors_fixed": 1,
+        "token_length": 224,
+        "mdl_score": 0.0045
+    },
+    {
+        "nl_rule": "\n\n## Fix Instructions\n\n### Root Cause Analysis\nThe error `TypeError: Object of type bool is not JSON serializable` occurs because numpy boolean values (from comparisons like `sp < 0.01`) are not directly JSON serializable in some Python environments.\n\n### Actionable Fix Steps\n\n1. **Convert All Boolean Values to Python Native Type**\n   - Before appending to the `personas` list, explicitly convert all boolean fields using `bool()` function\n   - Apply this to: `is_anomaly`, `confidence` (if derived from boolean), and any other boolean fields in the persona dictionary\n\n2. **Ensure All Numeric Values Are Python Native Types**\n   - Convert numpy floats/ints to Python native types using `float()` and `int()` functions\n   - Apply to: `support`, `support_pct`, `arpu`, `churn_rate`, `priority_score`, and all feature means in `feature_means`\n\n3. **Validate JSON Serialization Before Output**\n   - Add a try-except block around the `json.dumps()` call to catch serialization errors\n   - If error occurs, log which field caused the issue and convert it to a serializable type\n\n4. **Apply to All Persona Fields**\n   - Ensure every value in the persona dictionary is a JSON-serializable type (str, int, float, bool, list, dict, None)\n   - Use `json.dumps()` with a test object first to verify all fields are serializable\n\n### Generalized Pattern\n```\nFor each boolean field: field_value = bool(field_value)\nFor each numeric field: field_value = float(field_value) or int(field_value)\nBefore json.dumps(): validate all values are native Python types\n```\n\n### Critical Reminder\nDo NOT hardcode field names or line numbers. Apply this conversion pattern to ALL values in the output structure to prevent similar serialization errors in future runs.",
+        "domain": "python",
+        "qualifier": [
+            "runtime_error"
+        ],
+        "action": [
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "coding",
+        "errors_fixed": 1,
+        "token_length": 256,
+        "mdl_score": 0.0039
     }
 ]

@@ -350,6 +350,8 @@ def semantic_fix(state: dict, agent: "TriadicAgent") -> dict:
     attempts = state.get("semantic_attempts", 0)
     chat_history = state["chat_history_display"]
 
+    # Not re-pasting generated_code here — it's already in agent.programmer.messages from the
+    # prior turn, and the model's real context window is only 30000 tokens total.
     fix_prompt = SEMANTIC_FIX.format(feedback=feedback)
     agent.programmer.messages.append({"role": "user", "content": fix_prompt})
 

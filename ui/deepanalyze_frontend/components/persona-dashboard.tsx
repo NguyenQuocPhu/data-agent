@@ -36,6 +36,7 @@ export interface ProfileAttributes {
   csat_avg?: number;
   ces_avg?: number;
   package_composition?: Record<string, number>;
+  service_composition?: Record<string, number>;
 }
 
 export interface Persona {
@@ -50,6 +51,9 @@ export interface Persona {
   severity?: string;
   risk?: string;
   risk_tier?: string;
+  persona_type?: string;
+  feature_means?: Record<string, number>;
+  evidence?: Record<string, number>;
   profile_attributes?: ProfileAttributes;
   recommended_actions?: string[];
 }
@@ -76,18 +80,31 @@ export function PersonaDashboard({ data }: PersonaDashboardProps) {
     );
   }
 
+  // Datasets without real ARPU/churn ground truth (e.g. no `rmdt` or `arpu` column) never get
+  // these fields populated by the pipeline — treat missing/non-finite values as 0 instead of
+  // letting `undefined` arithmetic poison the whole weighted average into NaN.
+  const safeNum = (v: unknown): number => (typeof v === "number" && isFinite(v) ? v : 0);
+  const hasChurnData = actualData.some((item) => typeof item.churn_rate === "number" && isFinite(item.churn_rate));
+  const hasRevenueData = actualData.some((item) => typeof item.arpu === "number" && isFinite(item.arpu) && item.arpu > 0);
+
   // Calculate Revenue at Risk
-  const chartData = actualData.map((item) => ({
-    ...item,
-    total_revenue: item.support * item.arpu,
-    revenue_at_risk: item.support * item.arpu * item.churn_rate,
-    // Add C{id} prefix to guarantee unique keys for Recharts, preventing duplicate X-Axis labels from overwriting each other
-    short_name: `C${item.cluster_id}: ${item.persona_name.length > 12 ? item.persona_name.substring(0, 12) + "..." : item.persona_name}`,
-  }));
+  const chartData = actualData.map((item) => {
+    const arpu = safeNum(item.arpu);
+    const churn_rate = safeNum(item.churn_rate);
+    return {
+      ...item,
+      arpu,
+      churn_rate,
+      total_revenue: item.support * arpu,
+      revenue_at_risk: item.support * arpu * churn_rate,
+      // Add C{id} prefix to guarantee unique keys for Recharts, preventing duplicate X-Axis labels from overwriting each other
+      short_name: `C${item.cluster_id}: ${item.persona_name.length > 12 ? item.persona_name.substring(0, 12) + "..." : item.persona_name}`,
+    };
+  });
 
   const totalSupport = actualData.reduce((acc, curr) => acc + curr.support, 0);
   const totalRevenueAtRisk = chartData.reduce((acc, curr) => acc + curr.revenue_at_risk, 0);
-  const avgChurn = actualData.reduce((acc, curr) => acc + curr.churn_rate * curr.support, 0) / (totalSupport || 1);
+  const avgChurn = actualData.reduce((acc, curr) => acc + safeNum(curr.churn_rate) * curr.support, 0) / (totalSupport || 1);
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(value);
@@ -136,8 +153,8 @@ export function PersonaDashboard({ data }: PersonaDashboardProps) {
             <AlertTriangle className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatPercent(avgChurn)}</div>
-            <p className="text-xs text-muted-foreground">Weighted average</p>
+            <div className="text-2xl font-bold">{hasChurnData ? formatPercent(avgChurn) : "N/A"}</div>
+            <p className="text-xs text-muted-foreground">{hasChurnData ? "Weighted average" : "Không có dữ liệu churn"}</p>
           </CardContent>
         </Card>
         <Card>
@@ -146,8 +163,8 @@ export function PersonaDashboard({ data }: PersonaDashboardProps) {
             <Coins className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-red-500">{formatCurrency(totalRevenueAtRisk)}</div>
-            <p className="text-xs text-muted-foreground">Monthly estimated</p>
+            <div className="text-2xl font-bold text-red-500">{hasRevenueData ? formatCurrency(totalRevenueAtRisk) : "N/A"}</div>
+            <p className="text-xs text-muted-foreground">{hasRevenueData ? "Monthly estimated" : "Không có dữ liệu ARPU"}</p>
           </CardContent>
         </Card>
       </div>

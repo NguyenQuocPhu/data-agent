@@ -52,8 +52,12 @@ Bộ dữ liệu đã bị xoá các cột time-series (T1, T2, T3, T4). Dưới
 2. Các biến hành vi (COMPLAINT, CL, CSAT, Cuộc gọi...) trong data này gần như 100% bằng 0. Do đó, KHÔNG CỐ GẮNG ÉP K-Means để phân cụm theo các biến này vì sẽ gom tất cả thành 1 cụm vô nghĩa. Bạn hãy tuỳ chỉnh logic chọn biến: Nếu tất cả variance = 0, hãy bỏ qua clustering hoặc nhóm theo Location/Branch.
 3. Thay vì cố gắng phân cụm hành vi, hãy chuyển hướng phân tích: In ra thống kê tỷ lệ các biến bằng 0 là bao nhiêu %. Tập trung EDA vào các biến có giá trị thực tế hơn.
 4. Output JSON Persona phải phản ánh đúng thực trạng dữ liệu bị "Zero-inflated" này, không cố gắng tạo ra các Action ảo nếu không có Evidence thực sự. Hành động duy nhất nên đề xuất là "Thu thập thêm dữ liệu" nếu 100% hành vi = 0.
-2. FEATURE EXCLUSION GATE & ANTI-HALLUCINATION: BẮT BUỘC LOẠI BỎ các biến sau khỏi quá trình clustering: fee_total, arpu, revenue, ctbdv, và các cột bắt đầu bằng fee_, segment_, cnt_. Các biến này chỉ dùng để tính Revenue Impact sau khi cluster xong. CHỈ sử dụng biến hành vi: call_total, complaint_total, cl_total, csat, network quality. KHÔNG ĐƯỢC TỰ BỊA RA TÊN CỘT ảo. BẠN BẮT BUỘC PHẢI lưu tập features dùng để train KMeans ra file trung gian `intermediate_features.csv` để người dùng kiểm định! LOẠI BỎ ID, Địa lý và Cước khi train.
-3. FEATURE PREPARATION & TYPE ERROR PREVENTION: KHÔNG ĐƯỢC gom cụm các biến T1, T2, T3, T4 nữa (vì đã bị xoá). HÃY TRỰC TIẾP SỬ DỤNG CÁC BIẾN ĐÃ ĐƯỢC TỔNG HỢP SẴN TRONG DATA (ví dụ các cột bắt đầu bằng `Total_` hoặc `TOTAL_`). CỰC KỲ CHÚ Ý: Dataset có nhiều cột chứa String/Text. Trước khi train KMeans, BẮT BUỘC ép kiểu tất cả các features bằng `pd.to_numeric(df[col], errors='coerce').fillna(0)` để TRÁNH LỖI `TypeError: unsupported operand type(s) for +: 'int' and 'str'`.
+2. FEATURE EXCLUSION GATE & ANTI-HALLUCINATION: BẮT BUỘC LOẠI BỎ các biến sau khỏi quá trình clustering: fee_total, arpu, revenue, ctbdv, và các cột bắt đầu bằng fee_, segment_, cnt_. Các biến này chỉ dùng để tính Revenue Impact sau khi cluster xong. CHỈ sử dụng biến hành vi: call_total, complaint_total, cl_total, csat, network quality. KHÔNG ĐƯỢC TỰ BỊA RA TÊN CỘT ảo. BẠN BẮT BUỘC PHẢI lưu tập features dùng để train KMeans ra file trung gian `intermediate_features.csv` để người dùng kiểm định! LOẠI BỎ ID, Địa lý và Cước khi train. TUYỆT ĐỐI CẤM đưa các cột do CHÍNH PIPELINE này sinh ra (`cluster`, `persona_text`, `is_anomaly`, `priority_score`) vào `behavioral_features` — nếu để lọt, `cluster_stats`/`global_mean`/`evidence` sẽ hiện ra dòng "cluster tăng rất mạnh" vô nghĩa trong báo cáo cuối cùng.
+3. FEATURE PREPARATION & TYPE ERROR PREVENTION: KHÔNG ĐƯỢC gom cụm các biến T1, T2, T3, T4 nữa (vì đã bị xoá). HÃY TRỰC TIẾP SỬ DỤNG CÁC BIẾN ĐÃ ĐƯỢC TỔNG HỢP SẴN TRONG DATA (ví dụ các cột bắt đầu bằng `Total_` hoặc `TOTAL_`). CỰC KỲ CHÚ Ý: Dataset có nhiều cột chứa String/Text. NGAY SAU KHI `behavioral_features` được chốt danh sách cuối cùng (TRƯỚC KHI build `X`/train KMeans), BẮT BUỘC chạy ĐÚNG dòng sau để ép kiểu SỐ NGAY TRÊN `data` GỐC (không chỉ ép kiểu trên 1 bản sao/matrix riêng để train KMeans — nếu chỉ ép kiểu trên bản sao, các bước SAU đó như `cluster_stats = data.groupby('cluster')[behavioral_features].mean()` vẫn sẽ dùng cột String gốc và ném lỗi `TypeError: can only concatenate str (not "int") to str`, lỗi này ĐÃ XẢY RA TRÊN DỮ LIỆU THẬT):
+```python
+data[behavioral_features] = data[behavioral_features].apply(lambda c: pd.to_numeric(c, errors='coerce')).fillna(0)
+```
+Sau dòng này, MỌI cột trong `behavioral_features` (dùng để train KMeans, tính `cluster_stats`, `global_mean`, Decision Tree...) đều đã là số — không cần ép kiểu lại ở nơi khác.
 4. TÊN PERSONA VÀ METADATA NGHIỆP VỤ (BUSINESS RULES ENGINE): BẮT BUỘC COPY-PASTE NGUYÊN VẸN HÀM SAU VÀO CODE (không được tự viết lại hay sáng tạo hàm khác):
 def get_metric(m, keywords):
     for k, v in m.items():
@@ -61,8 +65,9 @@ def get_metric(m, keywords):
             return float(v)
     return 0.0
 
-def apply_business_rules(m, support_pct, profile=None):
+def apply_business_rules(m, support_pct, profile=None, profile_global=None):
     profile = profile or {{}}
+    profile_global = profile_global or {{}}
     cl = get_metric(m, ['cl_total', 'cl', 'sự cố'])
     comp = get_metric(m, ['complaint', 'khiếu nại'])
     call = get_metric(m, ['call_total', 'call', 'gọi', 'cuộc gọi'])
@@ -89,11 +94,16 @@ def apply_business_rules(m, support_pct, profile=None):
         severity = "LOW"
         
     # 3. Risk (Khiếu nại & Cuộc gọi)
+    # LƯU Ý: `comp` là MEAN của cột khiếu nại theo cụm (không phải tổng số) — hầu như KHÔNG BAO
+    # GIỜ đúng bằng 0.0 dù cụm đó gần như không khiếu nại (dữ liệu zero-inflated). Ngưỡng
+    # `comp > 0` cũ khiến MỌI cụm đều bị gán risk=HIGH (đã xảy ra trên dữ liệu thật, làm tất cả
+    # persona đều HIGH risk, chặn luôn các nhánh composite-naming và gộp mọi persona vào cùng 1
+    # action "Outbound CSKH"). Ngưỡng đúng phải khớp với nhánh "bất mãn" bên dưới (comp >= 1.0).
     if call >= 50:
         risk = "EXTREME"
-    elif comp > 0 or call > 5:
+    elif comp >= 1.0 or call > 5:
         risk = "HIGH"
-    elif call > 2:
+    elif comp >= 0.3 or call > 2:
         risk = "MEDIUM"
     else:
         risk = "LOW"
@@ -137,16 +147,54 @@ def apply_business_rules(m, support_pct, profile=None):
     # cụm này là HIGH/EXTREME (severity hoặc risk). Nếu base engine đã tìm ra tín hiệu mạnh và
     # đặc trưng (vd: "Liên hệ CSKH nhiều", "Khách hàng bất mãn"), TUYỆT ĐỐI KHÔNG ghi đè bằng tên
     # chung chung ở đây — nếu không TẤT CẢ các cụm HIGH-risk khác nhau sẽ bị gộp về CÙNG 1 TÊN.
+    #
+    # DÙNG ĐỘ LỆCH TƯƠNG ĐỐI so với TRUNG BÌNH TOÀN QUẦN THỂ (profile_global), KHÔNG dùng ngưỡng
+    # tuyệt đối cố định — dữ liệu thật cho thấy nhiều field (usage_unstable_pct, status_worsening_pct,
+    # tier_upgrade_rate, usage_decline_mild_pct) hầu như luôn nằm trong một dải hẹp (vd 0.28-0.31)
+    # và KHÔNG BAO GIỜ chạm ngưỡng tuyệt đối như 0.4 dù CÓ khác biệt thật giữa các cụm — đây chính
+    # là lý do nhiều cụm rơi vào "Nhóm hành vi chưa rõ" dù thực ra có khác biệt. Ngưỡng tương đối
+    # phản ánh đúng "cụm này khác các cụm khác ở điểm nào", và luôn chọn tín hiệu LỆCH NHIỀU NHẤT
+    # thay vì tín hiệu đầu tiên khớp ngưỡng.
     if severity not in ("HIGH", "EXTREME") and risk not in ("HIGH", "EXTREME"):
-        if profile.get('high_spender_pct', 0) >= 0.5 and (profile.get('tier_downgrade_rate', 0) > 0 or profile.get('usage_decline_mild_pct', 0) >= 0.3):
+        def rel_dev(key):
+            g = profile_global.get(key, 0)
+            v = profile.get(key, 0)
+            return (v - g) / abs(g) if g != 0 else v
+
+        combo_decline = max(rel_dev('tier_downgrade_rate'), rel_dev('usage_decline_mild_pct'))
+        if profile.get('high_spender_pct', 0) >= 0.3 and rel_dev('high_spender_pct') >= 0.25 and combo_decline >= 0.25:
             name = "Khách hàng chi tiêu cao có dấu hiệu suy giảm"
             priority_score = max(priority_score, 85 + (support_pct * 10))
-        elif profile.get('status_worsening_pct', 0) >= 0.3:
-            name = "Khách hàng có dấu hiệu tạm ngưng dịch vụ"
-            priority_score = max(priority_score, 75 + (support_pct * 10))
-        elif profile.get('usage_decline_strong_pct', 0) >= 0.3:
-            name = "Khách hàng giảm sử dụng mạnh"
-            priority_score = max(priority_score, 60 + (support_pct * 10))
+        else:
+            candidates = [
+                ('status_worsening_pct', "Khách hàng có dấu hiệu tạm ngưng dịch vụ", 75),
+                ('usage_decline_strong_pct', "Khách hàng suy giảm mạnh", 65),
+                ('tier_downgrade_rate', "Khách hàng có dấu hiệu hạ cấp dịch vụ", 55),
+                ('usage_unstable_pct', "Khách hàng sử dụng dao động thất thường", 50),
+                ('usage_decline_mild_pct', "Khách hàng giảm sử dụng nhẹ", 45),
+                ('high_spender_pct', "Khách hàng chi tiêu cao, ổn định", 40),
+                ('tier_upgrade_rate', "Khách hàng có xu hướng nâng cấp dịch vụ", 35),
+            ]
+            best_name, best_score, best_dev = None, 0, 0.25  # 0.25 = ngưỡng lệch tối thiểu để được coi là "đáng nói"
+            for key, cname, base_score in candidates:
+                d = rel_dev(key)
+                if d > best_dev and profile.get(key, 0) > 0:
+                    best_name, best_score, best_dev = cname, base_score, d
+            # Loyalty là tín hiệu 2 CHIỀU (hạng thấp hơn hẳn trung bình = giảm gắn bó, hạng cao hơn
+            # hẳn = tăng gắn bó) nên xét riêng, không dùng chung logic "lệch dương = đáng nói".
+            loyalty_dev = rel_dev('loyalty_rank_avg')
+            if loyalty_dev <= -0.4 and -loyalty_dev > best_dev:
+                best_name, best_score, best_dev = "Khách hàng giảm gắn bó, cần tái kích hoạt", 58, -loyalty_dev
+            elif loyalty_dev >= 0.4 and loyalty_dev > best_dev:
+                best_name, best_score, best_dev = "Khách hàng gắn bó, thân thiết", 42, loyalty_dev
+            if best_name:
+                name = best_name
+                priority_score = max(priority_score, best_score + (support_pct * 10))
+            elif name == "Nhóm hành vi chưa rõ":
+                # Không tín hiệu nào lệch đáng kể khỏi trung bình quần thể — đây là hành vi TRUNG
+                # BÌNH thật sự (đã kiểm tra, không phải thiếu dữ liệu), nên đặt tên trung tính thay
+                # vì tên gợi ý lỗi phân tích.
+                name = "Khách hàng ổn định"
 
     return {{
         "persona_type": persona_type,
@@ -182,8 +230,17 @@ def compute_profile_attributes(df, cluster_col='cluster'):
         'status_worsening': get_column(cols, ['status_worsening']),
         'loyalty_rank':   get_column(cols, ['loyalty_rank']),
         'csat':           get_column(cols, ['total_csat', 'csat']),
-        'ces':            get_column(cols, ['ces', 'customer_effort']),
+        # KHÔNG dùng get_column(['ces', ...]) ở đây — 'ces' khớp NHẦM vào cột 'services' (chứa
+        # chuỗi con "ces": ser-vi-CES) do get_column so khớp SUBSTRING, khiến CES bị gán vào cột
+        # text dịch vụ rồi ép về 0.0 SAI (đã xảy ra trên báo cáo thật: mọi persona đều hiện "CES
+        # trung bình: 0.0"). Yêu cầu khớp CHÍNH XÁC tên cột hoặc có ranh giới từ (_ces/ces_).
+        'ces': next((c for c in cols if str(c).lower() == 'ces' or str(c).lower().endswith('_ces')
+                     or str(c).lower().startswith('ces_') or 'customer_effort' in str(c).lower()), None),
         'package_type':   get_column(cols, ['goi_cuoc', 'package_type', 'skd_bill_localtype']),
+        # Cột dịch vụ đang dùng (vd 'Net Only', 'Net Pay Cam') KHÔNG dùng để train KMeans (là biến
+        # định danh, không phải hành vi số) nhưng vẫn PHẢI đưa vào nhận xét cuối cùng — đây là loại
+        # thông tin "mô tả thêm" giống hệt package_type, chỉ khác tên cột theo từng dataset.
+        'services':       get_column(cols, ['services', 'dich_vu']),
     }}
     profiles = {{}}
     for cid, grp in df.groupby(cluster_col):
@@ -215,8 +272,25 @@ def compute_profile_attributes(df, cluster_col='cluster'):
         if col_map['package_type']:
             vc = grp[col_map['package_type']].astype(str).value_counts(normalize=True)
             p['package_composition'] = vc.round(4).to_dict()
+        if col_map['services']:
+            vc_svc = grp[col_map['services']].astype(str).value_counts(normalize=True)
+            p['service_composition'] = vc_svc.round(4).to_dict()
         profiles[cid] = p
     return profiles
+
+def compute_profile_global_means(profile_attributes, cluster_sizes):
+    # Trung bình CÓ TRỌNG SỐ (theo size cụm) của từng field trong profile_attributes trên TOÀN
+    # QUẦN THỂ — dùng làm baseline để tính độ lệch tương đối cho apply_business_rules (mục 5),
+    # thay vì so sánh với ngưỡng tuyệt đối cố định không phù hợp với mọi dataset.
+    total = sum(cluster_sizes.values()) or 1
+    keys = set()
+    for p in profile_attributes.values():
+        keys.update(k for k, v in p.items() if isinstance(v, (int, float)))
+    out = {{}}
+    for k in keys:
+        s = sum(profile_attributes.get(cid, {{}}).get(k, 0) * cluster_sizes.get(cid, 0) for cid in profile_attributes)
+        out[k] = s / total
+    return out
 
 def classify_risk_tier(meta, profile):
     severity = meta.get('severity', 'LOW')
@@ -231,19 +305,94 @@ def classify_risk_tier(meta, profile):
     if severity in ("HIGH", "MEDIUM") or risk in ("HIGH", "MEDIUM"):
         return "Nhóm rủi ro cao – cần hành động ưu tiên"
     return "Nhóm bị động – theo dõi & cảnh báo"
+
+def get_columns(cols, keyword_groups):
+    # Biến thể SỐ NHIỀU của get_column ở trên — trả về MỘT cột cho MỖI keyword group, dùng để
+    # dựng ma trận nhiều cột (Stage-2 cần nhiều chiều dữ liệu cùng lúc, không phải tra 1 cột).
+    found = []
+    for kws in keyword_groups:
+        c = get_column(cols, kws)
+        if c is not None and c not in found:
+            found.append(c)
+    return found
+
+def try_substage_cluster(data, dominant_cid, cluster_col='cluster'):
+    # Stage-2: thử phân cụm LẠI riêng phần dominant cluster bằng các cột chi tiêu/hạng phân
+    # khúc/xu hướng sử dụng/loyalty/trạng thái (KHÔNG BAO GIỜ dùng biến hành vi — biến hành vi
+    # đã dùng ở Stage-1 rồi). Trả về data GIỮ NGUYÊN nếu KHÔNG tìm thấy tín hiệu thật sự —
+    # TUYỆT ĐỐI KHÔNG ép chia nếu không có bằng chứng thống kê.
+    from sklearn.cluster import KMeans as _KMeans2
+    from sklearn.preprocessing import StandardScaler as _Scaler2
+    from sklearn.metrics import silhouette_score as _sil2
+
+    subset_mask = data[cluster_col] == dominant_cid
+    subset = data.loc[subset_mask]
+    cols = data.columns
+
+    stage2_keyword_groups = [
+        ['high_spender'], ['fee_total', 'fee_avg'], ['fee_trend'],
+        ['segment_upgrade_count'], ['segment_downgrade_count'], ['segment_trend'],
+        ['spending_decline'], ['spending_growth'],
+        ['persistent_giam_manh'], ['ever_giam_manh'], ['ever_giam_nhe'], ['cnt_dao_dong'],
+        ['status_worsening'], ['status_trend'],
+        ['loyalty_rank'], ['loyalty_status'], ['loyalty_point'], ['loyalty_coin'],
+        ['customer_type'], ['vip_type'],
+    ]
+    stage2_profile_cols = get_columns(cols, stage2_keyword_groups)
+    info = {{'attempted': False, 'n_features_found': len(stage2_profile_cols), 'reason': None}}
+
+    if len(stage2_profile_cols) < 3:
+        info['reason'] = 'insufficient_features'
+        return data, False, info
+
+    stage2_matrix = subset[stage2_profile_cols].apply(lambda c: pd.to_numeric(c, errors='coerce')).fillna(0)
+    nonzero_frac = (stage2_matrix != 0).any(axis=1).mean()
+    if nonzero_frac < 0.01 or stage2_matrix.nunique().max() <= 1:
+        info['reason'] = 'no_variance'
+        return data, False, info
+
+    info['attempted'] = True
+    scaler2 = _Scaler2()
+    X_sub = scaler2.fit_transform(stage2_matrix)
+
+    best_k2, best_sil2, best_labels2 = None, -1.0, None
+    for k2 in range(2, 5):
+        if k2 >= len(subset):
+            break
+        labels2 = _KMeans2(n_clusters=k2, random_state=42, n_init=10).fit_predict(X_sub)
+        if len(set(labels2)) < 2:
+            continue
+        sil2 = _sil2(X_sub, labels2, sample_size=min(5000, len(X_sub)), random_state=42)
+        if sil2 > best_sil2:
+            best_k2, best_sil2, best_labels2 = k2, sil2, labels2
+
+    # Ngưỡng tối thiểu GIỐNG HỆT Rule 1 của Verifier (Silhouette < 0.2 => REVISE) — không bao
+    # giờ chấp nhận 1 split Stage-2 mà Verifier sẽ đánh rớt ngay sau đó.
+    if best_labels2 is None or best_sil2 < 0.2:
+        info['reason'] = f'low_silhouette({{best_sil2:.3f}})' if best_labels2 is not None else 'no_valid_k'
+        return data, False, info
+
+    sub_sizes = pd.Series(best_labels2).value_counts(normalize=True)
+    if sub_sizes.max() > 0.8:
+        info['reason'] = 'stage2_still_dominant'
+        return data, False, info
+
+    # Đánh số lại sub-cluster SAU cluster ID lớn nhất hiện có để không trùng với các cụm khác.
+    max_existing_cid = int(data[cluster_col].max())
+    data.loc[subset_mask, cluster_col] = best_labels2 + (max_existing_cid + 1)
+    info.update(reason='success', best_k2=int(best_k2), best_silhouette2=round(float(best_sil2), 4),
+                stage2_features_used=stage2_profile_cols)
+    return data, True, info
 ```
-GỌI NGAY SAU KHI CÓ `data['cluster']` VÀ TRƯỚC VÒNG LẶP BUSINESS RULES BÊN DƯỚI:
-```python
-profile_attributes = compute_profile_attributes(data, cluster_col='cluster')
-```
-`profile_attributes` sẽ được dùng lại ở bước tính `business_metadata` (item 4) và ở bước xuất JSON cuối cùng (item 11) — KHÔNG được tính lại hàm này ở nơi khác.
+LƯU Ý: `compute_profile_attributes` CHỈ được gọi SAU KHI đã thử Stage-2 sub-clustering (xem mục 6b bên dưới) — KHÔNG gọi ngay sau khi vừa có `data['cluster']` từ Stage-1, nếu không các sub-cluster mới tách ra sẽ có `profile_attributes` giống hệt cụm gốc (mất hết ý nghĩa của Stage-2).
 
 SAU KHI TÍNH cluster_stats, GỌI HÀM NHƯ SAU (BẮT BUỘC, KHÔNG THAY ĐỔI):
+profile_global_means = compute_profile_global_means(profile_attributes, cluster_sizes)
 business_metadata = {{}}
 base_names = {{}}
 for cid, row in cluster_stats.iterrows():
     sp = persona_metrics.loc[cid, 'cluster_pct'] if 'cluster_pct' in persona_metrics.columns else (cluster_sizes[cid] / len(data))
-    meta = apply_business_rules(row.to_dict(), sp, profile_attributes.get(cid, {{}}))
+    meta = apply_business_rules(row.to_dict(), sp, profile_attributes.get(cid, {{}}), profile_global_means)
     business_metadata[cid] = meta
     base_names[cid] = meta['persona_name']
 
@@ -259,11 +408,17 @@ for cid, name in base_names.items():
     else:
         final_names[cid] = name
 NẾU CÓ 2 CỤM CÙNG RULE → Hàm trên đã tự động thêm số thứ tự. TUYỆT ĐỐI KHÔNG tự sửa tên.
-5. DATA QUALITY & DOMINANT CLUSTER GATE: Trước khi train KMeans, kiểm tra n_features < 3 hoặc >99% values = 0. Sau khi train KMeans với Best K, nếu có BẤT KỲ cluster nào chiếm > 80% (support_pct > 0.8), thì clustering thất bại do không tách được hành vi. BẮT BUỘC DỪNG SCRIPT VÀ XUẤT JSON SAU ĐÓ GỌI `sys.exit(0)`:
-`print("[JSON_START_PERSONA]")`
-`print(json.dumps([{{"cluster_id": 0, "persona_name": "Clustering Failed", "support": len(data), "support_pct": 1.0, "arpu": 0, "churn_rate": 1.0, "confidence": "LOW", "sample_persona_text": "Dataset không đủ variance để tạo persona đáng tin cậy. Nguyên nhân: >80% khách hàng thuộc cùng 1 hành vi. Khuyến nghị: Thử segmentation theo branch/region hoặc anomaly detection."}}]))`
-`print("[JSON_END_PERSONA]")`
-`sys.exit(0)`
+5. DATA QUALITY GATE (TRƯỚC KHI TRAIN KMEANS): Trước khi train KMeans, BẮT BUỘC dùng ĐÚNG đoạn code sau để kiểm tra chất lượng dữ liệu — TUYỆT ĐỐI KHÔNG tự viết logic khác hay tự diễn giải "quá nhiều giá trị 0" theo cách riêng (LỖI ĐÃ TỪNG XẢY RA: tự chế ra kiểm tra "CÓ BẤT KỲ CỘT NÀO >99% zero" rồi dừng script — SAI, vì dữ liệu hành vi kiểu telecom luôn có nhiều cột thưa (sparse) 90-99% zero một cách BÌNH THƯỜNG, chỉ 1-2 cột thưa không có nghĩa là dataset vô dụng). Điều kiện dừng CHỈ được tính trên TOÀN BỘ ma trận đã chọn (aggregate), KHÔNG tính theo từng cột riêng lẻ:
+```python
+zero_frac_overall = (data[behavioral_features] == 0).values.mean()
+if len(behavioral_features) < 3 or zero_frac_overall > 0.99:
+    print("[JSON_START_PERSONA]")
+    print(json.dumps([{{"cluster_id": 0, "persona_name": "Clustering Failed", "support": len(data), "support_pct": 1.0, "arpu": 0, "churn_rate": 1.0, "confidence": "LOW", "sample_persona_text": "Dataset không đủ variance để tạo persona đáng tin cậy (không đủ features hành vi hoặc >99% toàn bộ ma trận là giá trị 0). Khuyến nghị: Thử segmentation theo branch/region hoặc anomaly detection."}}]))
+    print("[JSON_END_PERSONA]")
+    sys.exit(0)
+```
+Việc một vài cột riêng lẻ (ví dụ `no_fee_all_period`, `old_complaint`) có >99% zero là BÌNH THƯỜNG và KHÔNG được dùng làm lý do dừng script — chỉ `zero_frac_overall` (tính trên TOÀN BỘ ma trận `behavioral_features`) mới là điều kiện hợp lệ. Nếu muốn in báo cáo zero-inflation theo từng cột để debug, CỨ IN nhưng TUYỆT ĐỐI KHÔNG dùng kết quả đó để gọi `sys.exit(0)`.
+(Đây là gate KHÁC với DOMINANT CLUSTER HARD-STOP ở mục 6b bên dưới — gate này chạy TRƯỚC khi có `data['cluster']`, còn mục 6b chạy SAU khi đã thử Stage-2 sub-clustering.)
 6. OPTIMAL K & CONFIDENCE & SEGMENTATION QUALITY: Thử K từ 3 đến 6. Chọn Best K có Silhouette lớn nhất. BẮT BUỘC DÙNG `silhouette_score(X, labels, sample_size=5000, random_state=42)`.
 BẠN BẮT BUỘC THÊM ĐOẠN CODE NÀY ĐỂ XÁC ĐỊNH CHẤT LƯỢNG PHÂN CỤM. LƯU Ý QUAN TRỌNG (LỖI NÀY ĐÃ XẢY RA NHIỀU LẦN — ĐỌC KỸ): `cluster_sizes` PHẢI được tạo bằng ĐÚNG dòng sau (BẮT BUỘC dùng `.to_dict()` để nó luôn là dict thuần). TUYỆT ĐỐI CẤM gọi `cluster_sizes.values()` (dấu ngoặc đơn) ở BẤT KỲ ĐÂU trong code — nếu `cluster_sizes` lỡ là pandas Series (không phải dict) thì `.values` là ATTRIBUTE (không có dấu ngoặc), gọi `.values()` như một HÀM sẽ ném lỗi `TypeError: 'numpy.ndarray' object is not callable`. Vì vậy DÒNG `dominant_cluster_pct` BẮT BUỘC PHẢI TÍNH TRỰC TIẾP TỪ `data['cluster']` NHƯ SAU (KHÔNG được viết `max(list(cluster_sizes.values()))` hay bất kỳ biến thể nào dùng `.values()`):
 ```python
@@ -277,6 +432,31 @@ elif silhouette_score_val < 0.15:
 else:
     segmentation_quality = "NORMAL"
 ```
+6b. STAGE-2 SUB-CLUSTERING CHO CỤM DOMINANT (BẮT BUỘC KIỂM TRA, KHÔNG ĐƯỢC BỎ QUA): Ngay sau khi có `dominant_cluster_pct` ở trên, NẾU `dominant_cluster_pct > 0.5`, BẮT BUỘC thử tách cụm dominant đó bằng đoạn code sau (hàm `try_substage_cluster` đã định nghĩa ở mục 4b):
+```python
+stage2_triggered, stage2_info = False, {{}}
+if dominant_cluster_pct > 0.5:
+    dominant_cid_val = int(data['cluster'].value_counts(normalize=True).idxmax())
+    data, stage2_triggered, stage2_info = try_substage_cluster(data, dominant_cid_val, cluster_col='cluster')
+    print(f"[STAGE-2] Triggered on cluster {{dominant_cid_val}} ({{dominant_cluster_pct*100:.1f}}% of data). Result: {{stage2_info}}")
+    if stage2_triggered:
+        cluster_sizes = data['cluster'].value_counts().sort_index().to_dict()
+        dominant_cluster_pct = data['cluster'].value_counts(normalize=True).max()
+```
+LƯU Ý QUAN TRỌNG: đây là MỘT LẦN PHÂN CỤM PHỤ trên các cột spend/tier/loyalty của RIÊNG cụm dominant, KHÔNG PHẢI là tăng K của KMeans chính. TUYỆT ĐỐI CẤM dùng các cụm từ như "thử k từ 4", "thử k từ 5", "tăng k", "increase k" khi mô tả bước này trong code hoặc print statement — nếu không sẽ bị Verifier Gate 7 đánh REVISE. Nếu `stage2_triggered == False` (không tìm được tín hiệu), `data['cluster']` GIỮ NGUYÊN, không có gì thay đổi so với hành vi hiện tại.
+
+CHỈ SAU KHI HOÀN TẤT BƯỚC STAGE-2 Ở TRÊN, mới được gọi (đây là điểm gọi DUY NHẤT của hàm này, không tính lại `profile_attributes` ở nơi khác):
+```python
+profile_attributes = compute_profile_attributes(data, cluster_col='cluster')
+```
+`profile_attributes` sẽ được dùng lại ở bước tính `business_metadata` (item 4) và ở bước xuất JSON cuối cùng (item 11). QUAN TRỌNG: bất kỳ đoạn code nào dựng danh sách `personas`/`persona_metrics` ban đầu (từ `cluster_sizes` hoặc `data['cluster'].unique()`) PHẢI VIẾT SAU đoạn Stage-2 này, để nó liệt kê đúng các cluster ID SAU KHI tách (không dùng danh sách cụm cũ trước khi tách).
+
+DOMINANT CLUSTER HARD-STOP (CHỈ ÁP DỤNG SAU KHI ĐÃ THỬ STAGE-2 Ở TRÊN): nếu sau bước Stage-2, `dominant_cluster_pct` (đã tính lại) VẪN > 0.8 VÀ `stage2_triggered == False`, thì coi như clustering thất bại thật sự do không tách được hành vi. BẮT BUỘC DỪNG SCRIPT VÀ XUẤT JSON SAU ĐÓ GỌI `sys.exit(0)`:
+`print("[JSON_START_PERSONA]")`
+`print(json.dumps([{{"cluster_id": 0, "persona_name": "Clustering Failed", "support": len(data), "support_pct": 1.0, "arpu": 0, "churn_rate": 1.0, "confidence": "LOW", "sample_persona_text": "Dataset không đủ variance để tạo persona đáng tin cậy. Nguyên nhân: >80% khách hàng thuộc cùng 1 hành vi, và Stage-2 cũng không tìm được cấu trúc phụ. Khuyến nghị: Thử segmentation theo branch/region hoặc anomaly detection."}}]))`
+`print("[JSON_END_PERSONA]")`
+`sys.exit(0)`
+NẾU `stage2_triggered == True`, TUYỆT ĐỐI KHÔNG dừng script dù `dominant_cluster_pct` ban đầu từng > 0.8 — Stage-2 đã bổ sung persona phân hoá rồi.
 ANOMALY GATE (BẮT BUỘC): Sau khi train KMeans, BẮT BUỘC kiểm tra từng cluster - nếu support_pct < 0.01 (tức <1% tổng dữ liệu), gán `"is_anomaly": True` và `"persona_name": "Hành vi bất thường"` cho cluster đó trong JSON output. Cluster anomaly vẫn ĐƯA VÀO JSON (để hiển thị trong Investigation Priority ở Tab 2) nhưng KHÔNG đưa vào main persona ranking. KHÔNG bao giờ đặt tên persona bình thường cho 1 cluster chỉ có vài chục khách hàng.
 7. PERSONA TEXT GENERATION (ANTI-NAN BUG): Bạn PHẢI tạo cột `persona_text` bằng tiếng Việt dựa vào các chỉ số trung bình. TRƯỚC KHI TẠO TEXT, BẮT BUỘC phải `fillna(0)` toàn bộ dataframe. BẠN PHẢI THÊM LỆNH `assert "nan" not in str(data['persona_text'].iloc[0]), "Bug: Text contains nan!"`.
 8. MEMORY LIMIT & SAMPLING: KHÔNG ĐƯỢC lấy mẫu (sample) làm giảm số lượng dữ liệu gốc. K-Means phải được fit và predict trên TOÀN BỘ dữ liệu! BẮT BUỘC truyền `sample_size=5000` vào hàm `silhouette_score`.
@@ -333,7 +513,8 @@ elif has_fee and not has_arpu:
 else:
     dataset_mode = "ACTIVE"
 
-def generate_actions(dataset_mode, persona_name, severity, risk):
+def generate_actions(dataset_mode, persona_name, severity, risk, profile=None):
+    profile = profile or {{}}
     actions = []
     if dataset_mode == "POST_CHURN":
         actions.extend(["Thực hiện khảo sát nguyên nhân rời mạng (Exit Survey)", "Kiểm tra lịch sử tương tác trước khi rời mạng (Root Cause Investigation)", "Chạy chiến dịch Win-back Campaign nếu khách hàng tiềm năng"])
@@ -344,6 +525,19 @@ def generate_actions(dataset_mode, persona_name, severity, risk):
             actions.append("Kiểm tra chất lượng mạng, tuyến cáp quang, đo suy hao")
         if "im lặng" in persona_name.lower() or "tương tác nhẹ" in persona_name.lower():
             actions.extend(["Thu thập thêm App usage logs, Data usage patterns", "Khảo sát mức độ hài lòng qua Zalo/SMS"])
+        # Behavioral signals (call/complaint) are often zero-inflated and identical across
+        # personas — fall back to profile_attributes (spend/tier/usage-trend/loyalty) so
+        # personas still get differentiated, evidence-backed actions instead of every LOW/LOW
+        # persona collapsing onto the same one generic fallback action. Ordered by urgency to
+        # match the naming priority in apply_business_rules's composite overrides above.
+        if profile.get('tier_downgrade_rate', 0) >= 0.3:
+            actions.append("Chủ động liên hệ trước nguy cơ hạ cấp dịch vụ")
+        if profile.get('usage_unstable_pct', 0) >= 0.4:
+            actions.append("Phân tích nguyên nhân sử dụng dao động")
+        if profile.get('usage_decline_strong_pct', 0) >= 0.3 or profile.get('usage_decline_mild_pct', 0) >= 0.3:
+            actions.append("Tư vấn đổi gói cước phù hợp hành vi sử dụng")
+        if profile.get('tier_upgrade_rate', 0) >= 0.3:
+            actions.append("Khảo sát cơ hội upsell/cross-sell dịch vụ")
         if not actions:
             actions.append("Thu thập thêm dữ liệu hành vi (Ticket logs, Call Center logs)")
     return actions
@@ -373,7 +567,7 @@ for p in personas:
         
     # Gắn Action và Segmentation Quality vào JSON
     p['segmentation_quality'] = segmentation_quality
-    p['recommended_actions'] = generate_actions(dataset_mode, p['persona_name'], p['severity'], p['risk'])
+    p['recommended_actions'] = generate_actions(dataset_mode, p['persona_name'], p['severity'], p['risk'], p['profile_attributes'])
     # Evidence: chỉ lấy features khác biệt >=20% so với global mean (evidence-first)
     evidence = {{}}
     for feat, val in means.items():
@@ -570,13 +764,12 @@ The Verifier Agent has analyzed your code output and found these critical issues
 
 {feedback}
 
-You MUST rewrite the COMPLETE Python script to fix ALL issues above.
-Do NOT just add print statements for logs — actually implement the missing analysis logic.
+CRITICAL — INCREMENTAL FIX, NOT A REDESIGN: The code you wrote in your PREVIOUS message (right above, still in this conversation) already ran in a live, STATEFUL Jupyter kernel — every variable it assigned (data, cluster labels, scaler, model, profile_attributes, personas, etc.) is still in memory right now. To save space, do NOT re-paste the parts of that script that are unaffected by the feedback (imports, data loading, clustering, unrelated business-rule branches). Instead write a SHORT, SELF-CONTAINED new code cell that: (1) reuses the existing in-memory variables directly (no need to redeclare or reload them), (2) applies only the specific change(s) needed to resolve the feedback above (e.g. add a missing metric, fix a mislabeled field, correct a business-rule threshold), and (3) still ends with the exact JSON print block below — this cell must run standalone and produce that output, since only ITS output is captured. Do NOT rename existing variables. Only output the FULL script from scratch if the feedback says the entire approach (e.g. the clustering method itself) is wrong — in that case, and only that case, rewrite everything.
 CRITICAL REMINDER: If your task is Clustering/Persona, your repaired code MUST STILL include the exact print statements at the very end:
 print("[JSON_START_PERSONA]")
 print(json.dumps(personas))
 print("[JSON_END_PERSONA]")
-The rewritten code must be wrapped in ```python``` blocks."""
+The repaired code must be wrapped in ```python``` blocks."""
 
 # RECOMMEND_PROMPT = "You should give suggestions for next step based on the chat history. You should list at least 3 points with format like:\n Next, you can:\n[1]Standardize the data in the next step.\n[2]Do outlier detection for the data.\n[3]Train a neural network model."
 
@@ -593,21 +786,18 @@ Please analyze the error and provide at least 2 to 3 different hypotheses/method
 Proposed Modification Methods (Multiple Directions):
 """
 
-CODE_FIX = """You should attempt to fix the bugs in the bellow code based on the provided error information and the method for modification. Please make sure to carefully check every potentially problematic area and make appropriate adjustments and corrections.
-If the error is due to missing packages, you can install packages in the environment by “!pip install package_name”.
+CODE_FIX = """Your PREVIOUS code (right above, still in this conversation) failed during execution.
 
-- bug code:
-{bug_code}
-
-When executing above code, errors occurred: {error_message}.
-Please check and fix the code based on the modification method.
+When executing that code, errors occurred: {error_message}.
 
 - modification method:
 {fix_method}
 
-CRITICAL — INCREMENTAL FIX, NOT A REDESIGN: The kernel executing this code is a live, STATEFUL Jupyter session — any variable that was already successfully assigned by the code above (everything executed BEFORE the line that raised the error) is still in memory right now. Treat `- bug code` as your starting point: copy it AS-IS and change ONLY the specific lines needed to resolve `{error_message}`. Do NOT rename variables, do NOT restructure the pipeline, do NOT rewrite or remove business-rules/profiling/JSON-output logic that has nothing to do with this error. The one exception: if the error happened before any variable in the code was ever assigned (e.g. failure on the very first line, or `load_dataset()` itself), then a fuller rewrite from the start is fine.
+CRITICAL — INCREMENTAL FIX, NOT A REDESIGN: The kernel executing this code is a live, STATEFUL Jupyter session — any variable that was already successfully assigned by the code above (everything executed BEFORE the line that raised the error) is still in memory right now. Do NOT re-paste or rewrite your entire previous script — it is already in the conversation above and re-sending it wastes context and invites you to redo work that already succeeded. Instead, using the error trace above, identify the exact line/statement that failed, then write a SHORT, SELF-CONTAINED new code cell that: (1) reuses already-assigned in-memory variables directly (do not redeclare or recompute anything that ran successfully before the failing line), and (2) fixes ONLY the specific statement(s) needed to resolve `{error_message}`, continuing the pipeline from there through to the final JSON output. Do NOT rename existing variables, do NOT restructure the pipeline, do NOT rewrite business-rules/profiling/JSON-output logic that has nothing to do with this error. The one exception: if the error happened before ANY variable was ever assigned (e.g. failure on the very first line, or `load_dataset()` itself), a full script from scratch is fine — that's the only case where nothing useful is in memory yet.
 
-The code you modified (should be wrapped in ```python```):
+DO NOT GUESS WHICH FUNCTIONS ARE ALREADY DEFINED — THIS HAS CAUSED REPEATED WASTED ATTEMPTS: helper functions like `get_metric`, `apply_business_rules`, `get_column`, `get_columns`, `compute_profile_attributes`, `compute_profile_global_means`, `classify_risk_tier`, `try_substage_cluster` are cheap and 100% SAFE to redefine (pure function defs, no side effects) — redefining one that already exists costs a few lines and does nothing harmful. Guessing that one is ALREADY in memory when it never actually ran is what causes a `NameError` on the NEXT attempt, wasting one of your limited retries on a wrong guess instead of an actual fix. Therefore: at the top of every fix cell, ALWAYS re-paste the full definitions of every helper function your fix cell calls — never assume a function survived from before unless the error trace explicitly proves a call to it already succeeded earlier in this same run. If a fix attempt itself raises `NameError: name 'X' is not defined` for a function you assumed was already defined, that is proof the ORIGINAL failure happened BEFORE `X` was ever defined — do not keep guessing narrower patches; redefine ALL helper functions this pipeline needs (they are cheap) and recompute from the earliest point that is actually safe, rather than burning another attempt on the same wrong assumption.
+
+The fixed code (should be wrapped in ```python```):
 
 """
 

@@ -98,9 +98,11 @@ class TriadicAgent:
     def add_programmer_msg(self, message: dict):
         self.programmer.messages.append(message)
 
-    def add_programmer_repair_msg(self, bug_code: str, error_msg: str, fix_method: str, role="user"):
+    def add_programmer_repair_msg(self, error_msg: str, fix_method: str, role="user"):
+        # Not re-pasting the previous code here — it's already in self.programmer.messages from the
+        # prior turn, and the model's real context window is only 30000 tokens total.
         message = {"role": role,
-                   "content": CODE_FIX.format(bug_code=bug_code, error_message=error_msg, fix_method=fix_method)}
+                   "content": CODE_FIX.format(error_message=error_msg, fix_method=fix_method)}
         self.programmer.messages.append(message)
 
     # add_inspector_msg REMOVED — replaced by SemanticVerifier.verify_syntax()
@@ -254,6 +256,46 @@ class TriadicAgent:
                         
                         step += 1
                         continue
+
+                    if "```python" in prog_response:
+                        # Code block was opened but never closed — the response was cut off by the
+                        # output token limit mid-script, not an intentional non-code reply. Ask the
+                        # Agent to continue from where it stopped instead of silently giving up
+                        # (the truncated code is already in self.programmer.messages, so it has
+                        # full context of what it already wrote).
+                        chat_history_display[-1]["content"] += (
+                            '\n\n⚠️ **Code bị cắt giữa chừng do giới hạn token.** Đang yêu cầu Agent viết tiếp phần còn thiếu (không viết lại từ đầu)...\n'
+                        )
+                        yield chat_history_display
+
+                        self.add_programmer_msg({
+                            "role": "user",
+                            "content": (
+                                "Your previous message was CUT OFF by the output token limit — it does not end "
+                                "with a closing ``` fence and the script is incomplete. Continue writing the "
+                                "Python code EXACTLY from where it stopped. Do NOT repeat any code you already "
+                                "wrote, do NOT restart or rewrite the script from the beginning — output ONLY the "
+                                "remaining lines needed to finish it. It must still end with the exact "
+                                "print(\"[JSON_START_PERSONA]\") / print(json.dumps(personas)) / "
+                                "print(\"[JSON_END_PERSONA]\") block if this is a clustering/persona task, and "
+                                "the combined previous+continuation script must be valid Python wrapped so it "
+                                "ends with a closing ``` fence."
+                            )
+                        })
+                        cont_response = ''
+                        for message in self.programmer._call_chat_model_streaming(retrieval=self.retrieval, kernel=self.kernel):
+                            cont_response += message
+                            chat_history_display[-1]["content"] += message
+                            yield chat_history_display
+                        self.add_programmer_msg({"role": "assistant", "content": cont_response})
+
+                        cont_stripped = re.sub(r'^\s*```python\n?', '', cont_response.strip())
+                        prog_response = prog_response + "\n" + cont_stripped
+                        step += 1
+                        continue
+
+                    chat_history_display[-1]["content"] += '\n\n⭕ Agent không trả về code Python hợp lệ. Dừng workflow.\n'
+                    yield chat_history_display
                     break
 
                 chat_history_display[-1]["content"] += '\n🖥️ Execute code...'
@@ -281,7 +323,7 @@ class TriadicAgent:
                             chat_history_display[-1]["content"] += f'\n🕵️ **Inspector Hypotheses:**\n> ' + insp_response.replace('\n', '\n> ') + '\n\n'
                             yield chat_history_display
 
-                        self.add_programmer_repair_msg(code, msg_llm, insp_response)
+                        self.add_programmer_repair_msg(msg_llm, insp_response)
                         prog_response = ''
                         code_started = False
                         for message in self.programmer._call_chat_model_streaming():
@@ -410,7 +452,10 @@ class TriadicAgent:
 
                 yield chat_history_display
 
-                # Send fix instruction to Programmer
+                # Send fix instruction to Programmer. Deliberately NOT re-pasting the previous code
+                # here (it's already in self.programmer.messages from the prior turn) — the model's
+                # real context window is only 30000 tokens total, so duplicating a large script into
+                # every retry prompt risks a ContextWindowExceededError on later retries.
                 fix_prompt = SEMANTIC_FIX.format(feedback=feedback)
                 self.add_programmer_msg({"role": "user", "content": fix_prompt})
 
@@ -450,6 +495,7 @@ class TriadicAgent:
 
                 if sign and 'error' not in sign:
                     msg_llm = msg_llm_new
+                    last_code = new_code
                     chat_history_display[-1]["content"] += display_exe_results(exe_res_new)
                     yield chat_history_display
                     # Re-verify semantics

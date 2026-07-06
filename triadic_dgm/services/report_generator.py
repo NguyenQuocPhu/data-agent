@@ -50,6 +50,34 @@ ROADMAP_METADATA = {
         "investigation": "Pull OSS Log, Check Fiber Loss, Review Alarm",
         "owner": "NOC Team",
         "timeline": "14 days"
+    },
+    "Tư vấn đổi gói cước phù hợp hành vi sử dụng": {
+        "objective": "Giữ chân qua điều chỉnh gói cước phù hợp nhu cầu thực tế",
+        "kpi": "Usage Recovery Rate, Churn Rate",
+        "investigation": "Review Usage Pattern, Compare Package Fit",
+        "owner": "Product Team",
+        "timeline": "21 days"
+    },
+    "Khảo sát cơ hội upsell/cross-sell dịch vụ": {
+        "objective": "Tăng doanh thu từ nhóm có xu hướng nâng cấp",
+        "kpi": "Upsell Conversion Rate, ARPU Uplift",
+        "investigation": "Review Upgrade History, Segment by Package Tier",
+        "owner": "Sales/CRM Team",
+        "timeline": "14 days"
+    },
+    "Chủ động liên hệ trước nguy cơ hạ cấp dịch vụ": {
+        "objective": "Ngăn chặn tụt hạng phân khúc / rời mạng",
+        "kpi": "Retention Rate, Downgrade Rate",
+        "investigation": "Pull Billing History, Check Tier Change Log",
+        "owner": "Retention Team",
+        "timeline": "10 days"
+    },
+    "Phân tích nguyên nhân sử dụng dao động": {
+        "objective": "Ổn định hành vi sử dụng, giảm rủi ro rời mạng do thiếu nhất quán",
+        "kpi": "Usage Stability Index, Churn Rate",
+        "investigation": "Review Usage Timeline, Segment by Package Change",
+        "owner": "Product Team",
+        "timeline": "14 days"
     }
 }
 
@@ -128,15 +156,46 @@ FEATURE_SEMANTIC_MAP = {
     "segment_downgrade_count": "Số lần tụt hạng phân khúc",
     "spending_decline": "Chi tiêu đang giảm",
     "spending_growth": "Chi tiêu đang tăng",
-    "cnt_Giam_nhe": "Số tháng sử dụng giảm nhẹ",
-    "cnt_Giam_manh": "Số tháng sử dụng giảm mạnh",
-    "cnt_Dao_dong": "Số tháng sử dụng dao động",
+    "cnt_giam_nhe": "Số tháng sử dụng giảm nhẹ",
+    "cnt_giam_manh": "Số tháng sử dụng giảm mạnh",
+    "cnt_dao_dong": "Số tháng sử dụng dao động",
+    "persistent_giam_manh": "Xu hướng giảm sử dụng mạnh kéo dài",
+    "ever_giam_manh": "Từng giảm sử dụng mạnh",
+    "ever_giam_nhe": "Từng giảm sử dụng nhẹ",
     "status_worsening": "Trạng thái thuê bao xấu đi",
     "status_trend": "Xu hướng trạng thái thuê bao",
-    "LOYALTY_RANK": "Hạng khách hàng thân thiết",
-    "LOYALTY_STATUS": "Trạng thái khách hàng thân thiết",
+    "loyalty_rank": "Hạng khách hàng thân thiết",
+    "loyalty_status": "Trạng thái khách hàng thân thiết",
     "total_csat": "Điểm hài lòng khách hàng (CSAT)",
 }
+# Lookup phải case-insensitive vì tên cột thực tế trong dataset không luôn khớp casing ở trên
+# (vd: cnt_Dao_dong vs cnt_dao_dong) — khớp sai casing từng khiến signal hiện tên cột thô ra báo cáo.
+_FEATURE_SEMANTIC_MAP_LOWER = {k.lower(): v for k, v in FEATURE_SEMANTIC_MAP.items()}
+
+# Các cột này là artifact nội bộ của pipeline (ID cụm, cờ nội bộ...), KHÔNG PHẢI business signal —
+# tuyệt đối không được lọt vào Business Signals/Evidence dù dataset nào cũng có thể vô tình include.
+EXCLUDED_TECHNICAL_FEATURES = {"cluster", "cluster_id", "is_anomaly", "persona_type", "priority_score"}
+
+# Các feature mà FEATURE_SEMANTIC_MAP đã diễn giải SẴN CÓ HƯỚNG (giảm/tăng/leo thang...) — nếu
+# vẫn nối thêm hậu tố "tăng/giảm rất mạnh" của _get_business_signal sẽ ra câu 2 hướng vô nghĩa,
+# vd "Chi tiêu đang giảm tăng rất mạnh" (đã xảy ra trên báo cáo thật). Với nhóm feature này, độ
+# lệch so với trung bình phải được diễn giải là MỨC ĐỘ PHỔ BIẾN của tín hiệu trong cụm, không phải
+# một hướng tăng/giảm thứ hai.
+_DIRECTIONAL_FLAG_FEATURES = {
+    "persistent_giam_manh", "ever_giam_manh", "ever_giam_nhe",
+    "spending_decline", "spending_growth",
+    "declining_cl", "declining_contact", "declining_complaint",
+    "escalating_cl", "escalating_complaint",
+    "status_worsening", "cl_recent_only", "complaint_recent_only",
+}
+
+# Các cặp tín hiệu đối lập không nên cùng xuất hiện trong 1 persona (gây mâu thuẫn logic trong
+# narrative, vd: "Chi tiêu đang tăng" và "Chi tiêu đang giảm" cùng lúc). Khi cả 2 đều lọt vào top
+# deviations, chỉ giữ lại tín hiệu có độ lệch (deviation) lớn hơn.
+CONFLICTING_FEATURE_PAIRS = [
+    ("spending_growth", "spending_decline"),
+    ("segment_upgrade_count", "segment_downgrade_count"),
+]
 
 # ==============================================================
 # REPORT VALIDATION HARNESS
@@ -188,6 +247,74 @@ class ReportGenerator:
                 return []
         return []
 
+    # Icon/nhãn cường độ CHỈ là cách trình bày (mapping tĩnh từ persona_name/risk/severity đã tính
+    # thật) — KHÔNG bịa nội dung, chỉ chọn biểu tượng phù hợp với tên/risk đã có sẵn trong JSON.
+    _PERSONA_ICON_RULES = [
+        (["chi tiêu cao có dấu hiệu suy giảm"], "💎📉"),
+        (["chi tiêu cao"], "💎"),
+        (["bất mãn"], "😞"),
+        (["tạm ngưng"], "⚠️"),
+        (["hạ cấp", "suy giảm mạnh", "giảm sử dụng"], "📉"),
+        (["dao động"], "🔀"),
+        (["nâng cấp"], "📈"),
+        (["giảm gắn bó"], "🔌"),
+        (["gắn bó"], "🔗"),
+        (["liên hệ cskh", "cskh nhiều"], "🎧"),
+        (["kỹ thuật"], "🛠️"),
+        (["im lặng"], "🔕"),
+        (["tương tác nhẹ"], "📵"),
+        (["bất thường"], "❗"),
+        (["ổn định"], "⚖️"),
+    ]
+
+    def _get_persona_icon(self, persona_name: str) -> str:
+        n = persona_name.lower()
+        for keywords, icon in self._PERSONA_ICON_RULES:
+            if any(k in n for k in keywords):
+                return icon
+        return "👤"
+
+    def _get_intensity_tag(self, p: dict) -> str:
+        """English risk-intensity tag derived ONLY from already-computed severity/risk/risk_tier
+        fields — never a separate judgment call, just a shorter label for the same real data."""
+        if p.get('persona_type') == 'ANOMALY':
+            return "Anomaly"
+        if p.get('severity') == 'EXTREME' or p.get('risk') == 'EXTREME':
+            return "Very High Risk"
+        tier = p.get('risk_tier', '')
+        if "giữ chân" in tier:
+            return "Priority Retention"
+        if p.get('severity') == 'HIGH' or p.get('risk') == 'HIGH':
+            return "High Risk"
+        if "bị động" in tier:
+            return "Passive"
+        if p.get('severity') == 'MEDIUM' or p.get('risk') == 'MEDIUM':
+            return "Medium"
+        return "Stable"
+
+    def _get_evidence_bullets(self, p: dict, global_means: dict, top_n: int = 3) -> list:
+        """Real evidence bullets only — top_n strongest feature deviations (already computed by
+        _top_signals) plus the dominant service usage if present. Never fabricated commentary."""
+        means = self._get_means(p)
+        bullets = []
+        if means:
+            for f, val, g_val, _ in self._top_signals(means, global_means, top_n=top_n):
+                bullets.append(self._get_business_signal(f, val, g_val))
+        profile = p.get('profile_attributes') or {}
+        svc_comp = profile.get('service_composition')
+        if svc_comp:
+            top_svc, top_pct = max(svc_comp.items(), key=lambda kv: kv[1])
+            bullets.append(f"Đa số là KH dùng dịch vụ {top_svc} ({top_pct * 100:.1f}%)")
+        return bullets if bullets else ["Không có tín hiệu nổi bật so với trung bình"]
+
+    def _format_composition(self, comp: dict, top_n: int = 3) -> str:
+        """Renders a {category: fraction} breakdown (vd package/service composition) as a
+        readable 'A (45.2%), B (30.1%)' string instead of a raw Python dict repr."""
+        if not comp:
+            return "N/A"
+        top_items = sorted(comp.items(), key=lambda kv: kv[1], reverse=True)[:top_n]
+        return ", ".join(f"{k} ({v * 100:.1f}%)" for k, v in top_items)
+
     def clean_persona_name(self, raw_name: str) -> str:
         name = raw_name
         if " - Cluster " in name:
@@ -205,7 +332,7 @@ class ReportGenerator:
 
     def _get_business_signal(self, feature: str, val: float, global_mean: float) -> str:
         """SEMANTIC LAYER: Converts feature and data into natural business signals."""
-        base_name = FEATURE_SEMANTIC_MAP.get(feature, feature)
+        base_name = _FEATURE_SEMANTIC_MAP_LOWER.get(str(feature).lower(), feature)
         
         # Handle the magic 999
         if val in [999, 999.0, 888, 888.0, 500.0, 500.95, 887, 886.77, 898.38, 898.34]:
@@ -223,7 +350,21 @@ class ReportGenerator:
             
         # Delta comparison
         delta_pct = ((val - global_mean) / abs(global_mean)) * 100 if global_mean != 0 else val * 100
-        
+
+        if str(feature).lower() in _DIRECTIONAL_FLAG_FEATURES:
+            # base_name đã tự mang hướng (vd "Chi tiêu đang giảm") — độ lệch ở đây nói về MỨC ĐỘ
+            # PHỔ BIẾN của tín hiệu đó trong cụm này so với toàn quần thể, không phải hướng thứ 2.
+            if delta_pct > 100:
+                return f"{base_name} — phổ biến hơn hẳn trong nhóm này"
+            elif delta_pct > 0:
+                return f"{base_name} — phổ biến hơn trung bình"
+            elif delta_pct < -100:
+                return f"{base_name} — hiếm gặp trong nhóm này"
+            elif delta_pct < 0:
+                return f"{base_name} — ít phổ biến hơn trung bình"
+            else:
+                return f"{base_name} — ở mức trung bình"
+
         if delta_pct > 100:
             return f"{base_name} tăng rất mạnh"
         elif delta_pct > 0:
@@ -236,7 +377,31 @@ class ReportGenerator:
             return f"{base_name} ổn định"
 
     def _get_means(self, p: dict) -> dict:
-        return p.get('feature_means', p.get('evidence', {}))
+        means = p.get('feature_means', p.get('evidence', {}))
+        return {f: v for f, v in means.items() if str(f).lower() not in EXCLUDED_TECHNICAL_FEATURES}
+
+    def _ranked_deviations(self, means: dict, global_means: dict) -> list:
+        deviations = []
+        for f, val in means.items():
+            g_val = global_means.get(f, 0)
+            dev = abs(val - g_val) / abs(g_val) if g_val != 0 else abs(val) * 100
+            deviations.append((f, val, g_val, dev))
+        deviations.sort(key=lambda x: x[3], reverse=True)
+        return deviations
+
+    def _resolve_conflicts(self, deviations: list) -> list:
+        """Drop the weaker signal of any known-opposite pair (e.g. spending_growth vs
+        spending_decline) so a persona's narrative never asserts contradictory trends."""
+        feature_names = [d[0] for d in deviations]
+        dropped = set()
+        for a, b in CONFLICTING_FEATURE_PAIRS:
+            if a in feature_names and b in feature_names:
+                idx_a, idx_b = feature_names.index(a), feature_names.index(b)
+                dropped.add(a if deviations[idx_a][3] < deviations[idx_b][3] else b)
+        return [d for d in deviations if d[0] not in dropped]
+
+    def _top_signals(self, means: dict, global_means: dict, top_n: int = 3) -> list:
+        return self._resolve_conflicts(self._ranked_deviations(means, global_means))[:top_n]
 
     def _build_prompt(self, personas_data: list, global_means: dict) -> str:
         """Prepares a heavily sterilized JSON for the LLM"""
@@ -244,23 +409,16 @@ class ReportGenerator:
         for p in personas_data:
             c = {}
             c['persona'] = self.clean_persona_name(p.get('persona_name', ''))
-            
+
             # Translate top features into business signals
             means = self._get_means(p)
             signals = []
-            if means:
-                deviations = []
-                for f, val in means.items():
-                    g_val = global_means.get(f, 0)
-                    dev = abs(val - g_val) / abs(g_val) if g_val != 0 else abs(val) * 100
-                    deviations.append((f, val, g_val, dev))
-                
-                deviations.sort(key=lambda x: x[3], reverse=True)
-                for f, val, g_val, dev in deviations[:3]: # Send top 3 signals
-                    signals.append(self._get_business_signal(f, val, g_val))
-            
+            deviations = self._top_signals(means, global_means, top_n=3) if means else []
+            for f, val, g_val, dev in deviations:
+                signals.append(self._get_business_signal(f, val, g_val))
+
             c['business_signals'] = signals
-            c['confidence'] = "High" if len(signals) > 0 and deviations[0][3] > 1.0 else "Medium"
+            c['confidence'] = "High" if deviations and deviations[0][3] > 1.0 else "Medium"
             c['cluster_id'] = p.get('cluster_id')
             clean_data.append(c)
             
@@ -347,33 +505,26 @@ Dữ liệu Business Facts duy nhất bạn được thấy:
         md += "## 2. Methodology\n\n"
         md += "`Dataset ➔ Feature Engineering ➔ Clustering ➔ Rule Engine ➔ Semantic Layer ➔ Presentation Layer ➔ Narrative Generator (LLM) ➔ Report Composer`\n\n"
         
-        # Persona Overview
+        # Persona Overview — infographic-style card per persona: icon + tên + % + tag cường độ,
+        # theo sau là 3 bullet bằng chứng THẬT (top feature deviations + dịch vụ chiếm ưu thế).
+        # Không có bullet nào ở đây là văn bản tự bịa — mọi dòng đều trace được về JSON gốc.
         md += "## 3. Persona Overview\n\n"
-        md += "| Persona | Support | Severity | Risk | Primary Evidence |\n"
-        md += "|---|---|---|---|---|\n"
         for p in personas_data:
             p_name = self.clean_persona_name(p.get('persona_name', 'Unknown'))
+            icon = self._get_persona_icon(p_name)
+            tag = self._get_intensity_tag(p)
+            sup_pct = p.get('support_pct', 0) * 100
             sup_str = self.format_support(p.get('support', 0))
-            
-            # Simple primary evidence mapping
-            means = self._get_means(p)
-            evid_str = "N/A"
-            if means:
-                deviations = []
-                for f, val in means.items():
-                    g_val = global_means.get(f, 0)
-                    dev = abs(val - g_val) / abs(g_val) if g_val != 0 else abs(val) * 100
-                    deviations.append((f, val, g_val, dev))
-                deviations.sort(key=lambda x: x[3], reverse=True)
-                top_f = deviations[0][0]
-                top_val = deviations[0][1]
-                top_g_val = deviations[0][2]
-                evid_str = self._get_business_signal(top_f, top_val, top_g_val)
-                
-            md += f"| **{p_name}** | {sup_str} | {p.get('severity','N/A')} | {p.get('risk','N/A')} | {evid_str} |\n"
-        md += "\n"
+            bullets = self._get_evidence_bullets(p, global_means, top_n=3)
 
-        # Risk Tier Grouping (only if at least one persona has risk_tier computed)
+            md += f"### {icon} {p_name} — {sup_pct:.1f}% ({tag})\n\n"
+            md += f"*Quy mô: {sup_str} | Severity: {p.get('severity','N/A')} | Risk: {p.get('risk','N/A')}*\n\n"
+            for b in bullets:
+                md += f"- {b}\n"
+            md += "\n"
+
+        # Risk Tier Grouping (only if at least one persona has risk_tier computed) — mỗi persona
+        # kèm 1 dòng "why" lấy từ tín hiệu lệch mạnh nhất thực tế của chính nó (không suy diễn thêm).
         if any(p.get('risk_tier') for p in personas_data):
             md += "## 3b. Risk Tier Grouping\n\n"
             tier_order = [
@@ -384,11 +535,22 @@ Dữ liệu Business Facts duy nhất bạn được thấy:
             tiers = {t: [] for t in tier_order}
             for p in personas_data:
                 t = p.get('risk_tier')
-                if t in tiers:
-                    tiers[t].append(self.clean_persona_name(p.get('persona_name', '')))
-            md += "| " + " | ".join(tier_order) + " |\n"
-            md += "|" + "---|" * len(tier_order) + "\n"
-            md += "| " + " | ".join(", ".join(tiers[t]) if tiers[t] else "—" for t in tier_order) + " |\n\n"
+                if t not in tiers:
+                    continue
+                p_name = self.clean_persona_name(p.get('persona_name', ''))
+                means = self._get_means(p)
+                top = self._top_signals(means, global_means, top_n=1) if means else []
+                why = self._get_business_signal(*top[0][:3]) if top else None
+                tiers[t].append((p_name, why))
+
+            for t in tier_order:
+                md += f"**{t}**\n\n"
+                if tiers[t]:
+                    for name, why in tiers[t]:
+                        md += f"- **{name}**" + (f" — {why}\n" if why else "\n")
+                else:
+                    md += "- Không có persona nào\n"
+                md += "\n"
 
         # Persona Analysis
         md += "## 4. Persona Analysis\n\n"
@@ -406,17 +568,10 @@ Dữ liệu Business Facts duy nhất bạn được thấy:
             means = self._get_means(p)
             signals = []
             confidence = "MEDIUM"
-            if means:
-                deviations = []
-                for f, val in means.items():
-                    g_val = global_means.get(f, 0)
-                    dev = abs(val - g_val) / abs(g_val) if g_val != 0 else abs(val) * 100
-                    deviations.append((f, val, g_val, dev))
-                deviations.sort(key=lambda x: x[3], reverse=True)
-                
+            deviations = self._top_signals(means, global_means, top_n=3) if means else []
+            if deviations:
                 if deviations[0][3] > 1.0: confidence = "HIGH"
-                
-                for f, val, g_val, dev in deviations[:3]:
+                for f, val, g_val, dev in deviations:
                     signals.append(f"- {self._get_business_signal(f, val, g_val)}")
                     
             signals_text = "\n".join(signals) if signals else "- N/A"
@@ -432,6 +587,13 @@ Dữ liệu Business Facts duy nhất bạn được thấy:
             md += f"| **Recommended Direction**| {investigation} |\n\n"
             
             md += f"**Business Signals:**\n{signals_text}\n\n"
+
+            # Dịch vụ sử dụng phổ biến (vd 'Net Only', 'Net Pay Cam') KHÔNG dùng để train KMeans
+            # nhưng vẫn là thông tin nghiệp vụ quan trọng để mô tả persona — đặt nổi bật ngay dưới
+            # Business Signals, giống cách infographic tham chiếu ghi "Đa số là KH Combo Net Pay".
+            profile_for_services = p.get('profile_attributes') or {}
+            if profile_for_services.get('service_composition'):
+                md += f"**Dịch vụ sử dụng phổ biến:** {self._format_composition(profile_for_services['service_composition'])}\n\n"
 
             if n:
                 md += f"**Business Interpretation:**\n{n.business_interpretation}\n\n"
@@ -453,11 +615,14 @@ Dữ liệu Business Facts duy nhất bạn được thấy:
                     'csat_avg': 'CSAT trung bình',
                     'ces_avg': 'CES trung bình',
                     'package_composition': 'Thành phần loại gói cước',
+                    'service_composition': 'Thành phần dịch vụ sử dụng',
                 }
+                composition_keys = {'package_composition', 'service_composition'}
                 md += "**Profile Attributes:**\n"
                 for key, label in profile_labels.items():
                     if key in profile:
-                        md += f"- {label}: {profile[key]}\n"
+                        val = self._format_composition(profile[key]) if key in composition_keys else profile[key]
+                        md += f"- {label}: {val}\n"
                 md += "\n"
 
             # Retention Scripts — only for the "cần giữ chân ngay" tier or HIGH+/EXTREME severity/risk
@@ -474,26 +639,28 @@ Dữ liệu Business Facts duy nhất bạn được thấy:
             
         # Business Roadmap
         md += "## 5. Business Roadmap\n\n"
-        action_dict = {a.cluster_id: a for a in narrative.recommendations_analysis}
-        
+
         md += "| Priority | Initiative | Target Persona | Owner | Timeline | KPI | Expected Outcome |\n"
         md += "|---|---|---|---|---|---|---|\n"
-        
+
         for rank, p in enumerate(ranked_personas, start=1):
             p_name = self.clean_persona_name(p.get('persona_name', ''))
-            cid = p.get('cluster_id')
+            sup_str = self.format_support(p.get('support', 0))
+            sup_pct = p.get('support_pct', 0) * 100
             actions = p.get('recommended_actions', [])
-            n_action = action_dict.get(cid)
-            
+
             action_text = actions[0] if actions else "N/A"
             meta = ROADMAP_METADATA.get(action_text, {})
             owner = meta.get("owner", "TBD")
             timeline = meta.get("timeline", "TBD")
             kpi = meta.get("kpi", "TBD")
-            outcome = n_action.expected_outcome if n_action else "N/A"
-            
+            objective = meta.get("objective", "Cải thiện chỉ số nghiệp vụ")
+            # Deterministic, Python-computed outcome — never LLM-authored (anti-hallucination),
+            # tied to this persona's actual support size/rank instead of generic LLM prose.
+            outcome = f"{objective} cho ~{sup_str} ({sup_pct:.1f}% tổng đàn) — ưu tiên #{rank}, theo dõi qua {kpi}."
+
             md += f"| **#{rank}** | {action_text} | {p_name} | {owner} | {timeline} | {kpi} | {outcome} |\n"
-            
+
         md += "\n"
             
         # Conclusion
@@ -511,12 +678,7 @@ Dữ liệu Business Facts duy nhất bạn được thấy:
             md += "| Feature | Value | Benchmark | Dev % |\n"
             md += "|---|---|---|---|\n"
             means = self._get_means(p)
-            deviations = []
-            for f, val in means.items():
-                g_val = global_means.get(f, 0)
-                dev = abs(val - g_val) / abs(g_val) if g_val != 0 else abs(val) * 100
-                deviations.append((f, val, g_val, dev))
-            deviations.sort(key=lambda x: x[3], reverse=True)
+            deviations = self._ranked_deviations(means, global_means)
             for f, val, g_val, dev in deviations[:5]:
                 delta_pct = ((val - g_val) / abs(g_val)) * 100 if g_val != 0 else (100 if val > 0 else 0)
                 md += f"| {f} | {val:.2f} | {g_val:.2f} | {delta_pct:+.1f}% |\n"
