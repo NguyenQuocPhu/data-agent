@@ -3,7 +3,7 @@ import re
 from datetime import datetime
 import instructor
 from openai import OpenAI
-from triadic_dgm.schemas.report_schema import ReportNarrative
+from triadic_dgm.schemas.report_schema import ReportNarrative, ExecutiveSummaryNarrative
 
 # ==============================================================
 # TAXONOMY & MAPPING CATALOG (Enterprise Metadata)
@@ -16,14 +16,18 @@ ROADMAP_METADATA = {
         "owner": "Customer Care",
         "timeline": "30 days"
     },
-    "Thu thập thêm dữ liệu hành vi": {
+    # LƯU Ý: key ở đây PHẢI khớp CHÍNH XÁC (ký tự-cho-ký tự) với chuỗi mà generate_actions() trong
+    # triadic_dgm/prompts/prompts.py trả về — nếu lệch dù chỉ 1 ký tự, ROADMAP_METADATA.get() sẽ
+    # không tìm thấy và Owner/Timeline/KPI sẽ hiện "TBD" dù recommended_actions vẫn có dữ liệu thật
+    # (đã xảy ra trên báo cáo thật với 2 key bên dưới trước khi sửa).
+    "Thu thập thêm dữ liệu hành vi (Ticket logs, Call Center logs)": {
         "objective": "Khám phá nguyên nhân gốc rễ (Root Cause)",
         "kpi": "Behavior Coverage, Model Accuracy",
         "investigation": "Pull CRM History, Enrich Telemetry Data",
         "owner": "Data Team",
         "timeline": "14 days"
     },
-    "Thu thập thêm App usage logs": {
+    "Thu thập thêm App usage logs, Data usage patterns": {
         "objective": "Nắm bắt hành vi tương tác số",
         "kpi": "App Usage Coverage, Active Rate",
         "investigation": "Review App Sessions, Analyze Feature Usage",
@@ -44,11 +48,92 @@ ROADMAP_METADATA = {
         "owner": "Operations",
         "timeline": "21 days"
     },
-    "Nghiên cứu nguyên nhân kỹ thuật": {
+    "Kiểm tra chất lượng mạng, tuyến cáp quang, đo suy hao": {
         "objective": "Cải thiện chất lượng hạ tầng mạng",
         "kpi": "Network Stability, SLA Success Rate",
         "investigation": "Pull OSS Log, Check Fiber Loss, Review Alarm",
         "owner": "NOC Team",
+        "timeline": "14 days"
+    },
+    "Thực hiện khảo sát nguyên nhân rời mạng (Exit Survey)": {
+        "objective": "Hiểu nguyên nhân rời mạng thực tế",
+        "kpi": "Exit Survey Response Rate, Root Cause Coverage",
+        "investigation": "Send Exit Survey, Tag Churn Reason",
+        "owner": "CX Team",
+        "timeline": "14 days"
+    },
+    "Kiểm tra lịch sử tương tác trước khi rời mạng (Root Cause Investigation)": {
+        "objective": "Xác định điểm nghẽn trước khi khách hàng rời mạng",
+        "kpi": "Root Cause Coverage, Repeat Churn Pattern Rate",
+        "investigation": "Pull Interaction Timeline, Trace Last-Touch Events",
+        "owner": "Operations",
+        "timeline": "14 days"
+    },
+    "Chạy chiến dịch Win-back Campaign nếu khách hàng tiềm năng": {
+        "objective": "Thu hồi khách hàng có giá trị tiềm năng đã rời mạng",
+        "kpi": "Win-back Rate, Reactivation ARPU",
+        "investigation": "Score Churned Base by Prior Value, Segment Win-back List",
+        "owner": "Retention Team",
+        "timeline": "30 days"
+    },
+    # 4 action bên dưới: mỗi churn_driver (POST_CHURN) giờ có hành động RIÊNG thay vì tất cả đều
+    # là "Exit Survey" — key PHẢI khớp CHÍNH XÁC với generate_actions() trong prompts.py.
+    "Phân tích đối thủ cạnh tranh và chính sách giá": {
+        "objective": "Đánh giá rủi ro cạnh tranh về giá cho nhóm khách hàng giá trị cao",
+        "kpi": "Price Competitiveness Index, High-Value Churn Rate",
+        "investigation": "Benchmark Competitor Pricing, Review Recent Price Changes",
+        "owner": "Pricing/Strategy Team",
+        "timeline": "21 days"
+    },
+    "Khảo sát nguyên nhân rời mạng (Exit Survey) cho nhóm giá trị cao": {
+        "objective": "Hiểu nguyên nhân rời mạng của nhóm giá trị cao dù không có tín hiệu bất mãn",
+        "kpi": "Exit Survey Response Rate (High-Value), Root Cause Coverage",
+        "investigation": "Send Targeted Exit Survey, Tag Non-Service Churn Reason",
+        "owner": "CX Team",
+        "timeline": "14 days"
+    },
+    "Rút ngắn SLA xử lý khiếu nại": {
+        "objective": "Giảm thời gian tồn đọng khiếu nại trước khi khách hàng rời mạng",
+        "kpi": "Complaint SLA, Repeat Complaint Rate",
+        "investigation": "Review Complaint Aging Report, Trace Unresolved Tickets",
+        "owner": "Customer Care",
+        "timeline": "14 days"
+    },
+    "Cải thiện tỷ lệ xử lý xong trong 1 lần liên hệ (First Call Resolution)": {
+        "objective": "Giảm số lần khách hàng phải liên hệ lại cho cùng 1 vấn đề",
+        "kpi": "First Call Resolution Rate, Repeat Contact Rate",
+        "investigation": "Review Call/Missed-Call Logs, Trace Repeat Contact Reasons",
+        "owner": "Customer Care",
+        "timeline": "21 days"
+    },
+    "Theo dõi usage giảm và cảnh báo sớm (Early Warning System)": {
+        "objective": "Phát hiện sớm dấu hiệu suy giảm sử dụng trước khi khách hàng rời mạng trong im lặng",
+        "kpi": "Usage Decline Detection Rate, Early Intervention Rate",
+        "investigation": "Build Usage Trend Alert, Review Silent-Churn Cohort",
+        "owner": "Data/Product Team",
+        "timeline": "30 days"
+    },
+    # 3 action bên dưới: 2 persona MỚI từ rule engine tổ hợp domain (Silent Premium Churn, Support
+    # Failure) — key PHẢI khớp CHÍNH XÁC với generate_actions() trong prompts.py.
+    "Trigger chiến dịch retention ngay khi usage giảm 20% (Early Warning, không chờ khiếu nại)": {
+        "objective": "Giữ chân nhóm giá trị cao trước khi họ rời mạng trong im lặng (không đợi khiếu nại)",
+        "kpi": "High-Value Usage Decline Detection Rate, Retention Rate (High-Value)",
+        "investigation": "Build Usage Decline Alert (High-Value Segment), Review Threshold 20%",
+        "owner": "Retention/Data Team",
+        "timeline": "21 days"
+    },
+    "Escalate khiếu nại kỹ thuật lặp lại trong 24h": {
+        "objective": "Ngăn sự cố kỹ thuật lặp lại nhiều lần không được xử lý dứt điểm",
+        "kpi": "Repeat Technical Issue Rate, Escalation SLA (24h)",
+        "investigation": "Review Repeat Ticket Pattern, Trace Unresolved Technical Root Cause",
+        "owner": "NOC/Technical Support",
+        "timeline": "10 days"
+    },
+    "Callback tự động sau khi xử lý sự cố kỹ thuật": {
+        "objective": "Xác nhận sự cố kỹ thuật đã thực sự được giải quyết, tránh khiếu nại lặp lại",
+        "kpi": "Post-Resolution CSAT, Repeat Contact Rate",
+        "investigation": "Review Post-Fix Callback Logs, Confirm Resolution Quality",
+        "owner": "Customer Care",
         "timeline": "14 days"
     },
     "Tư vấn đổi gói cước phù hợp hành vi sử dụng": {
@@ -80,6 +165,64 @@ ROADMAP_METADATA = {
         "timeline": "14 days"
     }
 }
+
+# Fallback KEYWORD-BASED khi action_text không khớp CHÍNH XÁC bất kỳ key nào ở trên — bắt buộc vì
+# generate_actions() nằm trong code do LLM copy-paste vào pipeline, có thể drift cách viết dù chỉ
+# 1 chữ (ĐÃ XẢY RA NHIỀU LẦN trên báo cáo thật: dù đã thêm đủ metadata, Roadmap vẫn ra "TBD" vì
+# action_text thực tế không khớp byte-for-byte). Thay vì phụ thuộc hoàn toàn vào exact match (dễ vỡ
+# với BẤT KỲ thay đổi từ ngữ nào trong tương lai), dùng từ khóa để tìm metadata GẦN ĐÚNG nhất thay vì
+# rơi thẳng về "TBD".
+ROADMAP_KEYWORD_FALLBACKS = [
+    (["đối thủ", "cạnh tranh", "chính sách giá"], {
+        "objective": "Đánh giá rủi ro cạnh tranh về giá", "kpi": "Price Competitiveness Index",
+        "investigation": "Benchmark Competitor Pricing", "owner": "Pricing/Strategy Team", "timeline": "21 days"}),
+    (["escalate", "leo thang"], {
+        "objective": "Ngăn sự cố kỹ thuật lặp lại không được xử lý dứt điểm", "kpi": "Repeat Technical Issue Rate",
+        "investigation": "Review Repeat Ticket Pattern", "owner": "NOC/Technical Support", "timeline": "10 days"}),
+    (["callback"], {
+        "objective": "Xác nhận sự cố kỹ thuật đã thực sự được giải quyết", "kpi": "Post-Resolution CSAT",
+        "investigation": "Review Post-Fix Callback Logs", "owner": "Customer Care", "timeline": "14 days"}),
+    (["sla", "khiếu nại"], {
+        "objective": "Giảm thời gian tồn đọng khiếu nại", "kpi": "Complaint SLA, Repeat Complaint Rate",
+        "investigation": "Review Complaint Aging Report", "owner": "Customer Care", "timeline": "14 days"}),
+    (["cảnh báo sớm", "early warning", "trigger", "usage giảm"], {
+        "objective": "Phát hiện sớm dấu hiệu suy giảm sử dụng trước khi rời mạng trong im lặng", "kpi": "Usage Decline Detection Rate",
+        "investigation": "Build Usage Trend Alert", "owner": "Data/Product Team", "timeline": "21 days"}),
+    (["first call resolution", "1 lần liên hệ"], {
+        "objective": "Giảm số lần khách hàng phải liên hệ lại cho cùng 1 vấn đề", "kpi": "First Call Resolution Rate",
+        "investigation": "Review Call/Missed-Call Logs", "owner": "Customer Care", "timeline": "21 days"}),
+    (["win-back", "win back"], {
+        "objective": "Thu hồi khách hàng có giá trị tiềm năng đã rời mạng", "kpi": "Win-back Rate, Reactivation ARPU",
+        "investigation": "Score Churned Base by Prior Value", "owner": "Retention Team", "timeline": "30 days"}),
+    (["exit survey", "khảo sát nguyên nhân rời mạng"], {
+        "objective": "Hiểu nguyên nhân rời mạng thực tế", "kpi": "Exit Survey Response Rate",
+        "investigation": "Send Exit Survey, Tag Churn Reason", "owner": "CX Team", "timeline": "14 days"}),
+    (["gói cước", "đổi gói"], {
+        "objective": "Giữ chân qua điều chỉnh gói cước phù hợp nhu cầu thực tế", "kpi": "Usage Recovery Rate, Churn Rate",
+        "investigation": "Review Usage Pattern, Compare Package Fit", "owner": "Product Team", "timeline": "21 days"}),
+    (["upsell", "cross-sell", "cross sell"], {
+        "objective": "Tăng doanh thu từ nhóm có xu hướng nâng cấp", "kpi": "Upsell Conversion Rate, ARPU Uplift",
+        "investigation": "Review Upgrade History", "owner": "Sales/CRM Team", "timeline": "14 days"}),
+    (["hạ cấp", "downgrade"], {
+        "objective": "Ngăn chặn tụt hạng phân khúc / rời mạng", "kpi": "Retention Rate, Downgrade Rate",
+        "investigation": "Pull Billing History, Check Tier Change Log", "owner": "Retention Team", "timeline": "10 days"}),
+    (["thu thập", "dữ liệu hành vi"], {
+        "objective": "Khám phá nguyên nhân gốc rễ (Root Cause)", "kpi": "Behavior Coverage, Model Accuracy",
+        "investigation": "Pull CRM History, Enrich Telemetry Data", "owner": "Data Team", "timeline": "14 days"}),
+]
+
+
+def resolve_roadmap_metadata(action_text: str) -> dict:
+    """Exact match first; falls back to keyword matching so Roadmap never silently shows raw
+    TBD just because generate_actions()'s exact wording drifted from the ROADMAP_METADATA key."""
+    if action_text in ROADMAP_METADATA:
+        return ROADMAP_METADATA[action_text]
+    al = action_text.lower()
+    for keywords, meta in ROADMAP_KEYWORD_FALLBACKS:
+        if any(kw in al for kw in keywords):
+            return meta
+    return {}
+
 
 RETENTION_SCRIPT_CATALOG = {
     "TECHNICAL": {
@@ -129,24 +272,28 @@ def attach_recommended_scripts(persona: dict) -> list:
 FEATURE_SEMANTIC_MAP = {
     "months_since_last_call": "Tần suất liên hệ CSKH",
     "months_since_first_call": "Lịch sử liên hệ",
-    "months_since_last_cl": "Tần suất khiếu nại",
-    "cl_total_6m": "Tổng số khiếu nại",
+    # LƯU Ý: "cl" = Checklist/sự cố kỹ thuật (xem apply_business_rules trong prompts.py:
+    # get_metric(m, ['cl_total', 'cl', 'sự cố'])) — KHÔNG PHẢI "complaint" (phàn nàn/khiếu nại),
+    # đây là 2 cột khác nhau trong dataset. Trước đây map nhầm "cl_*" thành "khiếu nại" khiến báo
+    # cáo lẫn lộn 2 loại tín hiệu khác nhau (đã sửa: dùng "sự cố kỹ thuật" cho mọi cột "cl_*").
+    "months_since_last_cl": "Số tháng kể từ lần phát sinh sự cố kỹ thuật gần nhất",
+    "cl_total_6m": "Tổng số sự cố kỹ thuật (6 tháng)",
     "call_total_6m": "Tổng số cuộc gọi",
     "missed_total_6m": "Tỷ lệ cuộc gọi không thành công",
-    "cl_trend": "Xu hướng khiếu nại",
+    "cl_trend": "Xu hướng sự cố kỹ thuật",
     "call_trend": "Xu hướng liên hệ",
     "complaint_trend": "Xu hướng phàn nàn",
-    "declining_cl": "Dấu hiệu giảm khiếu nại",
+    "declining_cl": "Dấu hiệu giảm sự cố kỹ thuật",
     "declining_contact": "Dấu hiệu giảm tương tác",
     "declining_complaint": "Dấu hiệu giảm phàn nàn",
-    "escalating_cl": "Dấu hiệu khiếu nại leo thang",
+    "escalating_cl": "Dấu hiệu sự cố kỹ thuật leo thang",
     "escalating_complaint": "Dấu hiệu phàn nàn leo thang",
     "old_complaint": "Lịch sử phàn nàn cũ",
-    "cl_recent_only": "Hành vi khiếu nại mới phát sinh",
-    "no_cl_all_period": "Lịch sử khiếu nại",
+    "cl_recent_only": "Sự cố kỹ thuật mới phát sinh",
+    "no_cl_all_period": "Không phát sinh sự cố kỹ thuật trong toàn kỳ",
     "no_complaint_all_period": "Lịch sử phàn nàn",
     "call_cv": "Mức độ biến động liên hệ",
-    "cl_avg_6m": "Mật độ khiếu nại trung bình",
+    "cl_avg_6m": "Mật độ sự cố kỹ thuật trung bình",
     "fee_total": "Tổng cước phí",
     "fee_avg": "Cước phí trung bình",
     "fee_trend": "Xu hướng cước phí",
@@ -172,6 +319,53 @@ FEATURE_SEMANTIC_MAP = {
 # (vd: cnt_Dao_dong vs cnt_dao_dong) — khớp sai casing từng khiến signal hiện tên cột thô ra báo cáo.
 _FEATURE_SEMANTIC_MAP_LOWER = {k.lower(): v for k, v in FEATURE_SEMANTIC_MAP.items()}
 
+# FEATURE_SEMANTIC_MAP chỉ liệt kê từng cột riêng lẻ — dataset thực tế có ~95 cột theo 4 gốc chỉ số
+# (cl/complaint/call/missed) x nhiều biến thể tính toán (old_/recent_/_avg_6m/_std/active_*_months/...),
+# nên hardcode từng cột là KHÔNG BAO GIỜ đủ (đã xảy ra trên báo cáo thật: "old_missed", "recent_complaint",
+# "active_complaint_months"... hiện tên cột thô vì không có trong map). PATTERN-BASED FALLBACK bên dưới
+# tách tên cột thành (gốc chỉ số, biến thể tính toán) để tự động suy ra câu tiếng Việt cho MỌI cột theo
+# quy ước đặt tên này, kể cả cột chưa từng được liệt kê thủ công.
+_METRIC_ROOTS = {
+    "cl": "sự cố kỹ thuật",
+    "complaint": "phàn nàn/khiếu nại",
+    "call": "cuộc gọi CSKH",
+    "caller": "cuộc gọi CSKH",
+    "missed": "cuộc gọi nhỡ",
+}
+
+_FEATURE_PATTERN_RULES = [
+    (re.compile(r'^no_(\w+)_all_period$'), "Không phát sinh {metric} trong toàn kỳ"),
+    (re.compile(r'^active_(\w+)_months$'), "Số tháng phát sinh {metric}"),
+    (re.compile(r'^(\w+)_recent_only$'), "{metric} chỉ mới phát sinh gần đây"),
+    (re.compile(r'^(\w+)_ratio_6m$'), "Tỷ lệ {metric} (6 tháng)"),
+    (re.compile(r'^high_(\w+)_ratio$'), "Tỷ lệ {metric} cao"),
+    (re.compile(r'^(\w+)_total_6m$'), "Tổng số {metric} (6 tháng)"),
+    (re.compile(r'^(\w+)_avg_6m$'), "Trung bình {metric}/tháng (6 tháng)"),
+    (re.compile(r'^(\w+)_std$'), "Độ biến động {metric}"),
+    (re.compile(r'^(\w+)_cv$'), "Độ biến động tương đối {metric}"),
+    (re.compile(r'^(\w+)_trend$'), "Xu hướng {metric}"),
+    (re.compile(r'^old_(\w+)$'), "{metric} trong giai đoạn đầu kỳ"),
+    (re.compile(r'^recent_(\w+)$'), "{metric} gần đây"),
+    (re.compile(r'^escalating_(\w+)$'), "{metric} leo thang"),
+    (re.compile(r'^declining_(\w+)$'), "{metric} giảm dần"),
+    (re.compile(r'^frequent_(\w+)$'), "Tần suất {metric} cao"),
+    (re.compile(r'^months_since_last_(\w+)$'), "Số tháng kể từ lần {metric} gần nhất"),
+    (re.compile(r'^months_since_first_(\w+)$'), "Số tháng kể từ lần {metric} đầu tiên"),
+]
+
+
+def _pattern_semantic_name(feature_lower: str):
+    """Returns a Vietnamese phrase composed from (metric root, naming pattern), or None if the
+    column doesn't follow any known convention — caller falls back to the raw column name."""
+    for pattern, template in _FEATURE_PATTERN_RULES:
+        m = pattern.match(feature_lower)
+        if m:
+            metric = _METRIC_ROOTS.get(m.group(1))
+            if metric:
+                phrase = template.format(metric=metric)
+                return phrase[:1].upper() + phrase[1:]  # capitalize only the first char (preserve "CSKH")
+    return None
+
 # Các cột này là artifact nội bộ của pipeline (ID cụm, cờ nội bộ...), KHÔNG PHẢI business signal —
 # tuyệt đối không được lọt vào Business Signals/Evidence dù dataset nào cũng có thể vô tình include.
 EXCLUDED_TECHNICAL_FEATURES = {"cluster", "cluster_id", "is_anomaly", "persona_type", "priority_score"}
@@ -195,6 +389,48 @@ _DIRECTIONAL_FLAG_FEATURES = {
 CONFLICTING_FEATURE_PAIRS = [
     ("spending_growth", "spending_decline"),
     ("segment_upgrade_count", "segment_downgrade_count"),
+]
+
+# Chuyển churn_driver (nhãn ngắn) thành 1 mệnh đề "sau khi ___" cho câu mở đầu story, và 1 cụm
+# danh từ ngắn cho câu kết. Cả 2 đều bám sát nghĩa gốc của churn_driver — không thêm nguyên nhân
+# mới, chỉ đổi hình thức ngữ pháp để ghép được vào câu kể chuyện.
+# Mirrors DOMAIN_KEYWORD_GROUPS in triadic_dgm/prompts/prompts.py's compute_domain_signature() —
+# used ONLY as a fallback in _build_customer_profile_bullets() when the pipeline's domain_signature
+# field comes back empty, so Customer Profile can still be derived from feature_means directly.
+_PROFILE_DOMAIN_FALLBACK_KEYWORDS = {
+    'complaint': ['complaint'],
+    'call': ['call'],
+    'missed': ['missed'],
+    'technical': ['cl_total', 'cl_avg', 'cl_std', 'cl_trend', 'old_cl', 'recent_cl', 'active_cl_months', 'no_cl'],
+    'usage': ['spending_decline', 'spending_growth', 'usage_decline', 'usage_unstable', 'segment_downgrade', 'segment_upgrade', 'cnt_dao_dong', 'cnt_giam', 'status_worsening'],
+    'value': ['high_spender', 'fee_total', 'fee_avg', 'loyalty_rank', 'loyalty_point', 'segment_avg'],
+}
+
+_CHURN_DRIVER_NARRATIVE_CLAUSE = {
+    "Bất mãn kéo dài, không được xử lý": "trải qua một thời gian dài bất mãn mà không được xử lý triệt để",
+    "Sự cố/khiếu nại cấp tính ngay trước khi rời mạng": "xuất hiện nhiều khiếu nại mới trong thời gian gần đây",
+    "Nhu cầu hỗ trợ không được đáp ứng đầy đủ": "liên hệ CSKH nhiều lần nhưng nhu cầu chưa được đáp ứng đầy đủ",
+    "Khách hàng giá trị cao, chủ động rời mạng": "không có dấu hiệu bất mãn nào, dù là nhóm chi tiêu cao — nguyên nhân nhiều khả năng đến từ giá cước hoặc ưu đãi đối thủ cạnh tranh",
+    "Khách hàng âm thầm rời mạng": "hành vi sử dụng dịch vụ suy giảm dần mà không hề khiếu nại hay liên hệ CSKH trước đó",
+    "Khách hàng giá trị cao nhưng trải nghiệm suy giảm": "hành vi sử dụng dịch vụ suy giảm rõ rệt dù là nhóm chi tiêu cao, và KHÔNG hề khiếu nại hay liên hệ CSKH trước đó — dấu hiệu rời mạng trong im lặng ở nhóm giá trị cao",
+    "Khách hàng gặp sự cố kỹ thuật không được xử lý triệt để": "liên hệ CSKH nhiều lần vì sự cố kỹ thuật lặp lại, đi kèm khiếu nại tăng mạnh, cho thấy vấn đề không được xử lý dứt điểm qua các lần liên hệ",
+    "Không rõ nguyên nhân hành vi (có thể do giá cước/cạnh tranh/khác)": "không có dấu hiệu bất thường rõ ràng trong hành vi tương tác — nguyên nhân nhiều khả năng đến từ yếu tố ngoài hành vi (giá cước, cạnh tranh...)",
+}
+_CHURN_DRIVER_NARRATIVE_NOUN = {
+    "Bất mãn kéo dài, không được xử lý": "sự bất mãn kéo dài chưa được xử lý",
+    "Sự cố/khiếu nại cấp tính ngay trước khi rời mạng": "sự gia tăng bất mãn",
+    "Nhu cầu hỗ trợ không được đáp ứng đầy đủ": "nhu cầu hỗ trợ chưa được đáp ứng",
+    "Khách hàng giá trị cao, chủ động rời mạng": "yếu tố ngoài trải nghiệm dịch vụ (giá cước, cạnh tranh)",
+    "Khách hàng âm thầm rời mạng": "xu hướng rời mạng trong im lặng, không qua kênh CSKH",
+    "Khách hàng giá trị cao nhưng trải nghiệm suy giảm": "xu hướng rời mạng trong im lặng ở nhóm giá trị cao",
+    "Khách hàng gặp sự cố kỹ thuật không được xử lý triệt để": "sự cố kỹ thuật lặp lại không được xử lý dứt điểm",
+    "Không rõ nguyên nhân hành vi (có thể do giá cước/cạnh tranh/khác)": "yếu tố ngoài hành vi tương tác",
+}
+# Tiền tố hay gặp trong FEATURE_SEMANTIC_MAP/pattern semantic name — cắt bỏ để nhét gọn vào câu
+# "có xu hướng {noun} cao gấp X lần" (giữ nguyên "Xu hướng" vì câu đã có sẵn từ "xu hướng").
+_NARRATIVE_NOUN_STRIP_PREFIXES = [
+    "Xu hướng ", "Tổng số ", "Trung bình ", "Tỷ lệ ", "Số tháng phát sinh ",
+    "Mức độ biến động tương đối ", "Mức độ biến động ", "Số tháng kể từ lần ",
 ]
 
 # ==============================================================
@@ -279,6 +515,10 @@ class ReportGenerator:
         fields — never a separate judgment call, just a shorter label for the same real data."""
         if p.get('persona_type') == 'ANOMALY':
             return "Anomaly"
+        # POST_CHURN mode: "risk" (future risk) is meaningless for customers who already left —
+        # tag reflects whether a churn driver could be identified from the behavioral trajectory.
+        if p.get('churn_driver'):
+            return "Root Cause Identified" if p.get('churn_driver_confidence') == 'MEDIUM' else "Unclear Cause"
         if p.get('severity') == 'EXTREME' or p.get('risk') == 'EXTREME':
             return "Very High Risk"
         tier = p.get('risk_tier', '')
@@ -292,11 +532,66 @@ class ReportGenerator:
             return "Medium"
         return "Stable"
 
+    def _narrative_noun(self, base_name: str) -> str:
+        n = base_name
+        for prefix in _NARRATIVE_NOUN_STRIP_PREFIXES:
+            if n.startswith(prefix):
+                n = n[len(prefix):]
+                break
+        return n.lower()
+
+    def _narrative_magnitude(self, val: float, global_mean: float) -> str:
+        """Same underlying math as _quantify, phrased to slot into 'có xu hướng {noun} ___'."""
+        if global_mean > 0:
+            ratio = val / global_mean
+            if ratio >= 2:
+                return f"cao gấp {ratio:.0f} lần"
+            delta_pct = (val - global_mean) / global_mean * 100
+            return f"cao hơn {delta_pct:.0f}%" if delta_pct >= 0 else f"thấp hơn {abs(delta_pct):.0f}%"
+        if global_mean < 0:
+            delta_pct = (val - global_mean) / abs(global_mean) * 100
+            return f"cao hơn {delta_pct:.0f}%" if delta_pct >= 0 else f"thấp hơn {abs(delta_pct):.0f}%"
+        return "nổi bật so với phần còn lại" if val > 0 else "ở mức tương đương trung bình"
+
+    def _build_persona_story(self, p: dict, global_means: dict):
+        """POST_CHURN storytelling paragraph (3 câu: ai + vì sao rời mạng, bằng chứng định lượng
+        mạnh nhất + dịch vụ chủ yếu, kết luận ngắn) — vẫn 100% Python-composed từ dữ liệu đã tính
+        sẵn trong JSON (churn_driver/feature_means/service_composition), không phải LLM tự viết."""
+        driver = p.get('churn_driver')
+        if not driver:
+            return None
+        sup_str = f"{p.get('support', 0):,}".replace(",", ".")
+        sup_pct = p.get('support_pct', 0) * 100
+        clause = _CHURN_DRIVER_NARRATIVE_CLAUSE.get(driver, driver.lower())
+        sentences = [f"Khoảng {sup_str} khách hàng ({sup_pct:.1f}%) rời mạng sau khi {clause}."]
+
+        means = self._get_means(p)
+        top = self._top_signals(means, global_means, top_n=1) if means else []
+        if top:
+            f, val, g_val, _ = top[0]
+            base_name = _FEATURE_SEMANTIC_MAP_LOWER.get(f.lower()) or _pattern_semantic_name(f.lower()) or f
+            noun = self._narrative_noun(base_name)
+            magnitude = self._narrative_magnitude(val, g_val)
+            svc_clause = ""
+            svc_comp = (p.get('profile_attributes') or {}).get('service_composition')
+            if svc_comp:
+                top_svc = max(svc_comp.items(), key=lambda kv: kv[1])[0]
+                svc_clause = f" và chủ yếu sử dụng dịch vụ {top_svc}"
+            sentences.append(f"So với toàn bộ khách hàng, nhóm này có xu hướng {noun} {magnitude}{svc_clause}.")
+
+        noun_phrase = _CHURN_DRIVER_NARRATIVE_NOUN.get(driver, driver.lower())
+        sentences.append(f"Dữ liệu cho thấy {noun_phrase} là dấu hiệu nổi bật trước khi chấm dứt dịch vụ.")
+        return " ".join(sentences)
+
     def _get_evidence_bullets(self, p: dict, global_means: dict, top_n: int = 3) -> list:
         """Real evidence bullets only — top_n strongest feature deviations (already computed by
         _top_signals) plus the dominant service usage if present. Never fabricated commentary."""
-        means = self._get_means(p)
         bullets = []
+        # Churn-driver narrative (POST_CHURN only) leads the list — it's the single most important
+        # sentence for a churned-customer persona, ahead of raw feature deviations.
+        if p.get('churn_driver_evidence'):
+            bullets.append(p['churn_driver_evidence'])
+        means = self._get_means(p)
         if means:
             for f, val, g_val, _ in self._top_signals(means, global_means, top_n=top_n):
                 bullets.append(self._get_business_signal(f, val, g_val))
@@ -330,49 +625,114 @@ class ReportGenerator:
             return f"≈{support/1000:.1f}k KH"
         return f"{support} KH"
 
+    def _build_executive_headline(self, personas_data: list) -> str:
+        """Deterministic, Python-computed lead sentence — never LLM-authored (anti-hallucination).
+        A CEO wants the concrete split up front (e.g. '92.8% stable, 7.2% driving CS/complaint
+        load'), not generic scene-setting prose like 'sự phân hóa rõ rệt trong hành vi...'."""
+        # POST_CHURN: "risk"/"stable" framing is meaningless (the whole sample already left) — lead
+        # with a FULL breakdown of every distinct churn-driver group and its %, not just "top
+        # identified vs rest" — a CEO needs to see ALL the actionable buckets, not just the
+        # biggest one, to know how many separate interventions are actually on the table.
+        if any(p.get('churn_driver') for p in personas_data):
+            total_customers = sum(p.get('support', 0) for p in personas_data)
+            total_str = f"{total_customers:,}".replace(",", ".")
+            n_personas = len(personas_data)
+
+            driver_groups = {}
+            for p in personas_data:
+                driver = p.get('churn_driver') or "Không rõ nguyên nhân hành vi"
+                conf = p.get('churn_driver_confidence', 'LOW')
+                g = driver_groups.setdefault(driver, {'pct': 0.0, 'confidence': conf})
+                g['pct'] += p.get('support_pct', 0) * 100
+
+            sorted_drivers = sorted(driver_groups.items(), key=lambda kv: -kv[1]['pct'])
+            lines = [f"**{total_str} khách hàng rời mạng**, chia thành **{n_personas} nhóm hành vi**."]
+            for driver, info in sorted_drivers:
+                clause = _CHURN_DRIVER_NARRATIVE_CLAUSE.get(driver, driver.lower())
+                lines.append(f"Khoảng **{info['pct']:.0f}%** rời mạng sau khi {clause}.")
+
+            actionable = sum(1 for info in driver_groups.values() if info['confidence'] == 'MEDIUM')
+            if actionable > 0:
+                lines.append(f"→ Có ít nhất **{actionable} nguyên nhân** doanh nghiệp có thể chủ động can thiệp.")
+            else:
+                lines.append("→ Không có nguyên nhân hành vi rõ ràng để can thiệp trực tiếp — cần xem xét yếu tố ngoài hành vi (giá cước, đối thủ cạnh tranh...).")
+            return " ".join(lines)
+
+        at_risk = [p for p in personas_data if p.get('risk') in ('HIGH', 'EXTREME') or p.get('severity') in ('HIGH', 'EXTREME')]
+        at_risk_ids = {p.get('cluster_id') for p in at_risk}
+        stable = [p for p in personas_data if p.get('cluster_id') not in at_risk_ids]
+        stable_pct = sum(p.get('support_pct', 0) for p in stable) * 100
+        at_risk_pct = sum(p.get('support_pct', 0) for p in at_risk) * 100
+
+        if at_risk and stable:
+            at_risk_sorted = sorted(at_risk, key=lambda p: -p.get('support_pct', 0))
+            at_risk_names = ", ".join(self.clean_persona_name(p.get('persona_name', '')) for p in at_risk_sorted[:2])
+            return (f"**{stable_pct:.1f}% khách hàng đang ở trạng thái ổn định.** Tuy nhiên "
+                    f"**{at_risk_pct:.1f}%** còn lại ({at_risk_names}) đang tạo ra phần lớn áp lực "
+                    f"CSKH/khiếu nại và cần hành động ưu tiên.")
+        if at_risk:
+            return f"**{at_risk_pct:.1f}% khách hàng** đang thuộc nhóm rủi ro cao, cần hành động ưu tiên ngay."
+        return f"**{stable_pct:.1f}% khách hàng** đang ở trạng thái ổn định, không phát hiện nhóm rủi ro cao nào."
+
+    def _quantify(self, val: float, global_mean: float) -> str:
+        """Concrete magnitude to append to a signal phrase — 'tăng rất mạnh' alone doesn't tell a
+        reader HOW much vs average; this always attaches the real number (ratio or %)."""
+        if global_mean > 0:
+            ratio = val / global_mean
+            if ratio >= 2:
+                return f"gấp {ratio:.1f} lần trung bình"
+            delta_pct = (val - global_mean) / global_mean * 100
+            return f"{delta_pct:+.0f}% so với trung bình"
+        if global_mean < 0:
+            delta_pct = (val - global_mean) / abs(global_mean) * 100
+            return f"{delta_pct:+.0f}% so với trung bình"
+        return "trong khi trung bình toàn quần thể gần như bằng 0" if val > 0 else "tương đương trung bình (≈0)"
+
     def _get_business_signal(self, feature: str, val: float, global_mean: float) -> str:
-        """SEMANTIC LAYER: Converts feature and data into natural business signals."""
-        base_name = _FEATURE_SEMANTIC_MAP_LOWER.get(str(feature).lower(), feature)
-        
+        """SEMANTIC LAYER: Converts feature and data into natural, quantified business signals."""
+        key = str(feature).lower()
+        base_name = _FEATURE_SEMANTIC_MAP_LOWER.get(key) or _pattern_semantic_name(key) or feature
+
         # Handle the magic 999
         if val in [999, 999.0, 888, 888.0, 500.0, 500.95, 887, 886.77, 898.38, 898.34]:
-            if 'call' in feature:
+            if 'call' in key:
                 return "Không phát sinh liên hệ trong kỳ"
-            if 'cl' in feature or 'complaint' in feature:
+            if 'cl' in key or 'complaint' in key:
                 return "Không có khiếu nại trong kỳ"
             return "Chưa có dữ liệu"
-            
+
         # Handle Boolean 1.0 flags
-        if val == 1.0 and ("no_" in feature or "escalating_" in feature or "declining_" in feature):
+        if val == 1.0 and ("no_" in key or "escalating_" in key or "declining_" in key):
             return f"Tồn tại {base_name.lower()}"
-        if val == 0.0 and ("no_" in feature):
+        if val == 0.0 and ("no_" in key):
             return f"Có phát sinh {base_name.lower()}"
-            
+
         # Delta comparison
         delta_pct = ((val - global_mean) / abs(global_mean)) * 100 if global_mean != 0 else val * 100
+        quant = self._quantify(val, global_mean)
 
-        if str(feature).lower() in _DIRECTIONAL_FLAG_FEATURES:
+        if key in _DIRECTIONAL_FLAG_FEATURES:
             # base_name đã tự mang hướng (vd "Chi tiêu đang giảm") — độ lệch ở đây nói về MỨC ĐỘ
             # PHỔ BIẾN của tín hiệu đó trong cụm này so với toàn quần thể, không phải hướng thứ 2.
             if delta_pct > 100:
-                return f"{base_name} — phổ biến hơn hẳn trong nhóm này"
+                return f"{base_name} — phổ biến hơn hẳn trong nhóm này ({quant})"
             elif delta_pct > 0:
-                return f"{base_name} — phổ biến hơn trung bình"
+                return f"{base_name} — phổ biến hơn trung bình ({quant})"
             elif delta_pct < -100:
-                return f"{base_name} — hiếm gặp trong nhóm này"
+                return f"{base_name} — hiếm gặp trong nhóm này ({quant})"
             elif delta_pct < 0:
-                return f"{base_name} — ít phổ biến hơn trung bình"
+                return f"{base_name} — ít phổ biến hơn trung bình ({quant})"
             else:
                 return f"{base_name} — ở mức trung bình"
 
         if delta_pct > 100:
-            return f"{base_name} tăng rất mạnh"
+            return f"{base_name} tăng rất mạnh ({quant})"
         elif delta_pct > 0:
-            return f"{base_name} có xu hướng tăng"
+            return f"{base_name} có xu hướng tăng ({quant})"
         elif delta_pct < -100:
-            return f"{base_name} giảm rất mạnh"
+            return f"{base_name} giảm rất mạnh ({quant})"
         elif delta_pct < 0:
-            return f"{base_name} có xu hướng giảm"
+            return f"{base_name} có xu hướng giảm ({quant})"
         else:
             return f"{base_name} ổn định"
 
@@ -403,6 +763,131 @@ class ReportGenerator:
     def _top_signals(self, means: dict, global_means: dict, top_n: int = 3) -> list:
         return self._resolve_conflicts(self._ranked_deviations(means, global_means))[:top_n]
 
+    def _build_customer_profile_bullets(self, p: dict, global_means: dict = None) -> list:
+        """Qualitative persona summary (Adobe/Salesforce-style) — derived from domain_signature
+        stars, profile_attributes and onset_sequence. Deliberately NOT just 2 bullets — a real
+        profile needs enough dimensions (value/usage/loyalty/segment/complaint/technical/service/
+        sequencing) that a reader can actually picture the customer, not just skim raw numbers."""
+        domain_sig = p.get('domain_signature') or {}
+
+        def stars(dom):
+            info = domain_sig.get(dom)
+            if isinstance(info, dict):
+                return info.get('stars', 0)
+            # Fallback ONLY when domain_signature is empty/missing (pipeline drift confirmed on a
+            # live run: domain_signature was empty for every persona even though feature_means had
+            # clear signal — every domain silently defaulted to "not notable", producing FACTUALLY
+            # WRONG bullets like "ít khi liên hệ CSKH" for a persona with a 20x call-volume spike).
+            # Derive an equivalent star rating directly from feature_means/global_means instead of
+            # defaulting to 0, so Customer Profile never contradicts the Business Signals above it.
+            means = p.get('feature_means') or p.get('evidence') or {}
+            if not means or not global_means:
+                return 0
+            kws = _PROFILE_DOMAIN_FALLBACK_KEYWORDS.get(dom, [])
+            max_dev = 0.0
+            for f, v in means.items():
+                if not any(kw in f.lower() for kw in kws):
+                    continue
+                g = global_means.get(f, 0)
+                dev = (v - g) / abs(g) if g != 0 else v
+                if dev > max_dev:
+                    max_dev = dev
+            return 5 if max_dev >= 5.0 else 4 if max_dev >= 2.0 else 3 if max_dev >= 0.75 else 2 if max_dev >= 0.25 else 1
+
+        bullets = []
+        value_stars = stars('value')
+        if value_stars >= 4:
+            bullets.append("ARPU/cước phí cao hơn hẳn trung bình — thuộc nhóm khách hàng giá trị cao")
+        elif value_stars <= 1:
+            bullets.append("ARPU/cước phí ở mức trung bình hoặc thấp")
+
+        # LƯU Ý: profile_attributes là số liệu TRUNG BÌNH CẢ KỲ (1 snapshot), KHÔNG có so sánh
+        # trước/sau — TUYỆT ĐỐI KHÔNG suy diễn thành câu CÓ THAY ĐỔI THEO THỜI GIAN kiểu "từng cao
+        # nhưng đang giảm"/"trước khi rời mạng" nếu không có dữ liệu old/recent thực sự chứng minh
+        # (đã xảy ra trên báo cáo thật: "Loyalty từng ở mức cao" chỉ suy từ LOYALTY_RANK=0.18 tại 1
+        # thời điểm, không có bằng chứng nó "từng" cao hơn). Chỉ nói ở dạng TĨNH, đúng với 1 snapshot.
+        profile = p.get('profile_attributes') or {}
+        tier_downgrade = profile.get('tier_downgrade_rate', 0)
+        tier_upgrade = profile.get('tier_upgrade_rate', 0)
+        if tier_downgrade >= 0.5:
+            bullets.append("Tỷ lệ tụt hạng phân khúc (segment downgrade) cao hơn hẳn trung bình")
+        elif tier_upgrade >= 0.5:
+            bullets.append("Tỷ lệ nâng hạng phân khúc (segment upgrade) cao hơn hẳn trung bình")
+
+        loyalty = profile.get('loyalty_rank_avg')
+        if loyalty is not None:
+            if value_stars >= 3 and loyalty < 0.3:
+                bullets.append("Mức độ gắn bó/loyalty (hạng thân thiết) thấp hơn trung bình, dù thuộc nhóm chi tiêu cao")
+            elif loyalty >= 1.0:
+                bullets.append("Mức độ gắn bó/loyalty ở mức khá")
+
+        usage_stars = stars('usage')
+        if usage_stars >= 4:
+            bullets.append("Hành vi sử dụng dịch vụ suy giảm rõ rệt trong giai đoạn gần rời mạng")
+        elif usage_stars <= 1:
+            bullets.append("Hành vi sử dụng dịch vụ ổn định, không suy giảm rõ rệt")
+
+        complaint_stars, call_stars, missed_stars, technical_stars = stars('complaint'), stars('call'), stars('missed'), stars('technical')
+        if complaint_stars >= 3:
+            bullets.append("Có lịch sử khiếu nại/phàn nàn đáng kể")
+        if technical_stars >= 3:
+            bullets.append("Từng gặp sự cố kỹ thuật nhiều hơn trung bình")
+        if call_stars >= 3 or missed_stars >= 3:
+            bullets.append("Tần suất liên hệ CSKH/cuộc gọi nhỡ cao hơn trung bình")
+        if complaint_stars <= 1 and call_stars <= 1 and missed_stars <= 1 and technical_stars <= 1:
+            bullets.append("Ít khi liên hệ CSKH hoặc khiếu nại trong suốt vòng đời")
+
+        # Trình tự tín hiệu — CHỈ dùng dữ liệu THẬT có (old vs recent), không suy diễn timeline
+        # theo tháng chính xác (dữ liệu chỉ có 2 giai đoạn, không có lưới thời gian chi tiết hơn).
+        onset = p.get('onset_sequence') or []
+        signaled = [t for t in onset if isinstance(t, dict) and (t.get('old', 0) > 0 or t.get('recent', 0) > 0)]
+        if len(signaled) >= 2 and signaled[0].get('metric') != signaled[-1].get('metric'):
+            bullets.append(f"Trình tự tín hiệu: {signaled[0].get('metric', 'N/A')} xuất hiện sớm nhất, {signaled[-1].get('metric', 'N/A')} chỉ mới xuất hiện gần đây trước khi rời mạng")
+
+        svc_comp = profile.get('service_composition')
+        if svc_comp:
+            top_svc = max(svc_comp.items(), key=lambda kv: kv[1])[0]
+            bullets.append(f"Chủ yếu sử dụng dịch vụ {top_svc}")
+
+        return bullets
+
+    def _get_domain_signals(self, p: dict, global_means: dict) -> list:
+        """Groups evidence by behavioral domain (complaint/call/missed/technical/usage/value)
+        instead of a flat top-3 ranking — a persona defined by ONE dominant column reads as a
+        single-cause label ("Sự cố cấp tính"), while the SAME persona described across domains
+        (complaint=5★, technical=4★, value=5★, usage=1★) lets the narrative connect them into a
+        real story ("khách hàng giá trị cao gặp sự cố kỹ thuật + khiếu nại dồn dập, usage vẫn ổn
+        định -> nguyên nhân nhiều khả năng là chất lượng dịch vụ, không phải nhu cầu suy giảm")."""
+        domain_sig = p.get('domain_signature') or {}
+        if not domain_sig:
+            return []
+        domains = []
+        low_domains = []  # domain rõ ràng THẤP (1★) — dùng làm đối chứng tường minh cho LLM, thay
+                           # vì để LLM tự suy đoán "không nhắc tới = bình thường".
+        for dom, info in domain_sig.items():
+            if not isinstance(info, dict):
+                continue
+            stars = info.get('stars', 0)
+            if stars <= 1:
+                low_domains.append(dom)
+                continue
+            if stars < 2:
+                continue
+            evidence = []
+            for feat in info.get('top_features', []):
+                # top_features do LLM copy-paste sinh ra — phòng thủ nếu thiếu phần tử thay vì
+                # IndexError làm sập toàn bộ báo cáo.
+                if not isinstance(feat, (list, tuple)) or len(feat) < 3:
+                    continue
+                f, val, g_val = feat[0], feat[1], feat[2]
+                evidence.append(self._get_business_signal(f, val, g_val))
+            if evidence:
+                domains.append({'domain': dom, 'stars': stars, 'evidence': evidence})
+        domains.sort(key=lambda d: -d['stars'])
+        if domains and low_domains:
+            domains.append({'domain_contrast_note': f"Các domain sau ở mức BÌNH THƯỜNG (1★, dùng làm đối chứng, KHÔNG suy diễn thêm): {', '.join(low_domains)}"})
+        return domains
+
     def _build_prompt(self, personas_data: list, global_means: dict) -> str:
         """Prepares a heavily sterilized JSON for the LLM"""
         clean_data = []
@@ -410,18 +895,27 @@ class ReportGenerator:
             c = {}
             c['persona'] = self.clean_persona_name(p.get('persona_name', ''))
 
-            # Translate top features into business signals
-            means = self._get_means(p)
-            signals = []
-            deviations = self._top_signals(means, global_means, top_n=3) if means else []
-            for f, val, g_val, dev in deviations:
-                signals.append(self._get_business_signal(f, val, g_val))
+            domain_signals = self._get_domain_signals(p, global_means)
+            if domain_signals:
+                c['domain_signals'] = domain_signals
+                # Trình tự tín hiệu (chỉ old vs recent — KHÔNG phải lưới thời gian theo tháng) để
+                # LLM có thể viết câu có trình tự thay vì liệt kê domain không theo thứ tự nào.
+                onset = p.get('onset_sequence') or []
+                signaled = [t for t in onset if isinstance(t, dict) and (t.get('old', 0) > 0 or t.get('recent', 0) > 0)]
+                if len(signaled) >= 2:
+                    c['onset_order'] = [t.get('metric') for t in signaled]
+                confidence_dev = domain_signals[0]['stars'] / 5.0
+            else:
+                # Fallback (no domain_signature in JSON — older run) — flat top-3 as before.
+                means = self._get_means(p)
+                deviations = self._top_signals(means, global_means, top_n=3) if means else []
+                c['business_signals'] = [self._get_business_signal(f, val, g_val) for f, val, g_val, dev in deviations]
+                confidence_dev = deviations[0][3] if deviations else 0
 
-            c['business_signals'] = signals
-            c['confidence'] = "High" if deviations and deviations[0][3] > 1.0 else "Medium"
+            c['confidence'] = "High" if confidence_dev > 1.0 else "Medium"
             c['cluster_id'] = p.get('cluster_id')
             clean_data.append(c)
-            
+
         data_str = json.dumps(clean_data, ensure_ascii=False, indent=2)
         return f"""
 Bạn là Consultant tại Deloitte.
@@ -429,9 +923,35 @@ Nhiệm vụ: Viết diễn giải Báo cáo Chân dung Khách hàng bằng NGÔ
 
 QUY TẮC CỨNG:
 - KHÔNG sinh số liệu. KHÔNG nhắc lại số liệu.
-- KHÔNG suy diễn ngoài Business Signals được cấp.
+- KHÔNG suy diễn ngoài Business Signals/domain_signals được cấp.
 - KHÔNG đề xuất hành động mới (Action/Investigation).
 - Độ dài: Tối đa 2 câu cho mỗi trường phân tích.
+- NẾU có `domain_signals` (nhiều domain, mỗi domain có "stars" 1-5): business_interpretation PHẢI
+  LIÊN KẾT các domain có stars cao với nhau thành 1 câu chuyện — KHÔNG được chỉ mô tả 1 domain
+  riêng lẻ. Ví dụ 1: complaint=5★ + technical=4★ + value=5★ + usage=1★ (thấp) → "Khách hàng giá trị
+  cao gặp nhiều sự cố kỹ thuật và phát sinh khiếu nại dồn dập, trong khi hành vi sử dụng chưa suy
+  giảm đáng kể — cho thấy nguyên nhân nhiều khả năng đến từ chất lượng dịch vụ hơn là thay đổi nhu
+  cầu."
+- BẮT BUỘC dùng văn phong TƯƠNG PHẢN (contrastive) khi 1 domain cao đi kèm nhiều domain thấp — đây
+  là kiểu câu có giá trị business cao nhất. Ví dụ 2: value=5★, còn complaint/call/missed/technical
+  đều thấp (xem `domain_contrast_note` nếu có) → "Mặc dù nhóm này gần như không phát sinh khiếu
+  nại hay sự cố kỹ thuật, khách hàng vẫn quyết định rời mạng. Điều này cho thấy nguyên nhân nhiều
+  khả năng KHÔNG nằm ở chất lượng dịch vụ, mà ở giá cước, chương trình cạnh tranh, hoặc thay đổi
+  nhu cầu." KHÔNG viết câu chung chung kiểu "Khách hàng có giá trị cao, quan trọng với doanh thu"
+  — câu đó không có insight, AI nào cũng viết được.
+- CẤM các câu generic sau (và các biến thể tương đương) — đây là loại câu KHÔNG có insight, chỉ
+  đổi tên persona vào là "an toàn" nhưng vô nghĩa với người đọc: "Khách hàng nhóm này có giá trị
+  cao/quan trọng với doanh thu", "Cần theo dõi/quan tâm đặc biệt nhóm này", "Nhóm này thể hiện dấu
+  hiệu bất thường". LUÔN nói CÁI GÌ xảy ra và HỆ QUẢ nghiệp vụ CỤ THỂ là gì.
+- NẾU có `onset_order` (danh sách domain theo TRÌNH TỰ xuất hiện, domain đầu tiên xuất hiện SỚM
+  NHẤT): PHẢI thể hiện trình tự này trong business_interpretation thay vì liệt kê domain không theo
+  thứ tự. Ví dụ 3: onset_order = ["Cuộc gọi CSKH", "Phàn nàn/khiếu nại"] + value=5★ → "Nhóm này từng
+  là khách hàng giá trị cao. Dấu hiệu liên hệ CSKH xuất hiện trước, sau đó mới đến khiếu nại, cho
+  thấy vấn đề ban đầu không được xử lý dứt điểm dẫn đến bất mãn leo thang trước khi rời mạng."
+  KHÔNG bịa mốc thời gian cụ thể (tháng -6, -3...) nếu không có trong dữ liệu — chỉ nói "trước/sau",
+  "ban đầu/gần đây".
+- `domain_contrast_note` (nếu có trong domain_signals) liệt kê các domain ở mức BÌNH THƯỜNG (1★) —
+  dùng làm đối chứng tường minh, KHÔNG suy diễn thêm ngoài domain được liệt kê.
 
 Dữ liệu Business Facts duy nhất bạn được thấy:
 {data_str}
@@ -448,13 +968,42 @@ Dữ liệu Business Facts duy nhất bạn được thấy:
             )
             return report_narrative
         except Exception as e:
-            raise RuntimeError(f"Failed to generate LLM Narrative: {e}")
+            # Sanitize before re-raising — a raw upstream error (nginx/gateway 504 pages are full
+            # HTML documents) must NEVER be dumped verbatim into the user-facing chat/report; it
+            # happened on a live run and read as a broken page dumped mid-conversation.
+            msg = str(e)
+            if "<html" in msg.lower() or len(msg) > 300:
+                msg = "LLM service tạm thời không phản hồi (timeout/gateway error)."
+            raise RuntimeError(f"Failed to generate LLM Narrative: {msg}")
+
+    def _fallback_narrative(self) -> ReportNarrative:
+        """Used when generate_llm_narrative() fails (timeout, gateway error, etc.) so the report
+        still renders with all deterministic sections — losing only the AI-authored prose, never
+        the whole report. Empty personas_analysis makes every `if n:` lookup downstream a no-op."""
+        return ReportNarrative(
+            executive_summary=ExecutiveSummaryNarrative(
+                executive_overview="AI narrative tạm thời không khả dụng do lỗi kết nối dịch vụ LLM. Các số liệu, phân tích nguyên nhân và roadmap bên dưới vẫn được tính toán đầy đủ và chính xác — chỉ thiếu phần diễn giải văn phong bổ sung từ AI."
+            ),
+            personas_analysis=[],
+            recommendations_analysis=[],
+            conclusion="Báo cáo được tạo với dữ liệu và phân tích đầy đủ; phần diễn giải mở rộng từ AI tạm thời không khả dụng do lỗi kết nối dịch vụ."
+        )
 
     def render_markdown(self, raw_python_output: str) -> str:
         personas_data = self.extract_json(raw_python_output)
         if not personas_data:
             return "Lỗi: Không tìm thấy dữ liệu JSON Persona hợp lệ."
-            
+
+        # Chuẩn hoá support_pct về DẠNG PHÂN SỐ (0-1) NGAY TẠI ĐÂY, một lần duy nhất — pipeline
+        # script do LLM tự sinh có thể tính support_pct thành SỐ PHẦN TRĂM (0-100) thay vì phân số
+        # (ĐÃ XẢY RA TRÊN DỮ LIỆU THẬT: 1 cụm 93.14% bị hiển thị thành "9314.0%" vì mọi nơi khác
+        # trong file này đều nhân *100 giả định support_pct luôn là phân số). Chuẩn hoá 1 lần ở đây
+        # thay vì vá từng chỗ dùng *100 rải rác khắp file.
+        for p in personas_data:
+            sp = p.get('support_pct')
+            if isinstance(sp, (int, float)) and sp > 1:
+                p['support_pct'] = sp / 100
+
         # 1. Validation Harness
         ReportValidator.validate(personas_data)
         
@@ -479,8 +1028,16 @@ Dữ liệu Business Facts duy nhất bạn được thấy:
             p['priority_score'] = p.get('priority_score', 0)
         ranked_personas = sorted(personas_data, key=lambda x: x['priority_score'], reverse=True)
             
-        # 3. Trigger LLM
-        narrative = self.generate_llm_narrative(personas_data, global_means)
+        # 3. Trigger LLM — on failure (timeout/gateway error), degrade to a fallback narrative
+        # instead of losing the ENTIRE report. Every downstream usage of `narrative` only reads
+        # deterministic, pre-computed facts elsewhere in this method; the AI prose is the only
+        # casualty (confirmed on a live run: a transient 504 crashed the whole markdown report,
+        # even though every number/action/roadmap entry was already computed and ready to render).
+        try:
+            narrative = self.generate_llm_narrative(personas_data, global_means)
+        except Exception as e:
+            print(f"[ReportGenerator] LLM narrative failed, using fallback: {e}")
+            narrative = self._fallback_narrative()
         
         # ==============================================================
         # 4. REPORT COMPOSER (Presentation Layer)
@@ -498,7 +1055,8 @@ Dữ liệu Business Facts duy nhất bạn được thấy:
         md += f"> - **Segmentation Quality:** {seg_quality}\n"
         md += f"> - **Dominant Persona Size:** {max_pct_val:.1f}%\n"
         md += f"> - **Total Population:** {self.format_support(total_customers)}\n\n"
-        
+
+        md += f"{self._build_executive_headline(personas_data)}\n\n"
         md += f"{narrative.executive_summary.executive_overview}\n\n"
             
         # Methodology
@@ -515,13 +1073,18 @@ Dữ liệu Business Facts duy nhất bạn được thấy:
             tag = self._get_intensity_tag(p)
             sup_pct = p.get('support_pct', 0) * 100
             sup_str = self.format_support(p.get('support', 0))
-            bullets = self._get_evidence_bullets(p, global_means, top_n=3)
 
             md += f"### {icon} {p_name} — {sup_pct:.1f}% ({tag})\n\n"
             md += f"*Quy mô: {sup_str} | Severity: {p.get('severity','N/A')} | Risk: {p.get('risk','N/A')}*\n\n"
-            for b in bullets:
-                md += f"- {b}\n"
-            md += "\n"
+            # POST_CHURN personas read as a short story (ai + vì sao rời mạng + bằng chứng mạnh
+            # nhất); các mode khác vẫn giữ dạng bullet đã có (severity/risk framing phù hợp hơn).
+            story = self._build_persona_story(p, global_means)
+            if story:
+                md += f"{story}\n\n"
+            else:
+                for b in self._get_evidence_bullets(p, global_means, top_n=3):
+                    md += f"- {b}\n"
+                md += "\n"
 
         # Risk Tier Grouping (only if at least one persona has risk_tier computed) — mỗi persona
         # kèm 1 dòng "why" lấy từ tín hiệu lệch mạnh nhất thực tế của chính nó (không suy diễn thêm).
@@ -585,7 +1148,31 @@ Dữ liệu Business Facts duy nhất bạn được thấy:
             md += f"| **Risk** | {p.get('risk','N/A')} |\n"
             md += f"| **Semantic Confidence**| {confidence} |\n"
             md += f"| **Recommended Direction**| {investigation} |\n\n"
-            
+
+            # Churn Driver (POST_CHURN only) — nguyên nhân rời mạng suy ra từ QUỸ ĐẠO hành vi (old vs
+            # recent vs trend), không chỉ snapshot cuối kỳ. Story kể lại toàn bộ suy luận thành 1
+            # đoạn văn liền mạch thay vì tách rời nhãn + câu evidence, giữ hedge ("dữ liệu cho thấy")
+            # vì đây là tương quan quan sát được, không phải nguyên nhân đã được xác nhận.
+            if p.get('churn_driver'):
+                md += "**🔎 Nguyên nhân rời mạng (suy luận từ hành vi):**\n\n"
+                story = self._build_persona_story(p, global_means)
+                md += f"{story or p['churn_driver']}\n\n"
+                trajectory = p.get('temporal_trajectory') or []
+                # temporal_trajectory được sinh bởi code do LLM copy-paste vào pipeline — không
+                # đảm bảo 100% đúng schema (đã xảy ra trên dữ liệu thật: KeyError 'trend' làm SẬP
+                # TOÀN BỘ báo cáo markdown). Dùng .get() phòng thủ, bỏ qua entry hỏng thay vì crash.
+                if trajectory and isinstance(trajectory, list):
+                    rows = []
+                    for t in trajectory:
+                        if not isinstance(t, dict):
+                            continue
+                        rows.append(f"| {t.get('metric', 'N/A')} | {t.get('old', 'N/A')} | {t.get('recent', 'N/A')} | {t.get('trend', 'N/A')} |")
+                    if rows:
+                        md += "**Diễn biến theo thời gian (đầu kỳ → gần đây):**\n\n"
+                        md += "| Chỉ số | Đầu kỳ | Gần đây | Xu hướng |\n"
+                        md += "|---|---|---|---|\n"
+                        md += "\n".join(rows) + "\n\n"
+
             md += f"**Business Signals:**\n{signals_text}\n\n"
 
             # Dịch vụ sử dụng phổ biến (vd 'Net Only', 'Net Pay Cam') KHÔNG dùng để train KMeans
@@ -598,6 +1185,16 @@ Dữ liệu Business Facts duy nhất bạn được thấy:
             if n:
                 md += f"**Business Interpretation:**\n{n.business_interpretation}\n\n"
                 md += f"**Operational Impact:**\n{n.operational_impact}\n\n"
+
+            # Customer Profile — qualitative, business-readable summary (Adobe/Salesforce-style
+            # persona card) derived from domain_signature stars + service_composition, so business
+            # readers get "Top nhóm giá trị cao, ít liên hệ CSKH" instead of raw numbers they skip.
+            profile_bullets = self._build_customer_profile_bullets(p, global_means)
+            if profile_bullets:
+                md += "**Customer Profile:**\n"
+                for b in profile_bullets:
+                    md += f"- {b}\n"
+                md += "\n"
 
             # Profile Attributes (only present keys — never fabricate missing ones)
             profile = p.get('profile_attributes') or {}
@@ -649,8 +1246,21 @@ Dữ liệu Business Facts duy nhất bạn được thấy:
             sup_pct = p.get('support_pct', 0) * 100
             actions = p.get('recommended_actions', [])
 
+            # Defensive fallback ONLY — generate_actions() in the pipeline prompt always returns
+            # at least one action, so this should never fire. But if a run's pipeline code ever
+            # drops recommended_actions, derive a real one from severity/risk instead of showing
+            # a bare "N/A"/"TBD" roadmap row to the business reader.
+            if not actions:
+                name_l = p_name.lower()
+                if p.get('risk') in ("HIGH", "EXTREME") or "bất mãn" in name_l:
+                    actions = ["Outbound CSKH chủ động để xoa dịu khách hàng"]
+                elif p.get('severity') in ("HIGH", "EXTREME") or "kỹ thuật" in name_l:
+                    actions = ["Kiểm tra chất lượng mạng, tuyến cáp quang, đo suy hao"]
+                else:
+                    actions = ["Thu thập thêm dữ liệu hành vi (Ticket logs, Call Center logs)"]
+
             action_text = actions[0] if actions else "N/A"
-            meta = ROADMAP_METADATA.get(action_text, {})
+            meta = resolve_roadmap_metadata(action_text)
             owner = meta.get("owner", "TBD")
             timeline = meta.get("timeline", "TBD")
             kpi = meta.get("kpi", "TBD")

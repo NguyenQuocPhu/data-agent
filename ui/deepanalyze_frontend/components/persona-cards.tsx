@@ -139,6 +139,15 @@ const DIRECTIONAL_FLAG_FEATURES = new Set([
 
 const SENTINEL_MISSING_VALUES = new Set([999, 888, 500, 500.95, 887, 886.77, 898.38, 898.34]);
 
+// support_pct should always be a 0-1 fraction, but LLM-authored pipeline code can drift and emit
+// it already as a 0-100 percentage (confirmed on a live run: a 93.14% cluster rendered as
+// "9314.0%" because this display always multiplied by 100). A persona's support_pct can never
+// legitimately exceed 1 as a fraction, so treat any value > 1 as already being a percentage.
+function toPercent(supportPct: number | undefined): number {
+  const v = supportPct || 0;
+  return v > 1 ? v : v * 100;
+}
+
 function getBusinessSignal(feature: string, val: number, globalMean: number): string {
   const key = feature.toLowerCase();
   const baseName = FEATURE_SEMANTIC_MAP[key] ?? feature;
@@ -221,6 +230,22 @@ function getEvidenceBullets(p: Persona, globalMeans: Record<string, number>, top
     const top = resolveConflicts(rankedDeviations(means, globalMeans)).slice(0, topN);
     for (const [f, val, g] of top) {
       bullets.push(getBusinessSignal(f, val, g));
+    }
+  }
+  // Fallback: some pipeline runs only populate `domain_signature` (6-domain star rating), not
+  // `feature_means`/`evidence` (raw clustering-feature means) — without this, any persona whose
+  // JSON only has domain_signature silently shows "Không có tín hiệu nổi bật" even though real,
+  // differentiated signal exists (confirmed on a live run: 3 personas with clearly different
+  // profile_attributes all showed "no signal" because feature_means was empty/absent).
+  if (bullets.length === 0 && p.domain_signature) {
+    const domainEntries = Object.values(p.domain_signature)
+      .filter((info) => info && info.stars >= 2 && Array.isArray(info.top_features) && info.top_features.length > 0)
+      .sort((a, b) => b.stars - a.stars);
+    for (const info of domainEntries.slice(0, topN)) {
+      const feat = info.top_features[0];
+      if (Array.isArray(feat) && feat.length >= 3) {
+        bullets.push(getBusinessSignal(feat[0], feat[1], feat[2]));
+      }
     }
   }
   const svcComp = p.profile_attributes?.service_composition;
@@ -345,7 +370,7 @@ export function PersonaCards({ data }: PersonaCardsProps) {
                     Cụm {p.cluster_id} · {tag}
                   </p>
                   <CardTitle className="text-base leading-snug">{name}</CardTitle>
-                  <p className="text-sm font-semibold">{((p.support_pct || 0) * 100).toFixed(1)}%</p>
+                  <p className="text-sm font-semibold">{toPercent(p.support_pct).toFixed(1)}%</p>
                 </div>
               </CardHeader>
               <CardContent>

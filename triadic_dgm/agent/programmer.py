@@ -8,13 +8,16 @@ os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
 class Programmer:
 
-    # hosted_vllm/Qwen3.5-35B-A3B-FP8's actual context window is 30000 tokens TOTAL
-    # (input + output combined) — confirmed via a real 400 ContextWindowExceededError.
-    # max_tokens must therefore be computed from remaining budget, not a large fixed
-    # constant, or a normal-sized prompt plus a generous output request blows past 30000.
-    MODEL_CONTEXT_LIMIT = 30000
+    # Model's real context window is 64000 tokens TOTAL (input + output combined), confirmed
+    # directly by the user — the previous 30000 figure (from an earlier session's 400
+    # ContextWindowExceededError) was wrong/stale and was needlessly starving output generation:
+    # every pipeline script got hard cut off by max_tokens well before finishing (same
+    # SyntaxError, same truncation point, on every retry — a token-limit cutoff isn't something
+    # retrying alone can fix). max_tokens is still computed from remaining budget rather than a
+    # flat constant, so a large prompt/history doesn't blow past the real limit.
+    MODEL_CONTEXT_LIMIT = 62000
     OUTPUT_TOKENS_FLOOR = 1500
-    OUTPUT_TOKENS_CEILING = 8000
+    OUTPUT_TOKENS_CEILING = 20000
     CONTEXT_SAFETY_MARGIN = 1000
     CHARS_PER_TOKEN_ESTIMATE = 3  # conservative for mixed Vietnamese/English/code content
 
@@ -43,8 +46,11 @@ class Programmer:
             else:
                 self.last_snaps = None
 
-        # Protect System Prompt (0) and Initial Task/Domain Knowledge (1)
-        while sum(len(str(m.get("content", ""))) for m in self.messages) > 70000 and len(self.messages) > 4:
+        # Protect System Prompt (0) and Initial Task/Domain Knowledge (1). Threshold scaled to the
+        # real 62000-token budget (MODEL_CONTEXT_LIMIT) — keeps enough headroom for at least a full
+        # OUTPUT_TOKENS_CEILING-sized generation even after several repair rounds' worth of history
+        # (each failed attempt appends its full generated script) have accumulated.
+        while sum(len(str(m.get("content", ""))) for m in self.messages) > 120000 and len(self.messages) > 4:
             self.messages.pop(2)
 
         params = {
@@ -78,8 +84,11 @@ class Programmer:
             else:
                 self.last_snaps = None
 
-        # Protect System Prompt (0) and Initial Task/Domain Knowledge (1)
-        while sum(len(str(m.get("content", ""))) for m in self.messages) > 70000 and len(self.messages) > 4:
+        # Protect System Prompt (0) and Initial Task/Domain Knowledge (1). Threshold scaled to the
+        # real 62000-token budget (MODEL_CONTEXT_LIMIT) — keeps enough headroom for at least a full
+        # OUTPUT_TOKENS_CEILING-sized generation even after several repair rounds' worth of history
+        # (each failed attempt appends its full generated script) have accumulated.
+        while sum(len(str(m.get("content", ""))) for m in self.messages) > 120000 and len(self.messages) > 4:
             self.messages.pop(2)
 
         params = {

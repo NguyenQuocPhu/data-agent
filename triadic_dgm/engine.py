@@ -346,6 +346,41 @@ class TriadicAgent:
                         chat_history_display[-1]["content"] += '\n🖥️ Execute code...\n'
                         yield chat_history_display
                         self.add_programmer_msg({"role": "assistant", "content": prog_response})
+
+                        # Same truncation-recovery as the initial generation path (see the
+                        # "```python" in prog_response branch earlier in this method) — if this
+                        # repair attempt itself got cut off by the output token limit (opened a
+                        # ```python fence but never closed it), ask the model to continue instead
+                        # of silently burning one of the limited repair attempts on unusable code.
+                        if "```python" in prog_response and prog_response.count("```") < 2:
+                            chat_history_display[-1]["content"] += (
+                                '\n\n⚠️ **Code sửa lỗi bị cắt giữa chừng do giới hạn token.** Đang yêu cầu Agent viết tiếp phần còn thiếu (không viết lại từ đầu)...\n'
+                            )
+                            yield chat_history_display
+                            self.add_programmer_msg({
+                                "role": "user",
+                                "content": (
+                                    "Your previous message was CUT OFF by the output token limit — it does not "
+                                    "end with a closing ``` fence. Continue writing the Python code EXACTLY from "
+                                    "where it stopped. Do NOT repeat any code you already wrote, do NOT restart or "
+                                    "rewrite the script from the beginning — output ONLY the remaining lines needed "
+                                    "to finish it. It must still end with the exact print(\"[JSON_START_PERSONA]\") / "
+                                    "print(json.dumps(personas)) / print(\"[JSON_END_PERSONA]\") block, and the "
+                                    "combined previous+continuation script must be valid Python wrapped so it ends "
+                                    "with a closing ``` fence."
+                                )
+                            })
+                            cont_response = ''
+                            for message in self.programmer._call_chat_model_streaming():
+                                cont_response += message
+                                chat_history_display[-1]["content"] += message
+                                yield chat_history_display
+                            self.add_programmer_msg({"role": "assistant", "content": cont_response})
+                            cont_stripped = re.sub(r'^\s*```python\n?', '', cont_response.strip())
+                            prog_response = prog_response + "\n" + cont_stripped
+                            chat_history_display[-1]["content"] += '\n🖥️ Execute code...\n'
+                            yield chat_history_display
+
                         is_python, code = extract_code(prog_response)
                         if is_python:
                             sign, msg_llm, exe_res = self.run_code(code)
@@ -483,6 +518,41 @@ class TriadicAgent:
                 chat_history_display[-1]["content"] += '\n</Retry>\n'
                 yield chat_history_display
                 self.add_programmer_msg({"role": "assistant", "content": prog_response})
+
+                # Same truncation-recovery as the other retry loops in this method — if this
+                # semantic-fix attempt itself got cut off by the output token limit (opened a
+                # ```python fence but never closed it), ask the model to continue instead of
+                # giving up immediately. Without this, extract_code returns is_python=False on the
+                # truncated text (no closing fence) and the loop below would `break` right away,
+                # ending the semantic-retry loop early even though attempts were still available.
+                if "```python" in prog_response and prog_response.count("```") < 2:
+                    chat_history_display[-1]["content"] += (
+                        '\n\n⚠️ **Code bị cắt giữa chừng do giới hạn token.** Đang yêu cầu Agent viết tiếp phần còn thiếu (không viết lại từ đầu)...\n'
+                    )
+                    yield chat_history_display
+                    self.add_programmer_msg({
+                        "role": "user",
+                        "content": (
+                            "Your previous message was CUT OFF by the output token limit — it does not "
+                            "end with a closing ``` fence. Continue writing the Python code EXACTLY from "
+                            "where it stopped. Do NOT repeat any code you already wrote, do NOT restart or "
+                            "rewrite the script from the beginning — output ONLY the remaining lines needed "
+                            "to finish it. It must still end with the exact print(\"[JSON_START_PERSONA]\") / "
+                            "print(json.dumps(personas)) / print(\"[JSON_END_PERSONA]\") block, and the "
+                            "combined previous+continuation script must be valid Python wrapped so it ends "
+                            "with a closing ``` fence."
+                        )
+                    })
+                    cont_response = ''
+                    for message in self.programmer._call_chat_model_streaming():
+                        cont_response += message
+                        chat_history_display[-1]["content"] += message
+                        yield chat_history_display
+                    self.add_programmer_msg({"role": "assistant", "content": cont_response})
+                    cont_stripped = re.sub(r'^\s*```python\n?', '', cont_response.strip())
+                    prog_response = prog_response + "\n" + cont_stripped
+                    chat_history_display[-1]["content"] += '\n🖥️ Execute code...\n'
+                    yield chat_history_display
 
                 # Execute new code
                 is_python, new_code = extract_code(prog_response)

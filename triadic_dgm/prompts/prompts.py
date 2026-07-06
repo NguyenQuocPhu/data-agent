@@ -65,7 +65,7 @@ def get_metric(m, keywords):
             return float(v)
     return 0.0
 
-def apply_business_rules(m, support_pct, profile=None, profile_global=None):
+def apply_business_rules(m, support_pct, profile=None, profile_global=None, dataset_mode=None, churn_driver_info=None):
     profile = profile or {{}}
     profile_global = profile_global or {{}}
     cl = get_metric(m, ['cl_total', 'cl', 'sự cố'])
@@ -93,12 +93,7 @@ def apply_business_rules(m, support_pct, profile=None, profile_global=None):
     else:
         severity = "LOW"
         
-    # 3. Risk (Khiếu nại & Cuộc gọi)
-    # LƯU Ý: `comp` là MEAN của cột khiếu nại theo cụm (không phải tổng số) — hầu như KHÔNG BAO
-    # GIỜ đúng bằng 0.0 dù cụm đó gần như không khiếu nại (dữ liệu zero-inflated). Ngưỡng
-    # `comp > 0` cũ khiến MỌI cụm đều bị gán risk=HIGH (đã xảy ra trên dữ liệu thật, làm tất cả
-    # persona đều HIGH risk, chặn luôn các nhánh composite-naming và gộp mọi persona vào cùng 1
-    # action "Outbound CSKH"). Ngưỡng đúng phải khớp với nhánh "bất mãn" bên dưới (comp >= 1.0).
+    # 3. Risk (Khiếu nại & Cuộc gọi) — comp>=1.0 khớp ngưỡng nhánh "bất mãn" bên dưới
     if call >= 50:
         risk = "EXTREME"
     elif comp >= 1.0 or call > 5:
@@ -143,18 +138,8 @@ def apply_business_rules(m, support_pct, profile=None, profile_global=None):
         name = "Nhóm hành vi chưa rõ"
         priority_score = 15 + (support_pct * 10)
 
-    # 5. Composite Signal Overrides — CHỈ áp dụng khi base engine (bước 2-4 ở trên) CHƯA phân loại
-    # cụm này là HIGH/EXTREME (severity hoặc risk). Nếu base engine đã tìm ra tín hiệu mạnh và
-    # đặc trưng (vd: "Liên hệ CSKH nhiều", "Khách hàng bất mãn"), TUYỆT ĐỐI KHÔNG ghi đè bằng tên
-    # chung chung ở đây — nếu không TẤT CẢ các cụm HIGH-risk khác nhau sẽ bị gộp về CÙNG 1 TÊN.
-    #
-    # DÙNG ĐỘ LỆCH TƯƠNG ĐỐI so với TRUNG BÌNH TOÀN QUẦN THỂ (profile_global), KHÔNG dùng ngưỡng
-    # tuyệt đối cố định — dữ liệu thật cho thấy nhiều field (usage_unstable_pct, status_worsening_pct,
-    # tier_upgrade_rate, usage_decline_mild_pct) hầu như luôn nằm trong một dải hẹp (vd 0.28-0.31)
-    # và KHÔNG BAO GIỜ chạm ngưỡng tuyệt đối như 0.4 dù CÓ khác biệt thật giữa các cụm — đây chính
-    # là lý do nhiều cụm rơi vào "Nhóm hành vi chưa rõ" dù thực ra có khác biệt. Ngưỡng tương đối
-    # phản ánh đúng "cụm này khác các cụm khác ở điểm nào", và luôn chọn tín hiệu LỆCH NHIỀU NHẤT
-    # thay vì tín hiệu đầu tiên khớp ngưỡng.
+    # 5. Composite Signal Overrides (chỉ khi base engine CHƯA phân loại HIGH/EXTREME) — dùng độ lệch
+    # TƯƠNG ĐỐI so với profile_global, không dùng ngưỡng tuyệt đối cố định, chọn tín hiệu lệch nhiều nhất.
     if severity not in ("HIGH", "EXTREME") and risk not in ("HIGH", "EXTREME"):
         def rel_dev(key):
             g = profile_global.get(key, 0)
@@ -180,8 +165,6 @@ def apply_business_rules(m, support_pct, profile=None, profile_global=None):
                 d = rel_dev(key)
                 if d > best_dev and profile.get(key, 0) > 0:
                     best_name, best_score, best_dev = cname, base_score, d
-            # Loyalty là tín hiệu 2 CHIỀU (hạng thấp hơn hẳn trung bình = giảm gắn bó, hạng cao hơn
-            # hẳn = tăng gắn bó) nên xét riêng, không dùng chung logic "lệch dương = đáng nói".
             loyalty_dev = rel_dev('loyalty_rank_avg')
             if loyalty_dev <= -0.4 and -loyalty_dev > best_dev:
                 best_name, best_score, best_dev = "Khách hàng giảm gắn bó, cần tái kích hoạt", 58, -loyalty_dev
@@ -191,26 +174,215 @@ def apply_business_rules(m, support_pct, profile=None, profile_global=None):
                 name = best_name
                 priority_score = max(priority_score, best_score + (support_pct * 10))
             elif name == "Nhóm hành vi chưa rõ":
-                # Không tín hiệu nào lệch đáng kể khỏi trung bình quần thể — đây là hành vi TRUNG
-                # BÌNH thật sự (đã kiểm tra, không phải thiếu dữ liệu), nên đặt tên trung tính thay
-                # vì tên gợi ý lỗi phân tích.
                 name = "Khách hàng ổn định"
+
+    churn_driver_info = churn_driver_info or {{}}
+    if dataset_mode == "POST_CHURN" and churn_driver_info:
+        name = churn_driver_info['churn_driver']
+        priority_score = (70 if churn_driver_info['churn_driver_confidence'] == 'MEDIUM' else 30) + (support_pct * 10)
 
     return {{
         "persona_type": persona_type,
         "severity": severity,
         "risk": risk,
         "persona_name": name,
-        "priority_score": round(priority_score)
+        "priority_score": round(priority_score),
+        "churn_driver": churn_driver_info.get('churn_driver'),
+        "churn_driver_evidence": churn_driver_info.get('churn_driver_evidence'),
+        "churn_driver_confidence": churn_driver_info.get('churn_driver_confidence'),
+        "temporal_trajectory": churn_driver_info.get('temporal_trajectory', [])
     }}
 
-4b. POST-HOC PROFILING ATTRIBUTES (BẮT BUỘC COPY-PASTE NGUYÊN VẸN, không tự sáng tạo tên biến khác): Đây là các thuộc tính MÔ TẢ (KHÔNG dùng để train KMeans), tính TRỰC TIẾP từ DataFrame `data` gốc (đã có cột 'cluster'), KHÔNG dùng `X`/`X_raw`. Tự động tìm cột theo từ khóa nên hoạt động với MỌI bộ dữ liệu, kể cả khi thiếu một vài cột (sẽ tự bỏ qua, KHÔNG bịa giá trị):
+4b. POST-HOC PROFILING ATTRIBUTES (BẮT BUỘC COPY-PASTE NGUYÊN VẸN, không tự sáng tạo tên biến khác): Đây là các thuộc tính MÔ TẢ (KHÔNG dùng để train KMeans), tính TRỰC TIẾP từ DataFrame `data` gốc (đã có cột 'cluster'), KHÔNG dùng `X`/`X_raw`. Tự động tìm cột theo từ khóa nên hoạt động với MỌI bộ dữ liệu, kể cả khi thiếu một vài cột (sẽ tự bỏ qua, KHÔNG bịa giá trị). QUAN TRỌNG: `get_temporal_trajectory`/`classify_churn_driver`/`compute_domain_signature` BẮT BUỘC tính trực tiếp từ `data` gốc (như `compute_profile_attributes`), KHÔNG được tính từ `cluster_stats`/`behavioral_features` — vì `behavioral_features` do model tự chọn để train KMeans có thể KHÔNG bao gồm các cột `old_*`/`recent_*` (đã xảy ra trên dữ liệu thật: thiếu các cột này khiến MỌI cụm đều rơi vào cùng 1 kết luận "không rõ nguyên nhân" dù các cụm thực ra rất khác nhau — vd 1 cụm hoàn toàn không khiếu nại, 1 cụm gọi CSKH gấp 20 lần trung bình, 1 cụm khiếu nại tăng gấp 39 lần trung bình). `compute_domain_signature` chia feature thành 6 domain (complaint/call/missed/technical/usage/value) và chấm điểm 1-5 sao mỗi domain theo độ lệch so với trung bình toàn quần thể — để persona được mô tả bằng TỔ HỢP NHIỀU DOMAIN (vd "giá trị cao + nhiều sự cố kỹ thuật + khiếu nại dồn dập, usage chưa suy giảm") thay vì chỉ 1 cột nổi bật nhất:
 ```python
 def get_column(cols, keywords):
     for c in cols:
         cl = str(c).lower()
         if any(kw in cl for kw in keywords):
             return c
+    return None
+
+def get_temporal_trajectory(grp):
+    roots = [('cl', 'Sự cố kỹ thuật'), ('complaint', 'Phàn nàn/khiếu nại'),
+             ('call', 'Cuộc gọi CSKH'), ('missed', 'Cuộc gọi nhỡ')]
+    cols = grp.columns
+    trajectory = []
+    for root, label in roots:
+        old_col = get_column(cols, [f'old_{{root}}'])
+        recent_col = get_column(cols, [f'recent_{{root}}'])
+        trend_col = get_column(cols, [f'{{root}}_trend'])
+        old_v = float(pd.to_numeric(grp[old_col], errors='coerce').fillna(0).mean()) if old_col else 0.0
+        recent_v = float(pd.to_numeric(grp[recent_col], errors='coerce').fillna(0).mean()) if recent_col else 0.0
+        trend_v = float(pd.to_numeric(grp[trend_col], errors='coerce').fillna(0).mean()) if trend_col else 0.0
+        if old_v > 0 or recent_v > 0:
+            direction = 'giảm mạnh' if trend_v < -0.3 else ('tăng mạnh' if trend_v > 0.3 else 'ổn định')
+            trajectory.append({{'metric': label, 'old': round(old_v, 3), 'recent': round(recent_v, 3), 'trend': direction}})
+    return trajectory
+
+def classify_churn_driver(grp, domain_sig=None):
+    # RULE ENGINE — persona LÀ TỔ HỢP NHIỀU DOMAIN (complaint/call/missed/technical/usage/value),
+    # KHÔNG PHẢI 1 domain nổi bật nhất (đã xảy ra trên dữ liệu thật: "Khách hàng bất mãn" chỉ dựa
+    # 100% vào complaint, "Liên hệ CSKH nhiều" chỉ dựa vào call — mất hết insight về SỰ KẾT HỢP,
+    # vd "giá trị cao + usage giảm + KHÔNG complaint" là 1 câu chuyện hoàn toàn khác "call cao +
+    # complaint cao + technical cao"). Luật CÀNG NHIỀU ĐIỀU KIỆN PHẢI xếp TRƯỚC luật ít điều kiện
+    # hơn, nếu không luật rộng sẽ "nuốt" mất các tổ hợp đặc biệt đáng nói hơn.
+    domain_sig = domain_sig or {{}}
+
+    def stars(dom):
+        info = domain_sig.get(dom)
+        return info.get('stars', 1) if isinstance(info, dict) else 1
+
+    s_complaint, s_call, s_missed = stars('complaint'), stars('call'), stars('missed')
+    s_technical, s_usage, s_value = stars('technical'), stars('usage'), stars('value')
+
+    trajectory = get_temporal_trajectory(grp)
+    by_metric = {{t['metric']: t for t in trajectory}}
+    empty = {{'old': 0, 'recent': 0, 'trend': 'ổn định'}}
+    cl_t = by_metric.get('Sự cố kỹ thuật', empty)
+    comp_t = by_metric.get('Phàn nàn/khiếu nại', empty)
+    # Trình tự xuất hiện (THEO DỮ LIỆU THẬT CÓ, không suy diễn quá mức): domain có "old" cao đã tồn
+    # tại từ giai đoạn đầu; domain chỉ có "recent" cao là tín hiệu MỚI, chỉ xuất hiện gần lúc rời
+    # mạng. Đây là thông tin trình tự thô (early/late), KHÔNG PHẢI timeline theo tháng chính xác.
+    onset_sequence = sorted(trajectory, key=lambda t: -t['old']) if trajectory else []
+
+    def result(driver, evidence, confidence):
+        return {{'churn_driver': driver, 'churn_driver_evidence': evidence,
+                 'churn_driver_confidence': confidence, 'temporal_trajectory': trajectory,
+                 'onset_sequence': onset_sequence}}
+
+    # 1. Silent Premium Churn: giá trị cao + usage suy giảm rõ, HOÀN TOÀN không complaint/call/missed
+    if s_value >= 4 and s_usage >= 3 and s_complaint <= 2 and s_call <= 2 and s_missed <= 2:
+        return result(
+            'Khách hàng giá trị cao nhưng trải nghiệm suy giảm',
+            'Nhóm chi tiêu cao với hành vi sử dụng dịch vụ suy giảm rõ rệt, nhưng KHÔNG phát sinh khiếu nại hay liên hệ CSKH trước khi rời mạng — dấu hiệu "rời mạng trong im lặng" ở nhóm giá trị cao, nhiều khả năng đã chuyển sang đối thủ thay vì phản ánh vấn đề.',
+            'MEDIUM')
+
+    # 2. Support Failure: gọi nhiều + phàn nàn + sự cố kỹ thuật CÙNG LÚC — lặp lại nhiều lần không xử lý dứt điểm
+    if s_call >= 4 and s_complaint >= 3 and s_technical >= 3:
+        return result(
+            'Khách hàng gặp sự cố kỹ thuật không được xử lý triệt để',
+            'Tần suất liên hệ CSKH cao đi kèm sự cố kỹ thuật và khiếu nại đều tăng mạnh cùng lúc — cho thấy vấn đề kỹ thuật lặp lại nhiều lần mà không được giải quyết dứt điểm qua các lần liên hệ.',
+            'MEDIUM')
+
+    # 3. Bất mãn thuần tuý do trải nghiệm dịch vụ (complaint cao, KHÔNG đi kèm liên hệ CSKH nhiều)
+    if s_complaint >= 4 and s_call <= 2 and s_missed <= 2:
+        had_early_problem = comp_t['old'] > 0.3 or cl_t['old'] > 0.3
+        faded_out = (comp_t['recent'] < comp_t['old'] * 0.5 or cl_t['recent'] < cl_t['old'] * 0.5) and \
+                    (comp_t['trend'] == 'giảm mạnh' or cl_t['trend'] == 'giảm mạnh')
+        if had_early_problem and faded_out:
+            return result(
+                'Bất mãn kéo dài, không được xử lý',
+                'Từng phát sinh khiếu nại/sự cố nhiều ở giai đoạn đầu, sau đó giảm dần và gần như im lặng trước khi rời mạng — dấu hiệu cho thấy khả năng vấn đề chưa từng được giải quyết triệt để, khách hàng "âm thầm" rời đi thay vì tiếp tục phản ánh.',
+                'MEDIUM')
+        return result(
+            'Sự cố/khiếu nại cấp tính ngay trước khi rời mạng',
+            'Khiếu nại/sự cố tăng mạnh ở giai đoạn gần rời mạng so với trước đó — dấu hiệu một sự kiện cụ thể (sự cố kỹ thuật, trải nghiệm tệ) là nguyên nhân trực tiếp, khác với một quá trình bất mãn kéo dài.',
+            'MEDIUM')
+
+    # 4. Nhu cầu hỗ trợ không đáp ứng (call/missed cao, KHÔNG đi kèm complaint/technical mạnh)
+    if s_call >= 3 or s_missed >= 3:
+        return result(
+            'Nhu cầu hỗ trợ không được đáp ứng đầy đủ',
+            'Tần suất liên hệ CSKH/cuộc gọi nhỡ ở mức cao gần thời điểm rời mạng — khách hàng đã chủ động tìm kiếm hỗ trợ nhưng có thể chưa được giải quyết thoả đáng.',
+            'MEDIUM')
+
+    # 5. Khách hàng giá trị cao, chủ động rời mạng (giá trị cao, MỌI domain khác đều thấp)
+    if s_value >= 4 and s_complaint <= 2 and s_call <= 2 and s_usage <= 2:
+        return result(
+            'Khách hàng giá trị cao, chủ động rời mạng',
+            'Nhóm chi tiêu cao, hành vi sử dụng dịch vụ vẫn ổn định và không phát sinh khiếu nại/sự cố — nguyên nhân rời mạng nhiều khả năng đến từ yếu tố NGOÀI trải nghiệm dịch vụ (giá cước, ưu đãi đối thủ cạnh tranh...) chứ không phải chất lượng dịch vụ.',
+            'MEDIUM')
+
+    # 6. Khách hàng âm thầm rời mạng (usage suy giảm, giá trị không cao, không phàn nàn)
+    if s_usage >= 3 and s_value <= 2 and s_complaint <= 2 and s_call <= 2:
+        return result(
+            'Khách hàng âm thầm rời mạng',
+            'Không phát sinh khiếu nại hay liên hệ CSKH đáng kể, nhưng hành vi sử dụng dịch vụ suy giảm dần trước khi rời mạng — dấu hiệu "rời mạng trong im lặng" thay vì phản ánh qua kênh CSKH trước.',
+            'MEDIUM')
+
+    return result(
+        'Không rõ nguyên nhân hành vi (có thể do giá cước/cạnh tranh/khác)',
+        'Không phát hiện dấu hiệu khiếu nại hoặc sự cố đáng kể trong lịch sử tương tác — nguyên nhân rời mạng nhiều khả năng đến từ yếu tố NGOÀI hành vi tương tác (giá cước, đối thủ cạnh tranh, chuyển vùng...), không đủ dữ liệu hành vi để kết luận thêm.',
+        'LOW')
+
+def compute_churn_drivers(df, domain_signature=None, cluster_col='cluster'):
+    domain_signature = domain_signature or {{}}
+    return {{cid: classify_churn_driver(grp, domain_signature.get(cid, {{}})) for cid, grp in df.groupby(cluster_col)}}
+
+DOMAIN_KEYWORD_GROUPS = {{
+    'complaint': ['complaint_total', 'complaint_avg', 'complaint_recent', 'complaint_trend', 'complaint_std', 'active_complaint_months', 'old_complaint', 'no_complaint'],
+    'call': ['call_total', 'call_avg', 'call_std', 'call_trend', 'old_call', 'recent_call', 'call_cv', 'active_call_months', 'no_call'],
+    'missed': ['missed_total', 'missed_avg', 'missed_std', 'missed_trend', 'old_missed', 'recent_missed', 'active_missed_months', 'no_missed'],
+    'technical': ['cl_total', 'cl_avg', 'cl_std', 'cl_trend', 'old_cl', 'recent_cl', 'active_cl_months', 'no_cl'],
+    'usage': ['spending_decline', 'spending_growth', 'usage_decline', 'usage_unstable', 'segment_downgrade', 'segment_upgrade', 'cnt_dao_dong', 'cnt_giam', 'status_worsening'],
+    'value': ['high_spender', 'fee_total', 'fee_avg', 'loyalty_rank', 'loyalty_point', 'segment_avg'],
+}}
+
+def compute_domain_signature(df, cluster_col='cluster'):
+    domain_cols = {{}}
+    for dom, kws in DOMAIN_KEYWORD_GROUPS.items():
+        found = []
+        for c in df.columns:
+            cl = str(c).lower()
+            if c != cluster_col and any(kw in cl for kw in kws) and c not in found:
+                found.append(c)
+        domain_cols[dom] = found
+
+    numeric_cache = {{}}
+    def numeric(col):
+        if col not in numeric_cache:
+            numeric_cache[col] = pd.to_numeric(df[col], errors='coerce').fillna(0)
+        return numeric_cache[col]
+
+    global_means = {{col: float(numeric(col).mean()) for cols in domain_cols.values() for col in cols}}
+
+    signature = {{}}
+    for cid, grp in df.groupby(cluster_col):
+        dom_scores = {{}}
+        for dom, cols in domain_cols.items():
+            feats = []
+            for col in cols:
+                g = global_means.get(col, 0)
+                v = float(numeric(col).loc[grp.index].mean())
+                # LƯU Ý QUAN TRỌNG: dev PHẢI là độ lệch CÓ DẤU (v - g), KHÔNG PHẢI abs(v - g).
+                # Dùng abs() từng khiến 1 cụm có complaint/technical THẤP HƠN hẳn trung bình (vd
+                # complaint_trend lệch -117%) nhận SAO CAO y hệt 1 cụm có complaint CAO HƠN hẳn —
+                # dẫn tới business_interpretation nói "ít sự cố" nhưng Customer Profile lại nói "có
+                # nhiều sự cố" (2 câu ngay cạnh nhau mâu thuẫn nhau, đã xảy ra trên báo cáo thật).
+                # complaint/call/missed/technical CÀNG CAO càng xấu — chỉ độ lệch DƯƠNG (nhiều hơn
+                # trung bình) mới là tín hiệu "đáng lo", độ lệch âm (ít hơn trung bình) là tín hiệu
+                # TỐT/trung tính, không được tính là "nổi bật" cho các domain này.
+                dev = (v - g) / abs(g) if g != 0 else v
+                feats.append((col, round(v, 4), round(g, 4), round(dev, 4)))
+            feats.sort(key=lambda x: -x[3])
+            top2 = [f for f in feats if f[3] > 0][:2]
+            max_dev = max([f[3] for f in feats] + [0])
+            stars = 5 if max_dev >= 5.0 else 4 if max_dev >= 2.0 else 3 if max_dev >= 0.75 else 2 if max_dev >= 0.25 else 1
+            dom_scores[dom] = {{'stars': stars, 'top_features': top2}}
+        signature[cid] = dom_scores
+    return signature
+
+def get_categorical_column(df, keywords):
+    # Dùng cho các cột DANH MỤC (services, package_type) — get_column() thường dùng khớp SUBSTRING
+    # thuần trên TÊN cột, nên có thể khớp NHẦM 1 cột SỐ ĐẾM có tên chứa cùng từ khóa (vd cột dịch vụ
+    # tên 'services' bị khớp nhầm thành cột số như 'add_services'/'num_services' nếu cột đó đứng
+    # trước trong thứ tự DataFrame — ĐÃ XẢY RA TRÊN DỮ LIỆU THẬT: value_counts() ra "0.0 (100%)"
+    # thay vì tên dịch vụ thật như "Net Pay"). Ưu tiên khớp CHÍNH XÁC tên cột trước, sau đó mới khớp
+    # substring NHƯNG bắt buộc kiểm tra cột đó thực sự là dạng text (không parse được thành số).
+    cols = df.columns
+    exact = [c for c in cols if str(c).lower() in keywords]
+    if exact:
+        return exact[0]
+    for c in cols:
+        cl = str(c).lower()
+        if any(kw in cl for kw in keywords):
+            sample = df[c].dropna()
+            if len(sample) == 0:
+                continue
+            sample = sample.astype(str).head(200)
+            numeric_frac = pd.to_numeric(sample, errors='coerce').notna().mean()
+            if numeric_frac < 0.5:
+                return c
     return None
 
 def compute_profile_attributes(df, cluster_col='cluster'):
@@ -220,27 +392,16 @@ def compute_profile_attributes(df, cluster_col='cluster'):
         'fee':          get_column(cols, ['fee_total', 'fee_avg']),
         'tier_upgrade': get_column(cols, ['segment_upgrade_count']),
         'tier_downgrade': get_column(cols, ['segment_downgrade_count']),
-        # ƯU TIÊN cột boolean 0/1 (ever_*/persistent_*) hơn cột đếm số tháng (cnt_*), vì ta cần
-        # TỶ LỆ khách hàng (0-1) chứ không phải trung bình SỐ THÁNG. get_column() chỉ nhận 1 danh
-        # sách từ khóa và trả về cột ĐẦU TIÊN theo thứ tự cột trong DataFrame (không theo độ ưu
-        # tiên từ khóa) — nên phải gọi riêng từng bước và dùng `or` để đảm bảo đúng thứ tự ưu tiên.
         'usage_giam_nhe':  get_column(cols, ['ever_giam_nhe']),
         'usage_giam_manh': get_column(cols, ['persistent_giam_manh']) or get_column(cols, ['ever_giam_manh']),
-        'usage_dao_dong_cnt':  get_column(cols, ['cnt_dao_dong']),  # cột đếm số tháng (0-6), KHÔNG phải tỷ lệ — phải chia cho 6
+        'usage_dao_dong_cnt':  get_column(cols, ['cnt_dao_dong']),
         'status_worsening': get_column(cols, ['status_worsening']),
         'loyalty_rank':   get_column(cols, ['loyalty_rank']),
         'csat':           get_column(cols, ['total_csat', 'csat']),
-        # KHÔNG dùng get_column(['ces', ...]) ở đây — 'ces' khớp NHẦM vào cột 'services' (chứa
-        # chuỗi con "ces": ser-vi-CES) do get_column so khớp SUBSTRING, khiến CES bị gán vào cột
-        # text dịch vụ rồi ép về 0.0 SAI (đã xảy ra trên báo cáo thật: mọi persona đều hiện "CES
-        # trung bình: 0.0"). Yêu cầu khớp CHÍNH XÁC tên cột hoặc có ranh giới từ (_ces/ces_).
         'ces': next((c for c in cols if str(c).lower() == 'ces' or str(c).lower().endswith('_ces')
                      or str(c).lower().startswith('ces_') or 'customer_effort' in str(c).lower()), None),
-        'package_type':   get_column(cols, ['goi_cuoc', 'package_type', 'skd_bill_localtype']),
-        # Cột dịch vụ đang dùng (vd 'Net Only', 'Net Pay Cam') KHÔNG dùng để train KMeans (là biến
-        # định danh, không phải hành vi số) nhưng vẫn PHẢI đưa vào nhận xét cuối cùng — đây là loại
-        # thông tin "mô tả thêm" giống hệt package_type, chỉ khác tên cột theo từng dataset.
-        'services':       get_column(cols, ['services', 'dich_vu']),
+        'package_type':   get_categorical_column(df, ['goi_cuoc', 'package_type', 'skd_bill_localtype']),
+        'services':       get_categorical_column(df, ['services', 'dich_vu']),
     }}
     profiles = {{}}
     for cid, grp in df.groupby(cluster_col):
@@ -258,7 +419,6 @@ def compute_profile_attributes(df, cluster_col='cluster'):
         if col_map['usage_giam_nhe']:
             p['usage_decline_mild_pct'] = round(float(pd.to_numeric(grp[col_map['usage_giam_nhe']], errors='coerce').fillna(0).mean()), 4)
         if col_map['usage_dao_dong_cnt']:
-            # cnt_Dao_dong đếm SỐ THÁNG (0-6) bị dao động trong kỳ 6 tháng — chia cho 6 để ra tỷ lệ 0-1
             raw_months = float(pd.to_numeric(grp[col_map['usage_dao_dong_cnt']], errors='coerce').fillna(0).mean())
             p['usage_unstable_pct'] = round(min(raw_months / 6.0, 1.0), 4)
         if col_map['status_worsening']:
@@ -279,9 +439,6 @@ def compute_profile_attributes(df, cluster_col='cluster'):
     return profiles
 
 def compute_profile_global_means(profile_attributes, cluster_sizes):
-    # Trung bình CÓ TRỌNG SỐ (theo size cụm) của từng field trong profile_attributes trên TOÀN
-    # QUẦN THỂ — dùng làm baseline để tính độ lệch tương đối cho apply_business_rules (mục 5),
-    # thay vì so sánh với ngưỡng tuyệt đối cố định không phù hợp với mọi dataset.
     total = sum(cluster_sizes.values()) or 1
     keys = set()
     for p in profile_attributes.values():
@@ -307,8 +464,6 @@ def classify_risk_tier(meta, profile):
     return "Nhóm bị động – theo dõi & cảnh báo"
 
 def get_columns(cols, keyword_groups):
-    # Biến thể SỐ NHIỀU của get_column ở trên — trả về MỘT cột cho MỖI keyword group, dùng để
-    # dựng ma trận nhiều cột (Stage-2 cần nhiều chiều dữ liệu cùng lúc, không phải tra 1 cột).
     found = []
     for kws in keyword_groups:
         c = get_column(cols, kws)
@@ -317,10 +472,6 @@ def get_columns(cols, keyword_groups):
     return found
 
 def try_substage_cluster(data, dominant_cid, cluster_col='cluster'):
-    # Stage-2: thử phân cụm LẠI riêng phần dominant cluster bằng các cột chi tiêu/hạng phân
-    # khúc/xu hướng sử dụng/loyalty/trạng thái (KHÔNG BAO GIỜ dùng biến hành vi — biến hành vi
-    # đã dùng ở Stage-1 rồi). Trả về data GIỮ NGUYÊN nếu KHÔNG tìm thấy tín hiệu thật sự —
-    # TUYỆT ĐỐI KHÔNG ép chia nếu không có bằng chứng thống kê.
     from sklearn.cluster import KMeans as _KMeans2
     from sklearn.preprocessing import StandardScaler as _Scaler2
     from sklearn.metrics import silhouette_score as _sil2
@@ -366,8 +517,6 @@ def try_substage_cluster(data, dominant_cid, cluster_col='cluster'):
         if sil2 > best_sil2:
             best_k2, best_sil2, best_labels2 = k2, sil2, labels2
 
-    # Ngưỡng tối thiểu GIỐNG HỆT Rule 1 của Verifier (Silhouette < 0.2 => REVISE) — không bao
-    # giờ chấp nhận 1 split Stage-2 mà Verifier sẽ đánh rớt ngay sau đó.
     if best_labels2 is None or best_sil2 < 0.2:
         info['reason'] = f'low_silhouette({{best_sil2:.3f}})' if best_labels2 is not None else 'no_valid_k'
         return data, False, info
@@ -377,7 +526,6 @@ def try_substage_cluster(data, dominant_cid, cluster_col='cluster'):
         info['reason'] = 'stage2_still_dominant'
         return data, False, info
 
-    # Đánh số lại sub-cluster SAU cluster ID lớn nhất hiện có để không trùng với các cụm khác.
     max_existing_cid = int(data[cluster_col].max())
     data.loc[subset_mask, cluster_col] = best_labels2 + (max_existing_cid + 1)
     info.update(reason='success', best_k2=int(best_k2), best_silhouette2=round(float(best_sil2), 4),
@@ -386,13 +534,31 @@ def try_substage_cluster(data, dominant_cid, cluster_col='cluster'):
 ```
 LƯU Ý: `compute_profile_attributes` CHỈ được gọi SAU KHI đã thử Stage-2 sub-clustering (xem mục 6b bên dưới) — KHÔNG gọi ngay sau khi vừa có `data['cluster']` từ Stage-1, nếu không các sub-cluster mới tách ra sẽ có `profile_attributes` giống hệt cụm gốc (mất hết ý nghĩa của Stage-2).
 
-SAU KHI TÍNH cluster_stats, GỌI HÀM NHƯ SAU (BẮT BUỘC, KHÔNG THAY ĐỔI):
+XÁC ĐỊNH DATASET_MODE (BẮT BUỘC TÍNH Ở ĐÂY — DUY NHẤT MỘT LẦN, KHÔNG tính lại ở bước xuất JSON cuối cùng): `dataset_mode` PHẢI có giá trị TRƯỚC KHI gọi `apply_business_rules` bên dưới, vì persona cho dữ liệu KHÁCH HÀNG ĐÃ RỜI MẠNG cần logic khác hẳn (xem `apply_business_rules`/`classify_churn_driver` ở mục 4):
+```python
+has_arpu = "arpu" in global_mean and global_mean["arpu"] > 0
+has_fee = any("fee" in str(c).lower() for c in global_mean.keys())
+has_churn_target = "rmdt" in [str(c).lower() for c in data.columns]
+
+if has_churn_target:
+    dataset_mode = "PRE_CHURN"
+elif not has_arpu and not has_fee:
+    dataset_mode = "POST_CHURN"
+elif has_fee and not has_arpu:
+    dataset_mode = "BEHAVIOR_PLUS_FEE"
+else:
+    dataset_mode = "ACTIVE"
+```
+QUAN TRỌNG — GHI ĐÈ BẮT BUỘC: nếu người dùng đã nêu rõ trong yêu cầu/hội thoại rằng dữ liệu này là khách hàng ĐÃ RỜI MẠNG / ĐÃ CHURN (không phải khách hàng đang hoạt động), BẮT BUỘC đặt `dataset_mode = "POST_CHURN"` NGAY CẢ KHI dataset có cột fee/arpu — dữ liệu billing LỊCH SỬ (trước khi rời mạng) vẫn tồn tại bình thường trong một tập khách hàng đã rời mạng, nên has_fee/has_arpu KHÔNG ĐỦ để loại trừ POST_CHURN trong trường hợp này (LỖI ĐÃ XẢY RA: dataset có fee_total/fee_avg lịch sử bị phân loại nhầm thành "BEHAVIOR_PLUS_FEE" (nghĩa là KH đang hoạt động), trong khi toàn bộ mẫu thực ra ĐÃ RỜI MẠNG, khiến "Risk" (nguy cơ rời mạng TRONG TƯƠNG LAI) bị tính cho người ĐÃ RỜI MẠNG RỒI — vô nghĩa, ra kết quả kiểu ">90% khách hàng risk thấp" ngay trên chính tập KH đã rời mạng).
+
+SAU KHI TÍNH cluster_stats, dataset_mode, profile_attributes VÀ domain_signature Ở TRÊN (mục 4b), GỌI HÀM NHƯ SAU (BẮT BUỘC, KHÔNG THAY ĐỔI). `churn_drivers` dùng `domain_signature` (đã tính ở mục 4b), KHÔNG tính lại từ `cluster_stats`/`row.to_dict()`:
 profile_global_means = compute_profile_global_means(profile_attributes, cluster_sizes)
+churn_drivers = compute_churn_drivers(data, domain_signature, cluster_col='cluster') if dataset_mode == "POST_CHURN" else {{}}
 business_metadata = {{}}
 base_names = {{}}
 for cid, row in cluster_stats.iterrows():
-    sp = persona_metrics.loc[cid, 'cluster_pct'] if 'cluster_pct' in persona_metrics.columns else (cluster_sizes[cid] / len(data))
-    meta = apply_business_rules(row.to_dict(), sp, profile_attributes.get(cid, {{}}), profile_global_means)
+    sp = cluster_sizes[cid] / len(data)
+    meta = apply_business_rules(row.to_dict(), sp, profile_attributes.get(cid, {{}}), profile_global_means, dataset_mode, churn_drivers.get(cid, {{}}))
     business_metadata[cid] = meta
     base_names[cid] = meta['persona_name']
 
@@ -408,6 +574,11 @@ for cid, name in base_names.items():
     else:
         final_names[cid] = name
 NẾU CÓ 2 CỤM CÙNG RULE → Hàm trên đã tự động thêm số thứ tự. TUYỆT ĐỐI KHÔNG tự sửa tên.
+
+BẮT BUỘC — KHỞI TẠO `personas` NGAY SAU ĐÂY, DÙNG ĐÚNG DÒNG NÀY (LỖI NGHIÊM TRỌNG ĐÃ XẢY RA TRÊN DỮ LIỆU THẬT: một lần chạy khai báo `personas = []` rồi KHÔNG BAO GIỜ thêm phần tử nào vào — vòng lặp `for p in personas:` ở mục "BUILD FINAL PERSONAS" bên dưới chạy 0 LẦN, JSON xuất ra RỖNG, toàn bộ report sập với lỗi "Total support must be greater than 0". `personas` KHÔNG được tự bịa cách khởi tạo — PHẢI dùng đúng `final_names` vừa tính ở trên để đảm bảo đủ, đúng cluster ID sau Stage-2):
+```python
+personas = [{{'cluster_id': int(cid)}} for cid in sorted(final_names.keys())]
+```
 5. DATA QUALITY GATE (TRƯỚC KHI TRAIN KMEANS): Trước khi train KMeans, BẮT BUỘC dùng ĐÚNG đoạn code sau để kiểm tra chất lượng dữ liệu — TUYỆT ĐỐI KHÔNG tự viết logic khác hay tự diễn giải "quá nhiều giá trị 0" theo cách riêng (LỖI ĐÃ TỪNG XẢY RA: tự chế ra kiểm tra "CÓ BẤT KỲ CỘT NÀO >99% zero" rồi dừng script — SAI, vì dữ liệu hành vi kiểu telecom luôn có nhiều cột thưa (sparse) 90-99% zero một cách BÌNH THƯỜNG, chỉ 1-2 cột thưa không có nghĩa là dataset vô dụng). Điều kiện dừng CHỈ được tính trên TOÀN BỘ ma trận đã chọn (aggregate), KHÔNG tính theo từng cột riêng lẻ:
 ```python
 zero_frac_overall = (data[behavioral_features] == 0).values.mean()
@@ -448,8 +619,10 @@ LƯU Ý QUAN TRỌNG: đây là MỘT LẦN PHÂN CỤM PHỤ trên các cột s
 CHỈ SAU KHI HOÀN TẤT BƯỚC STAGE-2 Ở TRÊN, mới được gọi (đây là điểm gọi DUY NHẤT của hàm này, không tính lại `profile_attributes` ở nơi khác):
 ```python
 profile_attributes = compute_profile_attributes(data, cluster_col='cluster')
+assert any(profile_attributes.get(cid) for cid in profile_attributes), "profile_attributes RỖNG cho TẤT CẢ cụm — đây LÀ LỖI (báo cáo cuối cùng sẽ thiếu toàn bộ đặc trưng phụ spend/tier/loyalty/services của từng cụm, đã xảy ra trên dữ liệu thật). Kiểm tra lại: các cột spend/tier/loyalty/services trong dataset có thực sự tồn tại và khớp từ khóa trong get_column() bên trong compute_profile_attributes() không."
+domain_signature = compute_domain_signature(data, cluster_col='cluster')
 ```
-`profile_attributes` sẽ được dùng lại ở bước tính `business_metadata` (item 4) và ở bước xuất JSON cuối cùng (item 11). QUAN TRỌNG: bất kỳ đoạn code nào dựng danh sách `personas`/`persona_metrics` ban đầu (từ `cluster_sizes` hoặc `data['cluster'].unique()`) PHẢI VIẾT SAU đoạn Stage-2 này, để nó liệt kê đúng các cluster ID SAU KHI tách (không dùng danh sách cụm cũ trước khi tách).
+`profile_attributes` sẽ được dùng lại ở bước tính `business_metadata` (item 4) và ở bước xuất JSON cuối cùng (item 11). `domain_signature` chỉ dùng ở bước xuất JSON cuối cùng (item 11). QUAN TRỌNG: danh sách `personas` PHẢI được khởi tạo bằng ĐÚNG dòng `personas = [{{'cluster_id': int(cid)}} for cid in sorted(final_names.keys())]` ở mục 4 (ngay sau khi `final_names` được tính) — KHÔNG được khởi tạo `personas = []` rồi bỏ trống, và KHÔNG được khởi tạo bằng danh sách cụm TRƯỚC Stage-2.
 
 DOMINANT CLUSTER HARD-STOP (CHỈ ÁP DỤNG SAU KHI ĐÃ THỬ STAGE-2 Ở TRÊN): nếu sau bước Stage-2, `dominant_cluster_pct` (đã tính lại) VẪN > 0.8 VÀ `stage2_triggered == False`, thì coi như clustering thất bại thật sự do không tách được hành vi. BẮT BUỘC DỪNG SCRIPT VÀ XUẤT JSON SAU ĐÓ GỌI `sys.exit(0)`:
 `print("[JSON_START_PERSONA]")`
@@ -490,34 +663,38 @@ plt.savefig('workspace/generated/reports/cluster_distribution.png')
 plt.close()
 RỒI IN Markdown NÀY RA MÀN HÌNH:
 `print("![Cluster Distribution](/file?path=workspace/generated/reports/cluster_distribution.png)")`
-11. JSON Output Generation & VISUALIZATION: BẮT BUỘC gõ chính xác đoạn code sau:
+11. JSON Output Generation & VISUALIZATION: BẮT BUỘC gõ chính xác đoạn code sau. LƯU Ý: `cluster_stats`, `global_mean`, và `dataset_mode` ĐÃ được tính ở mục 4 (ngay trước khi gọi `apply_business_rules`) — TUYỆT ĐỐI KHÔNG tính lại `dataset_mode` ở đây (nếu tính lại 2 lần có nguy cơ ra kết quả khác nhau do logic bị sửa ở 1 chỗ mà quên chỗ kia):
 import json
 import matplotlib.pyplot as plt
 import seaborn as sns
-
-# Tính mean của các behavioral features theo từng cụm
-cluster_stats = data.groupby('cluster')[behavioral_features].mean().round(4)
-global_mean = data[behavioral_features].mean().round(4)
-
-# Xác định Data Mode
-has_arpu = "arpu" in global_mean and global_mean["arpu"] > 0
-has_fee = any("fee" in str(c).lower() for c in global_mean.keys())
-has_churn_target = "rmdt" in [str(c).lower() for c in data.columns]
-
-if has_churn_target:
-    dataset_mode = "PRE_CHURN"
-elif not has_arpu and not has_fee:
-    dataset_mode = "POST_CHURN"
-elif has_fee and not has_arpu:
-    dataset_mode = "BEHAVIOR_PLUS_FEE"
-else:
-    dataset_mode = "ACTIVE"
 
 def generate_actions(dataset_mode, persona_name, severity, risk, profile=None):
     profile = profile or {{}}
     actions = []
     if dataset_mode == "POST_CHURN":
-        actions.extend(["Thực hiện khảo sát nguyên nhân rời mạng (Exit Survey)", "Kiểm tra lịch sử tương tác trước khi rời mạng (Root Cause Investigation)", "Chạy chiến dịch Win-back Campaign nếu khách hàng tiềm năng"])
+        # persona_name (POST_CHURN) == churn_driver — mỗi driver cần 1 hướng xử lý KHÁC NHAU, không
+        # phải cùng 1 bộ hành động cho mọi persona (đã xảy ra trên báo cáo thật: Roadmap 4 dòng đều
+        # là "Exit Survey" — trông như rule engine chưa đủ, dù nguyên nhân rời mạng của mỗi nhóm là
+        # khác nhau và cần hành động khác nhau).
+        # Kiểm tra tổ hợp CỤ THỂ HƠN (Silent Premium Churn, Support Failure) TRƯỚC các nhánh chung
+        # chung hơn ("giá trị cao", "sự cố") — nếu không nhánh rộng sẽ khớp nhầm và gán sai hành động
+        # (vd Silent Premium Churn chứa "giá trị cao" nhưng cần hành động early-warning theo usage,
+        # KHÔNG PHẢI phân tích giá như nhóm giá trị cao thuần tuý).
+        name_l = persona_name.lower()
+        if "trải nghiệm suy giảm" in name_l:
+            actions.extend(["Trigger chiến dịch retention ngay khi usage giảm 20% (Early Warning, không chờ khiếu nại)", "Theo dõi usage giảm và cảnh báo sớm (Early Warning System)"])
+        elif "sự cố kỹ thuật không được xử lý" in name_l:
+            actions.extend(["Escalate khiếu nại kỹ thuật lặp lại trong 24h", "Callback tự động sau khi xử lý sự cố kỹ thuật"])
+        elif "giá trị cao" in name_l:
+            actions.extend(["Phân tích đối thủ cạnh tranh và chính sách giá", "Khảo sát nguyên nhân rời mạng (Exit Survey) cho nhóm giá trị cao"])
+        elif "bất mãn" in name_l or "sự cố" in name_l or "khiếu nại" in name_l:
+            actions.extend(["Rút ngắn SLA xử lý khiếu nại", "Kiểm tra lịch sử tương tác trước khi rời mạng (Root Cause Investigation)"])
+        elif "liên hệ" in name_l or "hỗ trợ" in name_l:
+            actions.extend(["Cải thiện tỷ lệ xử lý xong trong 1 lần liên hệ (First Call Resolution)", "Kiểm tra lịch sử tương tác trước khi rời mạng (Root Cause Investigation)"])
+        elif "âm thầm" in name_l:
+            actions.extend(["Theo dõi usage giảm và cảnh báo sớm (Early Warning System)", "Chạy chiến dịch Win-back Campaign nếu khách hàng tiềm năng"])
+        else:
+            actions.extend(["Thực hiện khảo sát nguyên nhân rời mạng (Exit Survey)", "Kiểm tra lịch sử tương tác trước khi rời mạng (Root Cause Investigation)", "Chạy chiến dịch Win-back Campaign nếu khách hàng tiềm năng"])
     else:
         if risk in ["HIGH", "EXTREME"] or "bất mãn" in persona_name.lower():
             actions.append("Outbound CSKH chủ động để xoa dịu khách hàng")
@@ -544,9 +721,16 @@ def generate_actions(dataset_mode, persona_name, severity, risk, profile=None):
 
 for p in personas:
     cid = p['cluster_id']
+    # BẮT BUỘC gán support/support_pct Ở ĐÂY — LỖI NGHIÊM TRỌNG ĐÃ XẢY RA TRÊN DỮ LIỆU THẬT: 2 trường
+    # này chưa từng được gán tường minh ở BẤT KỲ đâu trong vòng lặp này trước đây, chỉ được NGỤ Ý qua
+    # 1 dòng bảng markdown mẫu — khiến JSON xuất ra THIẾU HẲN "support"/"support_pct" (không phải bằng
+    # 0, mà HOÀN TOÀN VẮNG MẶT), Total Customers hiện "NaN" ở dashboard và report sập với lỗi "Total
+    # support must be greater than 0". support_pct PHẢI là PHÂN SỐ (0-1), TUYỆT ĐỐI KHÔNG nhân *100:
+    p['support'] = int(cluster_sizes[cid])
+    p['support_pct'] = cluster_sizes[cid] / len(data)
     means = cluster_stats.loc[cid].to_dict()
     p['feature_means'] = means
-    
+
     # Gán metadata từ Business Rules Engine
     meta = business_metadata[cid]
     p['persona_type'] = meta['persona_type']
@@ -554,6 +738,18 @@ for p in personas:
     p['risk'] = meta['risk']
     p['persona_name'] = final_names[cid]
     p['priority_score'] = meta['priority_score']
+    # Churn Driver (CHỈ có giá trị khi dataset_mode == "POST_CHURN", None với các mode khác) —
+    # thay thế "risk trong tương lai" (vô nghĩa cho KH đã rời mạng) bằng nguyên nhân rời mạng suy ra
+    # từ quỹ đạo hành vi, kèm evidence và temporal_trajectory để mô tả persona chi tiết hơn.
+    p['churn_driver'] = meta.get('churn_driver')
+    p['churn_driver_evidence'] = meta.get('churn_driver_evidence')
+    p['churn_driver_confidence'] = meta.get('churn_driver_confidence')
+    p['temporal_trajectory'] = meta.get('temporal_trajectory', [])
+    p['onset_sequence'] = meta.get('onset_sequence', [])
+    # Domain Signature: 6 domain (complaint/call/missed/technical/usage/value), mỗi domain 1-5 sao
+    # theo độ lệch so với trung bình toàn quần thể — để Narrative Generator (LLM) mô tả persona
+    # bằng TỔ HỢP nhiều domain thay vì chỉ 1 feature nổi bật nhất.
+    p['domain_signature'] = domain_signature.get(cid, {{}})
 
     # Profile Attributes & Risk Tier (post-hoc, item 4b)
     p['profile_attributes'] = profile_attributes.get(cid, {{}})
@@ -577,6 +773,13 @@ for p in personas:
         elif gval == 0 and val > 0:
             evidence[feat] = round(val, 4)
     p['evidence'] = evidence if evidence else means  # fallback nếu không có feature khác biệt
+
+assert sum(p.get('support', 0) for p in personas) > 0, "TẤT CẢ persona đều thiếu/bằng 0 'support' — đây LÀ LỖI (đã xảy ra trên dữ liệu thật: report sập với 'Total support must be greater than 0', dashboard hiện 'Total Customers: NaN'). Kiểm tra lại 2 dòng `p['support'] = int(cluster_sizes[cid])` và `p['support_pct'] = cluster_sizes[cid] / len(data)` ở ĐẦU vòng lặp BUILD FINAL PERSONAS có được giữ nguyên không."
+assert all(len(p.get('recommended_actions', [])) > 0 for p in personas), "recommended_actions RỖNG cho ít nhất 1 cụm — đây LÀ LỖI (generate_actions() LUÔN có fallback trả về ít nhất 1 hành động, nên list rỗng nghĩa là generate_actions() đã KHÔNG được gọi đúng như hướng dẫn). Business Roadmap ở báo cáo cuối cùng sẽ hiện 'N/A'/'TBD' cho MỌI cụm nếu bug này không được sửa."
+assert any(p.get('domain_signature') for p in personas), "domain_signature RỖNG cho TẤT CẢ cụm — đây LÀ LỖI (đã xảy ra trên dữ liệu thật: khi domain_signature rỗng, Customer Profile ở báo cáo cuối cùng suy diễn MỌI domain về 'không nổi bật', tạo ra các câu SAI SỰ THẬT và MÂU THUẪN với chính Business Signals — ví dụ 1 cụm có call/missed lệch +1980% vẫn bị mô tả là 'Ít khi liên hệ CSKH'). Kiểm tra lại dòng `p['domain_signature'] = domain_signature.get(cid, {{}})` trong vòng lặp BUILD FINAL PERSONAS có được giữ nguyên không, và `domain_signature` (tính ở mục 4b) có thực sự có nội dung không."
+_generic_fallback_action = "Thu thập thêm dữ liệu hành vi (Ticket logs, Call Center logs)"
+_high_risk_personas = [p for p in personas if p.get('risk') in ('HIGH', 'EXTREME') or p.get('severity') in ('HIGH', 'EXTREME')]
+assert not (_high_risk_personas and all((p.get('recommended_actions') or [None])[0] == _generic_fallback_action for p in _high_risk_personas)), f"Có {{len(_high_risk_personas)}} cụm risk/severity HIGH/EXTREME nhưng TẤT CẢ đều nhận hành động fallback chung chung '{{_generic_fallback_action}}' thay vì hành động cụ thể (vd 'Outbound CSKH chủ động để xoa dịu khách hàng') — kiểm tra lại generate_actions() có nhận đúng persona_name/severity/risk của TỪNG cụm hay không."
 print("[JSON_START_PERSONA]")
 print(json.dumps(personas, ensure_ascii=False))
 print("[JSON_END_PERSONA]")

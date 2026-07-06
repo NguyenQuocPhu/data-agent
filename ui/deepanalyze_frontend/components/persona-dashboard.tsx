@@ -56,6 +56,8 @@ export interface Persona {
   evidence?: Record<string, number>;
   profile_attributes?: ProfileAttributes;
   recommended_actions?: string[];
+  domain_signature?: Record<string, { stars: number; top_features: [string, number, number][] }>;
+  churn_driver?: string;
 }
 
 interface PersonaDashboardProps {
@@ -86,6 +88,11 @@ export function PersonaDashboard({ data }: PersonaDashboardProps) {
   const safeNum = (v: unknown): number => (typeof v === "number" && isFinite(v) ? v : 0);
   const hasChurnData = actualData.some((item) => typeof item.churn_rate === "number" && isFinite(item.churn_rate));
   const hasRevenueData = actualData.some((item) => typeof item.arpu === "number" && isFinite(item.arpu) && item.arpu > 0);
+  // POST_CHURN datasets: every persona is already-churned by definition, so churn_rate=1.0 (100%)
+  // for all of them is CORRECT data, not a bug — but showing a bare "100%" in a "Weighted average"
+  // KPI tile reads as an alarming, out-of-context metric. Detect via churn_driver (only ever set
+  // for POST_CHURN mode) and relabel the tile instead of treating it as future-risk framing.
+  const isPostChurnDataset = actualData.some((item) => Boolean((item as any).churn_driver));
 
   // Calculate Revenue at Risk
   const chartData = actualData.map((item) => {
@@ -149,12 +156,21 @@ export function PersonaDashboard({ data }: PersonaDashboardProps) {
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Avg Churn Rate</CardTitle>
+            <CardTitle className="text-sm font-medium">{isPostChurnDataset ? "Churn Status" : "Avg Churn Rate"}</CardTitle>
             <AlertTriangle className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{hasChurnData ? formatPercent(avgChurn) : "N/A"}</div>
-            <p className="text-xs text-muted-foreground">{hasChurnData ? "Weighted average" : "Không có dữ liệu churn"}</p>
+            {isPostChurnDataset ? (
+              <>
+                <div className="text-2xl font-bold">100%</div>
+                <p className="text-xs text-muted-foreground">Toàn bộ mẫu đã rời mạng (không áp dụng dự báo rủi ro)</p>
+              </>
+            ) : (
+              <>
+                <div className="text-2xl font-bold">{hasChurnData ? formatPercent(avgChurn) : "N/A"}</div>
+                <p className="text-xs text-muted-foreground">{hasChurnData ? "Weighted average" : "Không có dữ liệu churn"}</p>
+              </>
+            )}
           </CardContent>
         </Card>
         <Card>

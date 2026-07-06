@@ -132,9 +132,9 @@
         ],
         "strength": "MUST",
         "tool_category": "data_analysis",
-        "errors_fixed": 68,
+        "errors_fixed": 69,
         "token_length": 32,
-        "mdl_score": 2.125
+        "mdl_score": 2.1562
     },
     {
         "nl_rule": "\n\n1.  **Verify Registry Schema:** Inspect the internal dataset registry structure to confirm the actual keys present for the selected dataset identifier, ensuring they match the loader's expectations.\n2.  **Update Access Logic:** Modify the data loading function to validate the existence of required metadata fields before attempting to access them, preventing crashes on missing keys.\n3.  **Refine Selection Criteria:** Adjust the dataset selection logic to ensure only entries with complete and valid metadata are chosen automatically, filtering out incomplete records.\n4.  **Implement Error Handling:** Add conditional checks or try-except blocks to gracefully handle missing metadata keys, allowing the system to fallback to alternative loading methods or report the schema mismatch clearly.",
@@ -1386,9 +1386,9 @@
         ],
         "strength": "MUST",
         "tool_category": "data_analysis",
-        "errors_fixed": 114,
+        "errors_fixed": 125,
         "token_length": 26,
-        "mdl_score": 4.3846
+        "mdl_score": 4.8077
     },
     {
         "nl_rule": "Semantic check failed: \u26a0 L\u1ed7i M\u00e2u Thu\u1eabn Ch\u00e2n Dung: T\u00ean Persona 'Kh\u00e1ch h\u00e0ng hay g\u1eb7p s\u1ef1 c\u1ed1 - c\u1ea7n h\u1ed7 tr\u1ee3' \u00e1m ch\u1ec9 kh\u00e1ch g\u1eb7p s\u1ef1 c\u1ed1 nh\u01b0ng Sample Text 'k\u1ebft n\u1ed1i m\u1ea1ng \u1ed5n \u0111\u1ecbnh | \u0111\u1ed9 suy hao quang trung b\u00ecnh l\u00e0 -16.4 dbm | \u00edt g\u1ecdi cskh | kh\u00e1ch h\u00e0ng l\u00e2u n\u0103m' l\u1ea1i to\u00e0n \u0111i\u1ec1u t\u00edch c\u1ef1c. T\u00ean Persona ph\u1ea3i nh\u1ea5t qu\u00e1n v\u1edbi d\u1eef li\u1ec7u!",
@@ -3458,5 +3458,217 @@
         "errors_fixed": 1,
         "token_length": 256,
         "mdl_score": 0.0039
+    },
+    {
+        "nl_rule": "\n\n## Fix Instructions\n\n### Root Cause Analysis\nThe code was truncated mid-line at `if not p['recommended` causing a `SyntaxError: unterminated string literal`. This occurred because the previous output was cut off by token limits before completing the line.\n\n### Actionable Fix Steps\n\n1. **Complete the truncated line**: Find the incomplete line that ends with `if not p['recommended` and complete it to `if not p['recommended_actions']:`\n\n2. **Verify code structure**: Ensure all conditional statements, loops, and function definitions are properly closed with matching brackets/parentheses before the JSON output block.\n\n3. **Check JSON output block**: Confirm the script ends with the required three-line JSON output format:\n   - `print(\"[JSON_START_PERSONA]\")`\n   - `print(json.dumps(personas, ensure_ascii=False))`\n   - `print(\"[JSON_END_PERSONA]\")`\n\n4. **Validate Python syntax**: Run a syntax check on the complete script to ensure no other lines are truncated or incomplete before execution.\n\n5. **Ensure closing fence**: The final output must end with a closing ``` fence after the JSON block.\n\n### Prevention Guidelines\n- When generating code, always verify the last line is complete before outputting\n- Include a final validation step to check for unterminated strings or incomplete statements\n- Ensure the JSON output block is always the final code section before the closing fence",
+        "domain": "python",
+        "qualifier": [
+            "runtime_error"
+        ],
+        "action": [
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "coding",
+        "errors_fixed": 1,
+        "token_length": 197,
+        "mdl_score": 0.0051
+    },
+    {
+        "nl_rule": "\n\n### Root Cause Analysis\nThe execution failed due to a `SyntaxError: unterminated string literal`. This indicates that a code line was truncated mid-string, leaving an opening quote without a closing quote. This typically occurs when code generation is cut off by token limits before the statement is fully completed.\n\n### Actionable Fix Steps\n\n1.  **Complete the Syntax**: Locate the line identified in the error trace where the string literal is incomplete. Add the missing closing quote and any necessary closing brackets or parentheses to ensure the statement is syntactically valid.\n2.  **Validate Statement Integrity**: Ensure all conditional statements, loops, and function definitions in the script are properly closed with matching delimiters before proceeding to the output section.\n3.  **Verify JSON Output Format**: Confirm the script concludes with the required three-line JSON output block:\n    *   Print the start marker.\n    *   Print the serialized data object.\n    *   Print the end marker.\n4.  **Check Data Integrity**: Ensure the target variable is excluded from feature sets used in clustering algorithms to prevent data leakage.\n5.  **Enforce Root Cause Logic**: Verify that the logic adheres to the specific business rules regarding dataset constraints (e.g., handling zero values) without using prohibited keywords.\n6.  **Final Syntax Check**: Run a syntax validation on the complete script to ensure no other lines are truncated or incomplete before execution.\n\n### Prevention Guidelines\n- **Monitor Output Length**: Ensure the generated code block is complete before finalizing the response to avoid truncation.\n- **Self-Correction**: Include a final validation step to check for unterminated strings or incomplete statements within the generated code.\n- **Consistent Formatting**: Always ensure the JSON output block is the final code section before the closing markdown fence.",
+        "domain": "python",
+        "qualifier": [
+            "runtime_error"
+        ],
+        "action": [
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "coding",
+        "errors_fixed": 2,
+        "token_length": 278,
+        "mdl_score": 0.0072
+    },
+    {
+        "nl_rule": "\n\n### Fix Instructions\n\n1.  **Correct Syntax Error:** Locate the dictionary access statement where the key string is missing its closing quotation mark (e.g., `'key` instead of `'key'`). Ensure all string literals are properly terminated with matching quotes before the closing bracket to resolve the `SyntaxError`.\n2.  **Preserve In-Memory State:** Do not redeclare or recompute variables that were successfully assigned prior to the failing line. Continue the pipeline using the existing in-memory objects to maintain the incremental fix approach.\n3.  **Enforce JSON Output Format:** When generating the final Persona output, strictly use the required markers: print `[JSON_START_PERSONA]`, followed by `json.dumps(personas)`, and finally `[JSON_END_PERSONA]` to ensure semantic validation passes.\n4.  **Prevent Data Leakage:** Before running any clustering algorithms (e.g., KMeans), ensure the target variable (e.g., `RMDT`) is dropped from the feature set to avoid data leakage.\n5.  **Maintain Root Cause Integrity:** Ensure the pipeline executes in Root Cause Mode. Do not use `priority score` keywords and ensure the dataset handling respects the constraint that no records with zero revenue (`ARPU=0`) should be excluded based on priority logic.\n6.  **Redefine Helpers:** Explicitly redefine all helper functions called within the fix cell at the top of the code block. Do not assume they exist in memory, as this prevents `NameError` issues on subsequent runs.",
+        "domain": "python",
+        "qualifier": [
+            "runtime_error"
+        ],
+        "action": [
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "coding",
+        "errors_fixed": 1,
+        "token_length": 210,
+        "mdl_score": 0.0048
+    },
+    {
+        "nl_rule": "\n\n1. **Fix String Literal Syntax:** Locate the line where the column name string is split across lines or contains an unexpected newline character. Correct the string literal to ensure it represents the complete column name as a single continuous string without internal breaks.\n\n2. **Prevent Data Leakage:** Ensure the target variable (churn indicator) is explicitly excluded from the feature set used for the clustering algorithm, allowing it to be used only for post-clustering metric calculation.\n\n3. **Ensure Output Compliance:** Verify that the script execution concludes with the mandatory JSON output markers and serialization block to satisfy the persona generation requirements.",
+        "domain": "python",
+        "qualifier": [
+            "runtime_error"
+        ],
+        "action": [
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "coding",
+        "errors_fixed": 1,
+        "token_length": 100,
+        "mdl_score": 0.01
+    },
+    {
+        "nl_rule": "\n\n### Fix Instructions\n\n1.  **Correct String Literal Syntax:** Locate the statement where a dictionary key or column name is accessed via a string. Ensure the string is enclosed in matching quotation marks on a single line without internal line breaks or unescaped characters. Verify that the opening quote is immediately followed by the intended text and closed before the statement ends.\n\n2.  **Prevent Data Leakage:** Before initializing the clustering algorithm, explicitly filter the feature matrix to exclude the target variable (the metric being predicted or analyzed). Ensure this variable is only used for post-clustering evaluation, never as an input feature for the model.\n\n3.  **Ensure Output Compliance:** Wrap the final serialization of the persona data with the mandatory JSON output markers. Verify that the script prints the start marker, the serialized JSON object, and the end marker in the correct sequence to satisfy the parsing requirements.\n\n4.  **Maintain Stateful Context:** Since the execution environment is stateful, do not re-execute data loading or preprocessing steps that completed successfully prior to the error. Reuse the existing in-memory variables for the dataset and only re-run the specific logic required to fix the syntax error and subsequent pipeline stages.",
+        "domain": "python",
+        "qualifier": [
+            "runtime_error"
+        ],
+        "action": [
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "coding",
+        "errors_fixed": 2,
+        "token_length": 195,
+        "mdl_score": 0.0103
+    },
+    {
+        "nl_rule": "\n\n1. **Fix Syntax Error:** Locate the incomplete string literal within the action generation logic (specifically where the list of actions is extended). Ensure every opening quote has a corresponding closing quote on the same logical line, removing any orphaned or split lines that break the statement structure.\n\n2. **Preserve Output Format:** Verify the script ends with the required JSON output markers (`[JSON_START_PERSONA]`, `json.dumps`, `[JSON_END_PERSONA]`) to ensure valid persona data extraction and compliance with output validation rules.\n\n3. **Validate Data Integrity:** Ensure the modification does not alter the feature selection logic, specifically keeping the target variable excluded from the clustering input matrix to prevent data leakage.",
+        "domain": "python",
+        "qualifier": [
+            "runtime_error"
+        ],
+        "action": [
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "coding",
+        "errors_fixed": 1,
+        "token_length": 105,
+        "mdl_score": 0.0095
+    },
+    {
+        "nl_rule": "\n\n1. **Correct String Literals:** Locate the interrupted string literal causing the syntax error and ensure it is properly closed with a matching quotation mark. Verify that all list elements and function arguments are syntactically complete before the line ends.\n2. **Enforce Output Protocol:** Ensure the script concludes with the mandatory JSON output block using the specific print sequence (`[JSON_START_PERSONA]`, `json.dumps`, `[JSON_END_PERSONA]`) to satisfy semantic validation rules.\n3. **Validate Data Integrity:** During logic continuation, verify that target variables are not incorrectly used as features and dataset constraints are respected to avoid data leakage or integrity issues.\n4. **Final Validation:** Confirm the entire combined script is syntactically valid Python and ends with a closing code fence.",
+        "domain": "python",
+        "qualifier": [
+            "runtime_error"
+        ],
+        "action": [
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "coding",
+        "errors_fixed": 2,
+        "token_length": 114,
+        "mdl_score": 0.0175
+    },
+    {
+        "nl_rule": "\n\n1. **Initialize Result Container:** Ensure the variable storing the final persona collection is explicitly initialized and populated with computed data before the script reaches the output section. The error indicates this data structure is missing or empty when the pipeline attempts to access it.\n\n2. **Enforce Output Protocol:** Implement the final output sequence strictly using the designated start marker, the JSON serialization of the result variable, and the designated end marker in that exact order. Do not omit or alter this sequence.\n\n3. **Prevent Data Leakage:** Verify that target variables are removed from the feature set prior to any clustering or modeling operations to ensure data integrity.\n\n4. **Adhere to Analysis Constraints:** Confirm the script operates within the required analysis mode and avoids prohibited keywords or assumptions regarding non-existent dataset fields (e.g., revenue variables).",
+        "domain": "python",
+        "qualifier": [
+            "runtime_error"
+        ],
+        "action": [
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "coding",
+        "errors_fixed": 1,
+        "token_length": 134,
+        "mdl_score": 0.0075
+    },
+    {
+        "nl_rule": "\n\n1. **S\u1eeda Logic Ph\u00e1t Hi\u1ec7n Ch\u1ebf \u0110\u1ed9 D\u1eef Li\u1ec7u:** C\u1eadp nh\u1eadt logic x\u00e1c \u0111\u1ecbnh `dataset_mode` (B\u01b0\u1edbc 3) \u0111\u1ec3 nh\u1eadn di\u1ec7n ch\u00ednh x\u00e1c d\u1eef li\u1ec7u kh\u00e1ch h\u00e0ng \u0111\u00e3 r\u1eddi m\u1ea1ng (`POST_CHURN`/Root Cause Mode). Thay v\u00ec ch\u1ec9 d\u1ef1a v\u00e0o bi\u1ebfn m\u1ee5c ti\u00eau `RMDT` ho\u1eb7c doanh thu `ARPU`, h\u00e3y ki\u1ec3m tra c\u00e1c ch\u1ec9 b\u00e1o h\u00e0nh vi \u0111\u1eb7c tr\u01b0ng c\u1ee7a kh\u00e1ch h\u00e0ng r\u1eddi m\u1ea1ng (v\u00ed d\u1ee5: `status_worsening`, `no_fee_all_period`, ho\u1eb7c `months_since_last_call`). \u0110i\u1ec1u n\u00e0y \u0111\u1ea3m b\u1ea3o tu\u00e2n th\u1ee7 Rule 3 v\u00e0 k\u00edch ho\u1ea1t \u0111\u00fang logic ph\u00e2n t\u00edch nguy\u00ean nh\u00e2n r\u1eddi m\u1ea1ng.\n\n2. **\u0110i\u1ec1u Ch\u1ec9nh \u0110i\u1ec1u Ki\u1ec7n D\u1eebng D\u1eef Li\u1ec7u:** S\u1eeda \u0111\u1ed5i logic ki\u1ec3m tra ch\u1ea5t l\u01b0\u1ee3ng ph\u00e2n c\u1ee5m (B\u01b0\u1edbc 8) \u0111\u1ec3 kh\u00f4ng d\u1eebng ch\u01b0\u01a1ng tr\u00ecnh (`sys.exit`) ngay khi ph\u00e1t hi\u1ec7n c\u1ee5m chi\u1ebfm \u0111a s\u1ed1 (>80%) n\u1ebfu d\u1eef li\u1ec7u \u0111\u01b0\u1ee3c x\u00e1c \u0111\u1ecbnh l\u00e0 `POST_CHURN`. D\u1eef li\u1ec7u kh\u00e1ch h\u00e0ng r\u1eddi m\u1ea1ng th\u01b0\u1eddng c\u00f3 t\u00ednh \u0111\u1ed3ng nh\u1ea5t cao, do \u0111\u00f3 c\u1ea7n cho ph\u00e9p quy tr\u00ecnh ti\u1ebfp t\u1ee5c t\u1ea1o Persona v\u1edbi c\u1ea3nh b\u00e1o ch\u1ea5t l\u01b0\u1ee3ng thay v\u00ec t\u1eeb b\u1ecf ho\u00e0n to\u00e0n.\n\n3. **T\u0103ng C\u01b0\u1eddng Kh\u1ea3 N\u0103ng Ph\u00e2n Nh\u00e1nh Ph\u1ee5:** C\u1ea3i thi\u1ec7n c\u01a1 ch\u1ebf ph\u00e2n c\u1ee5m ph\u1ee5 (B\u01b0\u1edbc 7) \u0111\u1ec3 x\u1eed l\u00fd tr\u01b0\u1eddng h\u1ee3p c\u1ee5m ch\u00ednh qu\u00e1 l\u1edbn. N\u1ebfu l\u1ea7n ph\u00e2n c\u1ee5m ph\u1ee5 \u0111\u1ea7u ti\u00ean th\u1ea5t b\u1ea1i (l\u00fd do `stage2_still_dominant`), h\u00e3y th\u1eed s\u1eed d\u1ee5ng t\u1eadp \u0111\u1eb7c tr\u01b0ng kh\u00e1c ho\u1eb7c gi\u1ea3m ng\u01b0\u1ee1ng Silhouette \u0111\u1ec3 b\u1eaft bu\u1ed9c t\u00ecm ra c\u00e1c nh\u00f3m con c\u00f3 \u00fd ngh\u0129a, tr\u00e1nh tr\u1ea3 v\u1ec1 k\u1ebft qu\u1ea3 th\u1ea5t b\u1ea1i s\u1edbm.",
+        "domain": "python",
+        "qualifier": [
+            "runtime_error"
+        ],
+        "action": [
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "coding",
+        "errors_fixed": 1,
+        "token_length": 230,
+        "mdl_score": 0.0043
+    },
+    {
+        "nl_rule": "Semantic check failed: \u26a0 \u1ea2o Gi\u00e1c Nh\u00e2n Qu\u1ea3 (Causal Hallucination): B\u1ea1n kh\u00f4ng \u0111\u01b0\u1ee3c ph\u00e9p k\u1ebft lu\u1eadn nguy\u00ean nh\u00e2n r\u1eddi m\u1ea1ng l\u00e0 do \u0111\u1ed1i th\u1ee7, c\u1ea1nh tranh. T\u1eadp d\u1eef li\u1ec7u FTEL n\u00e0y CH\u1ec8 c\u00f3 c\u00e1c bi\u1ebfn h\u00e0nh vi k\u1ef9 thu\u1eadt. B\u1ea1n ph\u1ea3i gi\u1ea3i th\u00edch d\u1ef1a tr\u00ean d\u1eef li\u1ec7u th\u1eadt!",
+        "domain": "python",
+        "qualifier": [
+            "semantic_error",
+            "business_logic"
+        ],
+        "action": [
+            "add_metrics",
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "data_analysis",
+        "errors_fixed": 15,
+        "token_length": 48,
+        "mdl_score": 0.3125
+    },
+    {
+        "nl_rule": "\n\n## Fix Instructions\n\n### Root Cause Analysis\nThe error `TypeError: unhashable type: 'dict'` occurs because the code uses `{{` (double curly braces) instead of `{` (single curly braces) for dictionary creation. In Python, `{{` is only valid for escaping curly braces within f-strings, not for creating dictionaries.\n\n### Generalized Fix Steps\n\n1. **Replace all dictionary literal syntax**: Change every instance of `{{` to `{` when creating dictionaries throughout the entire codebase. This includes:\n   - Function return statements with dictionary literals\n   - Variable assignments with dictionary values\n   - Dictionary initialization in function parameters\n   - Any inline dictionary creation\n\n2. **Verify f-string escaping**: If you need to use literal curly braces within f-strings, keep `{{` only in those specific contexts. For all other dictionary operations, use single `{}`.\n\n3. **Check nested structures**: Ensure that any nested dictionaries or complex data structures also use correct `{}` syntax, not `{{}}`.\n\n4. **Validate all function definitions**: Review all function definitions that return dictionaries or accept dictionary parameters to ensure they use correct syntax.\n\n5. **Test dictionary operations**: After making changes, verify that all dictionary operations (accessing keys, iterating, etc.) work correctly without type errors.\n\n### Prevention Guidelines\n- Always use single `{}` for dictionary literals in Python\n- Only use `{{}}` when you need literal curly braces inside f-strings\n- Run syntax validation after any code changes involving data structures\n- Use IDE linting tools that catch this type of syntax error early",
+        "domain": "python",
+        "qualifier": [
+            "runtime_error"
+        ],
+        "action": [
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "coding",
+        "errors_fixed": 1,
+        "token_length": 238,
+        "mdl_score": 0.0042
+    },
+    {
+        "nl_rule": "\n\n### Root Cause Analysis\nThe error occurs because the code exits prematurely with `sys.exit(0)` when Stage-2 clustering fails to find sub-clusters (returns `stage2_triggered = False` with reason `'stage2_still_dominant'`). This prevents the pipeline from generating persona outputs for the original clusters.\n\n### Generalized Fix Steps\n\n1. **Remove or modify early exit condition**: Change the logic that triggers `sys.exit(0)` when `dominant_cluster_pct > threshold` AND `stage2_triggered == False`. Instead of exiting, allow the pipeline to continue with the original clustering results.\n\n2. **Adjust exit condition logic**: Replace the early exit with a warning message and continue execution. The pipeline should proceed to compute profile attributes and generate personas even when Stage-2 fails.\n\n3. **Handle dominant cluster gracefully**: When Stage-2 cannot find sub-clusters, treat the original cluster as a valid persona rather than marking it as \"Clustering Failed\".\n\n4. **Ensure persona generation continues**: After the Stage-2 check, always proceed to `compute_profile_attributes`, `apply_business_rules`, and JSON output generation regardless of Stage-2 success/failure.\n\n5. **Update persona quality flag**: When Stage-2 fails, set `segmentation_quality` to indicate the limitation (e.g., \"DOMINANT_CLUSTER\") rather than \"OUTLIER_DRIVEN\" or \"FAILED\".\n\n### Prevention Guidelines\n- Never use `sys.exit()` in pipeline code that should continue execution\n- Always allow fallback behavior when sub-clustering fails\n- Ensure all persona generation steps execute regardless of intermediate clustering results\n- Use conditional warnings instead of hard exits for non-critical failures\n- Test edge cases where clustering produces dominant clusters (>80% of data)",
+        "domain": "python",
+        "qualifier": [
+            "runtime_error"
+        ],
+        "action": [
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "coding",
+        "errors_fixed": 1,
+        "token_length": 234,
+        "mdl_score": 0.0043
+    },
+    {
+        "nl_rule": "\n\n## Fix Instructions\n\n### Root Cause Analysis\nThe error occurs in the radar chart visualization when the number of xtick locations (7) doesn't match the number of xtick labels (6). This happens because the angles array is extended to close the radar loop (`angles += angles[:1]`), but the labels array is not extended accordingly.\n\n### Generalized Fix Steps\n\n1. **Identify Array Mismatch**: When creating circular/radar plots, check if any angle or position arrays are extended (e.g., to close the loop). If so, verify that corresponding label arrays are also extended to match.\n\n2. **Synchronize Tick Locations and Labels**: Before calling `plt.setp()` or `ax.set_xticks()`, ensure:\n   - `len(xtick_locations) == len(xtick_labels)`\n   - `len(ytick_locations) == len(ytick_labels)`\n\n3. **Extend Labels When Extending Positions**: If you extend position arrays (like `angles += angles[:1]`), also extend label arrays (like `labels += labels[:1]`) to maintain alignment.\n\n4. **Validate Before Plotting**: Add a validation check before rendering the plot:\n   ```\n   assert len(xticks) == len(xticklabels), \"Mismatch between tick locations and labels\"\n   ```\n\n5. **Apply to All Visualizations**: This pattern applies to any circular, polar, or radar chart where arrays are extended for loop closure. Check all visualization code for similar mismatches.\n\n### Prevention Guidelines\n\n- **Always pair array extensions**: When extending position arrays for visualization loops, extend corresponding label arrays simultaneously.\n- **Use consistent array lengths**: Ensure all arrays passed to tick-setting functions have identical lengths.\n- **Test visualization code**: Run visualization sections separately to catch array length mismatches early.\n- **Document array relationships**: When arrays are extended for specific purposes (like closing loops), document this in comments for future maintainers.",
+        "domain": "python",
+        "qualifier": [
+            "runtime_error"
+        ],
+        "action": [
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "coding",
+        "errors_fixed": 1,
+        "token_length": 261,
+        "mdl_score": 0.0038
+    },
+    {
+        "nl_rule": "\n\n**Root Cause Analysis:**\nThe error `IndexError: list index out of range` occurs because the code attempts to access the second-to-last element of the score list (`list[-2]`) immediately after appending the current score. During the first iteration of the loop, the list contains only one element, making the index `-2` invalid.\n\n**Fix Instructions:**\n1.  **Modify the Comparison Logic:** Before comparing the current iteration's score with the previous one, add a condition to verify that the list storing the scores contains at least two elements.\n2.  **Alternative Initialization:** Alternatively, initialize the best parameters (e.g., best K and labels) using the results from the first iteration before entering the conditional check for subsequent iterations.\n3.  **Ensure Robustness:** Ensure the logic correctly identifies the optimal number of clusters without causing out-of-bounds access errors during the initial loop cycle.",
+        "domain": "python",
+        "qualifier": [
+            "runtime_error"
+        ],
+        "action": [
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "coding",
+        "errors_fixed": 1,
+        "token_length": 134,
+        "mdl_score": 0.0075
     }
 ]
