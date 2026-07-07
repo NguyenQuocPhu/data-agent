@@ -132,9 +132,9 @@
         ],
         "strength": "MUST",
         "tool_category": "data_analysis",
-        "errors_fixed": 69,
+        "errors_fixed": 72,
         "token_length": 32,
-        "mdl_score": 2.1562
+        "mdl_score": 2.25
     },
     {
         "nl_rule": "\n\n1.  **Verify Registry Schema:** Inspect the internal dataset registry structure to confirm the actual keys present for the selected dataset identifier, ensuring they match the loader's expectations.\n2.  **Update Access Logic:** Modify the data loading function to validate the existence of required metadata fields before attempting to access them, preventing crashes on missing keys.\n3.  **Refine Selection Criteria:** Adjust the dataset selection logic to ensure only entries with complete and valid metadata are chosen automatically, filtering out incomplete records.\n4.  **Implement Error Handling:** Add conditional checks or try-except blocks to gracefully handle missing metadata keys, allowing the system to fallback to alternative loading methods or report the schema mismatch clearly.",
@@ -1386,9 +1386,9 @@
         ],
         "strength": "MUST",
         "tool_category": "data_analysis",
-        "errors_fixed": 125,
+        "errors_fixed": 129,
         "token_length": 26,
-        "mdl_score": 4.8077
+        "mdl_score": 4.9615
     },
     {
         "nl_rule": "Semantic check failed: \u26a0 L\u1ed7i M\u00e2u Thu\u1eabn Ch\u00e2n Dung: T\u00ean Persona 'Kh\u00e1ch h\u00e0ng hay g\u1eb7p s\u1ef1 c\u1ed1 - c\u1ea7n h\u1ed7 tr\u1ee3' \u00e1m ch\u1ec9 kh\u00e1ch g\u1eb7p s\u1ef1 c\u1ed1 nh\u01b0ng Sample Text 'k\u1ebft n\u1ed1i m\u1ea1ng \u1ed5n \u0111\u1ecbnh | \u0111\u1ed9 suy hao quang trung b\u00ecnh l\u00e0 -16.4 dbm | \u00edt g\u1ecdi cskh | kh\u00e1ch h\u00e0ng l\u00e2u n\u0103m' l\u1ea1i to\u00e0n \u0111i\u1ec1u t\u00edch c\u1ef1c. T\u00ean Persona ph\u1ea3i nh\u1ea5t qu\u00e1n v\u1edbi d\u1eef li\u1ec7u!",
@@ -3607,9 +3607,9 @@
         ],
         "strength": "MUST",
         "tool_category": "data_analysis",
-        "errors_fixed": 15,
+        "errors_fixed": 28,
         "token_length": 48,
-        "mdl_score": 0.3125
+        "mdl_score": 0.5833
     },
     {
         "nl_rule": "\n\n## Fix Instructions\n\n### Root Cause Analysis\nThe error `TypeError: unhashable type: 'dict'` occurs because the code uses `{{` (double curly braces) instead of `{` (single curly braces) for dictionary creation. In Python, `{{` is only valid for escaping curly braces within f-strings, not for creating dictionaries.\n\n### Generalized Fix Steps\n\n1. **Replace all dictionary literal syntax**: Change every instance of `{{` to `{` when creating dictionaries throughout the entire codebase. This includes:\n   - Function return statements with dictionary literals\n   - Variable assignments with dictionary values\n   - Dictionary initialization in function parameters\n   - Any inline dictionary creation\n\n2. **Verify f-string escaping**: If you need to use literal curly braces within f-strings, keep `{{` only in those specific contexts. For all other dictionary operations, use single `{}`.\n\n3. **Check nested structures**: Ensure that any nested dictionaries or complex data structures also use correct `{}` syntax, not `{{}}`.\n\n4. **Validate all function definitions**: Review all function definitions that return dictionaries or accept dictionary parameters to ensure they use correct syntax.\n\n5. **Test dictionary operations**: After making changes, verify that all dictionary operations (accessing keys, iterating, etc.) work correctly without type errors.\n\n### Prevention Guidelines\n- Always use single `{}` for dictionary literals in Python\n- Only use `{{}}` when you need literal curly braces inside f-strings\n- Run syntax validation after any code changes involving data structures\n- Use IDE linting tools that catch this type of syntax error early",
@@ -3670,5 +3670,185 @@
         "errors_fixed": 1,
         "token_length": 134,
         "mdl_score": 0.0075
+    },
+    {
+        "nl_rule": "\n\n## Root Cause Analysis\n\nThe error `ValueError: Columns must be same length as key` occurs because the `behavioral_features` list contains **duplicate column names**. When pandas tries to assign values to `data[behavioral_features]`, it expects the number of columns in the key list to match the number of columns in the resulting DataFrame, but duplicates cause a mismatch.\n\nLooking at the output, duplicates include:\n- `'old_complaint'` (appears 2x)\n- `'recent_complaint'` (appears 2x)\n- `'cl_recent_only'` (appears 2x)\n- `'complaint_recent_only'` (appears 2x)\n- `'call_recent_only'` (appears 2x)\n- `'missed_recent_only'` (appears 2x)\n\nThis happens because the feature selection logic uses multiple keyword checks that match the same columns.\n\n## Fix Instructions\n\n1. **Remove duplicates from feature lists**: After building the `behavioral_features` list, apply `list(set(behavioral_features))` or use `pd.unique()` to ensure each column appears only once.\n\n2. **Add deduplication before assignment**: Before line 71, insert a deduplication step that removes duplicate column names from the feature list.\n\n3. **Validate feature list integrity**: Add a check to verify `len(behavioral_features) == len(set(behavioral_features))` before using the list for DataFrame operations.\n\n4. **Prevent duplicate selection in feature building**: Modify the feature selection loop to check if a column is already in the list before appending it, using a `set` for tracking instead of a list during construction.\n\n5. **Ensure consistency across all feature lists**: Apply the same deduplication logic to any other feature lists used in the code (e.g., `stage2_profile_cols`, `domain_cols`).\n\n## Generalizable Pattern\n\n```python\n# Before using any feature list for DataFrame operations:\nfeature_list = list(set(feature_list))  # Remove duplicates\n# OR\nfeature_list = pd.unique(feature_list).tolist()  # Preserve order while removing duplicates\n```\n\nThis pattern should be applied to all feature selection lists before they are used for DataFrame indexing, clustering, or any operation that requires unique column references.",
+        "domain": "python",
+        "qualifier": [
+            "runtime_error"
+        ],
+        "action": [
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "coding",
+        "errors_fixed": 1,
+        "token_length": 286,
+        "mdl_score": 0.0035
+    },
+    {
+        "nl_rule": "\n\n## Root Cause Analysis\n\nThe `KeyError: 0` occurs because `cluster_sizes` dictionary was computed **before** Stage-2 clustering, but Stage-2 modifies cluster IDs by reassigning them (e.g., `best_labels2 + (max_existing_cid + 1)`). After Stage-2, the original cluster IDs no longer exist in the data, but `cluster_sizes` still references the old IDs.\n\n## Fix Instructions\n\n1. **Recompute cluster sizes after Stage-2**: After the Stage-2 clustering completes and modifies cluster IDs, recalculate `cluster_sizes` from the updated `data['cluster']` column before using it in the business metadata loop.\n\n2. **Ensure consistency between cluster IDs and size dictionary**: Before iterating through clusters to compute business metadata, verify that all cluster IDs in `cluster_stats` exist as keys in `cluster_sizes`. If not, rebuild `cluster_sizes` from the current state of the data.\n\n3. **Apply the pattern to all cluster-related dictionaries**: Any dictionary that stores cluster statistics (e.g., `cluster_sizes`, `cluster_stats`) must be recomputed after any operation that modifies cluster IDs, not just at the initial clustering stage.\n\n4. **Validate cluster ID integrity**: Add a check before the business metadata loop to ensure `set(cluster_stats.index) == set(cluster_sizes.keys())`. If they don't match, rebuild the size dictionary from `data['cluster'].value_counts().to_dict()`.\n\n## Generalizable Pattern\n\n```python\n# After any operation that modifies cluster IDs:\ncluster_sizes = data['cluster'].value_counts().sort_index().to_dict()\ncluster_stats = data.groupby('cluster')[behavioral_features].mean().reset_index()\n\n# Validate before using cluster sizes:\nassert set(cluster_stats['cluster'].unique()) == set(cluster_sizes.keys()), \\\n    \"Cluster IDs mismatch between stats and sizes\"\n```\n\nThis pattern should be applied to all cluster-related data structures after any clustering operation that may reassign cluster IDs.",
+        "domain": "python",
+        "qualifier": [
+            "runtime_error"
+        ],
+        "action": [
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "coding",
+        "errors_fixed": 2,
+        "token_length": 240,
+        "mdl_score": 0.0083
+    },
+    {
+        "nl_rule": "\n\n## Ph\u00e2n T\u00edch L\u1ed7i & H\u01b0\u1edbng D\u1eabn S\u1eeda Ch\u1eefa\n\n### \ud83d\udd0d Nguy\u00ean Nh\u00e2n L\u1ed7i\nCode \u0111ang **exit qu\u00e1 s\u1edbm** (SystemExit: 0) khi \u0111i\u1ec1u ki\u1ec7n `dominant_cluster_pct > 0.8 and stage2_triggered == False` \u0111\u01b0\u1ee3c k\u00edch ho\u1ea1t. Tuy nhi\u00ean, Stage-1 clustering \u0111\u00e3 th\u00e0nh c\u00f4ng (Silhouette=0.8159, K=3), ch\u1ec9 l\u00e0 Stage-2 kh\u00f4ng t\u00ecm \u0111\u01b0\u1ee3c c\u1ea5u tr\u00fac ph\u1ee5.\n\n### \u2705 H\u01b0\u1edbng D\u1eabn S\u1eeda Ch\u1eefa (Generalizable)\n\n**1. \u0110i\u1ec1u ch\u1ec9nh logic exit condition**\n- **KH\u00d4NG** exit khi Stage-1 clustering th\u00e0nh c\u00f4ng (silhouette > 0.5)\n- **CH\u1ec8** exit khi BOTH Stage-1 AND Stage-2 \u0111\u1ec1u th\u1ea5t b\u1ea1i\n- Thay v\u00ec `if dominant_cluster_pct > 0.8 and stage2_triggered == False: exit`, h\u00e3y chuy\u1ec3n sang:\n  - Proceed v\u1edbi clusters t\u1eeb Stage-1 n\u1ebfu silhouette score \u0111\u1ee7 t\u1ed1t\n  - Ch\u1ec9 \u0111\u00e1nh d\u1ea5u l\u00e0 \"OUTLIER_DRIVEN\" trong metadata thay v\u00ec exit\n\n**2. \u0110\u1ea3m b\u1ea3o JSON output format (Rule 1)**\n- B\u1eaeT BU\u1ed8C gi\u1eef 3 d\u00f2ng print markers: `[JSON_START_PERSONA]`, `json.dumps(personas)`, `[JSON_END_PERSONA]`\n- \u0110\u1ea3m b\u1ea3o `personas` list KH\u00d4NG r\u1ed7ng v\u00e0 c\u00f3 \u00edt nh\u1ea5t 1 cluster h\u1ee3p l\u1ec7\n- Kh\u00f4ng d\u00f9ng `sys.exit(0)` khi \u0111\u00e3 c\u00f3 valid clusters t\u1eeb Stage-1\n\n**3. X\u1eed l\u00fd tr\u01b0\u1eddng h\u1ee3p Stage-2 kh\u00f4ng t\u00ecm \u0111\u01b0\u1ee3c sub-structure**\n- Khi Stage-2 fail, v\u1eabn gi\u1eef nguy\u00ean clusters t\u1eeb Stage-1\n- Ghi nh\u1eadn `stage2_triggered = False` nh\u01b0ng kh\u00f4ng exit\n- Th\u00eam metadata `stage2_status: \"not_attempted\"` ho\u1eb7c `\"failed\"` \u0111\u1ec3 downstream bi\u1ebft\n\n**4. \u0110i\u1ec1u ch\u1ec9nh threshold dominant cluster**\n- Thay v\u00ec hard-stop \u1edf 80%, h\u00e3y d\u00f9ng threshold linh ho\u1ea1t h\u01a1n (v\u00ed d\u1ee5: 85-90%)\n- K\u1ebft h\u1ee3p v\u1edbi silhouette score: n\u1ebfu silhouette > 0.7 th\u00ec cho ph\u00e9p dominant > 80%\n- N\u1ebfu dominant > 90% V\u00c0 silhouette < 0.5 th\u00ec m\u1edbi exit\n\n**5. \u0110\u1ea3m b\u1ea3o kh\u00f4ng c\u00f3 Data Leakage (Rule 2)**\n- Verify r\u1eb1ng bi\u1ebfn m\u1ee5c ti\u00eau (RMDT/churn) KH\u00d4NG n\u1eb1m trong `features_to_use`\n- Drop target variable kh\u1ecfi feature matrix tr\u01b0\u1edbc khi fit KMeans\n\n**6. Tu\u00e2n th\u1ee7 Domain Knowledge**\n- ARPU t\u00ednh b\u1eb1ng `df['cuoc_hang_thang'].mean()` (kh\u00f4ng chia cho 30)\n- Churn_Rate t\u00ednh b\u1eb1ng `df['RMDT'].mean()`\n- Kh\u00f4ng hallucinate categorical values - d\u00f9ng `.unique()` tr\u01b0\u1edbc khi m\u00f4 t\u1ea3\n\n### \ud83d\udccb Checklist Sau Khi S\u1eeda\n- [ ] JSON output c\u00f3 \u0111\u1ee7 3 markers\n- [ ] Personas list c\u00f3 \u00edt nh\u1ea5t 1 cluster h\u1ee3p l\u1ec7\n- [ ] Kh\u00f4ng exit khi Stage-1 clustering th\u00e0nh c\u00f4ng\n- [ ] Target variable kh\u00f4ng n\u1eb1m trong features\n- [ ] ARPU/Churn Rate t\u00ednh \u0111\u00fang theo domain rules",
+        "domain": "python",
+        "qualifier": [
+            "runtime_error"
+        ],
+        "action": [
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "coding",
+        "errors_fixed": 1,
+        "token_length": 375,
+        "mdl_score": 0.0027
+    },
+    {
+        "nl_rule": "\n\n## Fix Instructions\n\n**Root Cause:** The code references a dictionary key `'ces'` that was never defined in the `col_map` dictionary, causing a `KeyError` when trying to access `col_map['ces']`.\n\n**General Fix Steps:**\n\n1. **Verify Dictionary Key Definitions:** Before accessing any dictionary key, ensure the key exists in the dictionary definition. Check that all keys referenced in the code (e.g., `col_map['ces']`) are explicitly defined in the dictionary initialization.\n\n2. **Add Missing Key Definitions:** If the key is needed for functionality, add it to the dictionary with an appropriate default value (e.g., `None` or a column lookup function). If the key is not needed, remove the code block that references it.\n\n3. **Implement Safe Key Access:** Use defensive programming patterns when accessing dictionary keys:\n   - Use `.get()` method with a default value: `col_map.get('ces', None)`\n   - Add conditional checks before accessing: `if col_map.get('ces'):`\n   - Validate key existence before use\n\n4. **Audit All Dictionary References:** Review the entire codebase for similar patterns where dictionary keys are accessed without verification. Ensure consistency between dictionary definitions and all access points.\n\n5. **Add Validation Assertions:** Include assertions or checks after dictionary initialization to verify all expected keys are present before the code proceeds to use them.\n\n**Prevention:** Implement a code review checklist that includes verifying all dictionary key references match their definitions, and use static analysis tools to catch undefined key access errors before runtime.",
+        "domain": "python",
+        "qualifier": [
+            "runtime_error"
+        ],
+        "action": [
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "coding",
+        "errors_fixed": 1,
+        "token_length": 227,
+        "mdl_score": 0.0044
+    },
+    {
+        "nl_rule": "\n\n**Root Cause:** The code iterates over `cluster_stats` using its index values, but these cluster IDs don't match the keys in `cluster_sizes` dictionary. This causes a `KeyError` when trying to access `cluster_sizes[cid]`.\n\n**General Fix Steps:**\n\n1. **Verify Key Type Consistency:** Ensure cluster IDs have the same data type across all data structures (e.g., all integers or all strings). Convert keys using `str()` or `int()` as needed to match between `cluster_sizes` and `cluster_stats`.\n\n2. **Use Safe Dictionary Access:** Replace direct dictionary access with `.get()` method that provides a default value:\n   - Change `cluster_sizes[cid]` to `cluster_sizes.get(cid, 0)`\n   - This prevents KeyError when keys don't match\n\n3. **Validate Key Existence Before Access:** Add a conditional check before accessing dictionary values:\n   - `if cid in cluster_sizes:` before using `cluster_sizes[cid]`\n   - Or use `cluster_sizes.get(cid)` and handle None/missing cases\n\n4. **Align DataFrame Index with Dictionary Keys:** Ensure the index of `cluster_stats` matches the keys in `cluster_sizes`:\n   - Convert `cluster_stats.index` to match `cluster_sizes` keys\n   - Or reset index and use explicit column values\n\n5. **Add Debugging/Validation:** Before the loop, verify that all cluster IDs in `cluster_stats` exist in `cluster_sizes`:\n   - Check `set(cluster_stats.index) == set(cluster_sizes.keys())`\n   - Log any mismatches for troubleshooting\n\n6. **Audit All Cluster ID References:** Review all code sections that reference cluster IDs to ensure consistency across the entire pipeline (clustering results, stats, metadata, etc.)\n\n**Prevention:** Implement a validation step after clustering that confirms all cluster-related data structures use identical key formats before proceeding to downstream processing.",
+        "domain": "python",
+        "qualifier": [
+            "runtime_error"
+        ],
+        "action": [
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "coding",
+        "errors_fixed": 1,
+        "token_length": 240,
+        "mdl_score": 0.0042
+    },
+    {
+        "nl_rule": "\n\n### Analysis of Execution Error\n\nThe execution failed with a `NameError` because the code attempts to call a custom helper function (`generate_actions`) that has not been defined in the current execution context. This indicates a dependency issue where the pipeline logic assumes functions exist without explicitly defining them first.\n\n### Generalized Fix Instructions\n\n1.  **Define Missing Helper Functions:** Before executing any logic that invokes custom functions, explicitly define all required helper functions (e.g., action generators, risk classifiers, profile builders) within the current code cell. Do not rely on previous session state unless verified; redefine them to ensure they are available in the current namespace.\n\n2.  **Validate Function Signatures:** Ensure that the arguments passed to these helper functions match the expected parameters defined in their signatures. Check that all input variables (such as dataset modes, profile attributes, and metadata) are correctly scoped and populated before the function call.\n\n3.  **Enforce Output Format Compliance:** When generating the final output, strictly adhere to the required JSON wrapper format. Use the specific print commands to delimit the persona data (Start Marker, JSON Dump, End Marker) to pass semantic validation checks.\n\n4.  **Prevent Data Leakage:** Before training or processing models, verify that target variables are excluded from the feature set. Ensure no sensitive or target-specific data is inadvertently used as an input feature for clustering or classification algorithms.\n\n5.  **Maintain Root Cause Integrity:** Apply business logic constraints regarding priority scores and root cause modes. Ensure that specific conditions (such as zero revenue scenarios) prevent the use of invalid metrics like priority scores, forcing the logic into the appropriate root cause analysis mode.\n\n6.  **Verify Execution Order:** Arrange the code so that all variable initializations, function definitions, and data preprocessing steps occur before the main processing loop that consumes these resources. This prevents `NameError` and `KeyError` issues caused by undefined references.",
+        "domain": "python",
+        "qualifier": [
+            "runtime_error"
+        ],
+        "action": [
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "coding",
+        "errors_fixed": 1,
+        "token_length": 305,
+        "mdl_score": 0.0033
+    },
+    {
+        "nl_rule": "\n\n## Fix Instructions\n\n**Root Cause:** The code attempts to access a dictionary key (`'ces'`) that was never defined in the `col_map` dictionary, causing a `KeyError`.\n\n**Actionable Steps to Fix:**\n\n1. **Audit Dictionary Key Definitions:** Review all dictionary definitions (like `col_map`) and ensure every key referenced later in the code is properly defined in the dictionary.\n\n2. **Add Defensive Key Checks:** Before accessing any dictionary key, verify the key exists using `.get()` method or `in` operator. Example pattern:\n   ```python\n   if col_map.get('ces'):\n       # process ces data\n   ```\n\n3. **Remove or Define Missing Keys:** Either:\n   - Remove the code block that references undefined keys (if the feature is not needed)\n   - Add the missing key to the dictionary definition with appropriate column mapping\n\n4. **Implement Consistent Key Validation:** Create a validation step that checks all referenced keys exist in their respective dictionaries before execution, preventing runtime KeyError exceptions.\n\n5. **Standardize Column Mapping:** Ensure all column mapping dictionaries follow the same pattern where every key has a corresponding value, and all values are validated to exist in the dataset before use.\n\n**Prevention:** Always validate dictionary keys before access and maintain a single source of truth for all column mappings to prevent undefined key errors.",
+        "domain": "python",
+        "qualifier": [
+            "runtime_error"
+        ],
+        "action": [
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "coding",
+        "errors_fixed": 1,
+        "token_length": 200,
+        "mdl_score": 0.005
+    },
+    {
+        "nl_rule": "\n\n## Fix Instructions\n\n### Root Cause Analysis\nThe error `NameError: name 'compute_profile_global_means' is not defined` occurs because the function `compute_profile_global_means` is called on line 371 but was never defined in the code.\n\n### Generalizable Fix Steps\n\n1. **Define Missing Helper Function**: Create the `compute_profile_global_means` function before it is called. This function should aggregate profile attributes across all clusters weighted by cluster sizes.\n\n2. **Function Signature**: The function should accept two parameters:\n   - `profile_attributes`: Dictionary containing per-cluster profile data\n   - `cluster_sizes`: Dictionary containing cluster sizes/count\n\n3. **Implementation Logic**: \n   - Calculate weighted averages for each profile attribute across all clusters\n   - Use cluster sizes as weights for the aggregation\n   - Return a dictionary with global mean values for each attribute\n\n4. **Code Structure Check**: Ensure all helper functions are defined before their first usage in the code flow. Functions should be placed before the main execution logic that calls them.\n\n5. **Validation**: After adding the function, verify that:\n   - The function returns a dictionary (not None)\n   - The returned dictionary contains the expected keys\n   - The function handles empty inputs gracefully\n\n### Prevention Guidelines\n- Always define helper functions before calling them\n- Use consistent naming patterns for similar functions (e.g., `compute_profile_attributes` vs `compute_profile_global_means`)\n- Run static analysis or linting to catch undefined function calls before execution\n- Document all helper functions with clear purpose and expected inputs/outputs",
+        "domain": "python",
+        "qualifier": [
+            "runtime_error"
+        ],
+        "action": [
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "coding",
+        "errors_fixed": 1,
+        "token_length": 226,
+        "mdl_score": 0.0044
+    },
+    {
+        "nl_rule": "\n\n1. **JSON Schema Compliance:** Inspect all JSON serialization blocks within the code. Remove any dictionary keys or values containing the forbidden keyword `priority_score`. Ensure the output structure strictly adheres to the allowed persona schema without prohibited metrics to pass semantic validation.\n\n2. **Execution Flow Integrity:** Locate the conditional logic that triggers an abrupt script termination (e.g., `sys.exit`) when clustering quality thresholds are not met. Modify this flow to allow the script to complete execution gracefully after generating the output, ensuring the evaluation system can fully capture the JSON response.\n\n3. **Data Leakage Prevention:** Verify that the target variable (e.g., `RMDT`) is explicitly excluded from the feature selection list before any preprocessing or model fitting occurs. Ensure this exclusion is applied dynamically to the dataset columns to prevent the target variable from influencing the clustering model.\n\n4. **Vocabulary Constraint Adherence:** Update the column filtering logic to strictly enforce the exclusion of the prohibited vocabulary terms (`cl_avg_6m`, `segment_avg`, `fee_trend`, `missed_ratio_6m`). Ensure these terms are checked against all candidate columns before they are added to the clustering feature matrix.",
+        "domain": "python",
+        "qualifier": [
+            "runtime_error"
+        ],
+        "action": [
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "coding",
+        "errors_fixed": 1,
+        "token_length": 176,
+        "mdl_score": 0.0057
+    },
+    {
+        "nl_rule": "\n\n## Ph\u00e2n t\u00edch l\u1ed7i v\u00e0 h\u01b0\u1edbng d\u1eabn s\u1eeda\n\n### V\u1ea5n \u0111\u1ec1 ch\u00ednh\nCode \u0111ang d\u1eebng s\u1edbm (exit) khi **Stage-2 Sub-clustering th\u1ea5t b\u1ea1i** d\u00f9 **Initial Clustering th\u00e0nh c\u00f4ng** (K=3, Silhouette=0.6824). \u0110i\u1ec1u n\u00e0y khi\u1ebfn to\u00e0n b\u1ed9 54,262 kh\u00e1ch h\u00e0ng b\u1ecb g\u1ed9p v\u00e0o 1 persona duy nh\u1ea5t thay v\u00ec 3 persona th\u1ef1c t\u1ebf.\n\n### Nguy\u00ean nh\u00e2n\nLogic ki\u1ec3m tra sau Stage-2 qu\u00e1 kh\u1eaft khe:\n```python\nif dominant_cluster_pct > 0.8 and not stage2_triggered:\n    # Exit v\u1edbi \"Clustering Failed\"\n```\n\nV\u1ea5n \u0111\u1ec1:\n1. **Stage-2 \u0110\u00c3 \u0111\u01b0\u1ee3c k\u00edch ho\u1ea1t** (`stage2_triggered = True`)\n2. **Stage-2 TH\u1ea4T B\u1ea0I** t\u00ecm \u0111\u01b0\u1ee3c c\u1ea5u tr\u00fac ph\u1ee5 (`reason = 'stage2_still_dominant'`)\n3. Code v\u1eabn exit v\u00ec \u0111i\u1ec1u ki\u1ec7n ch\u1ec9 ki\u1ec3m tra `not stage2_triggered` thay v\u00ec ki\u1ec3m tra **stage2 th\u00e0nh c\u00f4ng**\n\n### H\u01b0\u1edbng d\u1eabn s\u1eeda (Generalizable)\n\n**B\u01b0\u1edbc 1: \u0110i\u1ec1u ch\u1ec9nh logic ki\u1ec3m tra Stage-2**\n- Kh\u00f4ng exit s\u1edbm khi Stage-2 th\u1ea5t b\u1ea1i, ch\u1ec9 exit khi **Initial Clustering th\u1ea5t b\u1ea1i** (kh\u00f4ng t\u00ecm \u0111\u01b0\u1ee3c K h\u1ee3p l\u1ec7 ho\u1eb7c Silhouette qu\u00e1 th\u1ea5p)\n- N\u1ebfu Initial Clustering th\u00e0nh c\u00f4ng (K \u2265 2, Silhouette > 0.15), ti\u1ebfp t\u1ee5c t\u1ea1o persona cho t\u1ea5t c\u1ea3 clusters\n\n**B\u01b0\u1edbc 2: \u0110i\u1ec1u ch\u1ec9nh ng\u01b0\u1ee1ng dominant cluster**\n- Ng\u01b0\u1ee1ng 80% l\u00e0 qu\u00e1 th\u1ea5p cho d\u1eef li\u1ec7u th\u1ef1c t\u1ebf (93.14% l\u00e0 b\u00ecnh th\u01b0\u1eddng v\u1edbi dataset h\u00e0nh vi)\n- T\u0103ng ng\u01b0\u1ee1ng l\u00ean 90-95% ho\u1eb7c b\u1ecf \u0111i\u1ec1u ki\u1ec7n n\u00e0y n\u1ebfu Initial Clustering c\u00f3 Silhouette > 0.5\n\n**B\u01b0\u1edbc 3: X\u1eed l\u00fd fallback khi Stage-2 th\u1ea5t b\u1ea1i**\n- Khi Stage-2 kh\u00f4ng t\u00ecm \u0111\u01b0\u1ee3c sub-clusters, v\u1eabn ti\u1ebfp t\u1ee5c v\u1edbi clusters ban \u0111\u1ea7u\n- Ghi log c\u1ea3nh b\u00e1o nh\u01b0ng kh\u00f4ng exit\n\n**B\u01b0\u1edbc 4: \u0110\u1ea3m b\u1ea3o JSON output h\u1ee3p l\u1ec7**\n- Lu\u00f4n print `[JSON_START_PERSONA]`, `json.dumps(personas)`, `[JSON_END_PERSONA]`\n- Personas ph\u1ea3i c\u00f3 \u00edt nh\u1ea5t 2 clusters n\u1ebfu Initial Clustering th\u00e0nh c\u00f4ng\n\n**B\u01b0\u1edbc 5: Ki\u1ec3m tra d\u1eef li\u1ec7u \u0111\u1ea7u v\u00e0o**\n- Verify r\u1eb1ng RMDT \u0111\u00e3 \u0111\u01b0\u1ee3c drop kh\u1ecfi behavioral_features (\u0111ang \u0111\u00fang)\n- Verify r\u1eb1ng kh\u00f4ng c\u00f3 ARPU=0 (\u0111ang \u0111\u00fang v\u1edbi POST_CHURN mode)\n- Verify r\u1eb1ng kh\u00f4ng d\u00f9ng keyword \"priority score\" (\u0111ang \u0111\u00fang)\n\n### T\u00f3m t\u1eaft logic s\u1eeda\n```\nIF Initial Clustering th\u00e0nh c\u00f4ng (K \u2265 2, Silhouette > 0.15):\n    \u2192 Ti\u1ebfp t\u1ee5c t\u1ea1o persona cho t\u1ea5t c\u1ea3 clusters\n    \u2192 N\u1ebfu Stage-2 th\u1ea5t b\u1ea1i: ghi log c\u1ea3nh b\u00e1o, kh\u00f4ng exit\n    \u2192 Print JSON output h\u1ee3p l\u1ec7\nELSE:\n    \u2192 Exit v\u1edbi \"Clustering Failed\"\n```",
+        "domain": "python",
+        "qualifier": [
+            "runtime_error"
+        ],
+        "action": [
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "coding",
+        "errors_fixed": 1,
+        "token_length": 366,
+        "mdl_score": 0.0027
+    },
+    {
+        "nl_rule": "\n\n## Ph\u00e2n t\u00edch l\u1ed7i v\u00e0 h\u01b0\u1edbng d\u1eabn s\u1eeda\n\n### V\u1ea5n \u0111\u1ec1 ch\u00ednh\nH\u00e0m `compute_domain_signature` \u0111ang c\u1ed1 truy c\u1eadp c\u00e1c c\u1ed9t kh\u00f4ng t\u1ed3n t\u1ea1i trong dataset (`complaint_total`, `call_total`, `cl_total`...) trong khi dataset th\u1ef1c t\u1ebf c\u00f3 t\u00ean c\u1ed9t kh\u00e1c (`complaint_total_6m`, `call_total_6m`, `cl_total_6m`...).\n\n### Nguy\u00ean nh\u00e2n\n- **Hardcoded column names**: H\u00e0m `compute_domain_signature` \u0111\u1ecbnh ngh\u0129a `domain_cols` v\u1edbi t\u00ean c\u1ed9t c\u1ee9ng (kh\u00f4ng c\u00f3 `_6m` suffix)\n- **Kh\u00f4ng validate columns**: Kh\u00f4ng ki\u1ec3m tra xem c\u1ed9t c\u00f3 t\u1ed3n t\u1ea1i trong dataset tr\u01b0\u1edbc khi truy c\u1eadp\n- **Kh\u00f4ng c\u00f3 fallback**: Khi c\u1ed9t kh\u00f4ng t\u1ed3n t\u1ea1i, code crash thay v\u00ec skip gracefully\n\n### H\u01b0\u1edbng d\u1eabn s\u1eeda (Generalizable)\n\n**B\u01b0\u1edbc 1: Th\u00eam validation cho column existence**\n- Tr\u01b0\u1edbc khi truy c\u1eadp b\u1ea5t k\u1ef3 c\u1ed9t n\u00e0o, ki\u1ec3m tra `if col in df.columns`\n- N\u1ebfu c\u1ed9t kh\u00f4ng t\u1ed3n t\u1ea1i, skip ho\u1eb7c d\u00f9ng column alternative c\u00f3 s\u1eb5n\n\n**B\u01b0\u1edbc 2: Dynamic column mapping**\n- T\u1ea1o mapping layer gi\u1eefa expected names v\u00e0 actual column names\n- V\u00ed d\u1ee5: `complaint_total` \u2192 `complaint_total_6m` (n\u1ebfu t\u1ed3n t\u1ea1i)\n- S\u1eed d\u1ee5ng `get_column()` helper function \u0111\u1ec3 t\u00ecm column matching keywords\n\n**B\u01b0\u1edbc 3: Handle missing columns gracefully**\n- Khi column kh\u00f4ng t\u1ed3n t\u1ea1i, log warning nh\u01b0ng continue execution\n- Kh\u00f4ng crash v\u1edbi KeyError\n- C\u00f3 th\u1ec3 d\u00f9ng default value (0 ho\u1eb7c NaN) cho missing columns\n\n**B\u01b0\u1edbc 4: Update domain_cols definition**\n- Thay v\u00ec hardcode exact column names, d\u00f9ng keyword matching\n- V\u00ed d\u1ee5: `['complaint_total', 'complaint_avg']` \u2192 t\u00ecm column ch\u1ee9a 'complaint' trong t\u00ean\n\n**B\u01b0\u1edbc 5: Add error handling wrapper**\n- Wrap column access in try-except block\n- Catch KeyError v\u00e0 log v\u1edbi th\u00f4ng tin column missing\n- Continue v\u1edbi columns c\u00f2n l\u1ea1i\n\n### T\u00f3m t\u1eaft logic s\u1eeda\n```\nFOR EACH domain column in domain_cols:\n    IF column exists in df.columns:\n        USE column\n    ELSE IF similar column exists (keyword match):\n        USE similar column\n    ELSE:\n        LOG WARNING\n        SKIP this column\n        CONTINUE with remaining columns\n```\n\n### CRITICAL - Rule Compliance\n- \u2705 **Rule 1**: JSON output v\u1eabn h\u1ee3p l\u1ec7 (kh\u00f4ng thay \u0111\u1ed5i logic print)\n- \u2705 **Rule 2**: RMDT kh\u00f4ng \u0111\u01b0\u1ee3c d\u00f9ng l\u00e0m feature (kh\u00f4ng thay \u0111\u1ed5i)\n- \u2705 **Rule 3**: Kh\u00f4ng d\u00f9ng keyword \"priority score\" (kh\u00f4ng thay \u0111\u1ed5i)\n- \u2705 **Generalizable**: Kh\u00f4ng hardcode variable names hay line numbers\n- \u2705 **Incremental**: Ch\u1ec9 s\u1eeda h\u00e0m `compute_domain_signature`, kh\u00f4ng rewrite to\u00e0n b\u1ed9 pipeline",
+        "domain": "python",
+        "qualifier": [
+            "runtime_error"
+        ],
+        "action": [
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "coding",
+        "errors_fixed": 1,
+        "token_length": 365,
+        "mdl_score": 0.0027
+    },
+    {
+        "nl_rule": "\n\n## Fix Instructions\n\n### Root Cause Analysis\nThe error occurs because `pandas.DataFrame.plot()` does not support `heatmap` as a valid plot kind. Heatmaps must be created using `seaborn.heatmap()` instead of pandas' built-in plotting methods.\n\n### Generalizable Fix Steps\n\n1. **Identify Invalid Plot Types**: When using `DataFrame.plot()`, verify that the `kind` parameter matches one of pandas' supported plot types (line, bar, barh, kde, density, area, hist, box, pie, scatter, hexbin).\n\n2. **Use Appropriate Library for Specialized Visualizations**: For correlation matrices, heatmaps, and similar specialized visualizations, use `seaborn.heatmap()` instead of pandas plotting methods.\n\n3. **Replace Plot Call**: Change the correlation matrix visualization from `data[features].corr().plot(kind='heatmap', ...)` to `sns.heatmap(data[features].corr(), ...)`.\n\n4. **Ensure Library Import**: Verify that `seaborn` is imported in the code before using its functions.\n\n5. **Validate Plot Output**: After making the change, ensure the plot renders correctly and the visualization displays the correlation matrix as intended.\n\n### Prevention Guidelines\n- When visualizing correlation matrices, always use `seaborn.heatmap()` rather than pandas plotting\n- Check pandas documentation for supported plot kinds before using `DataFrame.plot()`\n- For complex visualizations (heatmaps, pairplots, etc.), prefer seaborn over pandas built-in plotting\n- Test visualization code in isolation before integrating into larger workflows",
+        "domain": "python",
+        "qualifier": [
+            "runtime_error"
+        ],
+        "action": [
+            "fix_logic"
+        ],
+        "strength": "MUST",
+        "tool_category": "coding",
+        "errors_fixed": 1,
+        "token_length": 193,
+        "mdl_score": 0.0052
     }
 ]

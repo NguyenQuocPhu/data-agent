@@ -4,6 +4,8 @@ ipython
 jupyter_client
 openai
 pandas>=2.2.3
+matplotlib
+seaborn
 pillow
 torch
 transformers

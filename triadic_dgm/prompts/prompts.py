@@ -65,9 +65,10 @@ def get_metric(m, keywords):
             return float(v)
     return 0.0
 
-def apply_business_rules(m, support_pct, profile=None, profile_global=None, dataset_mode=None, churn_driver_info=None):
+def apply_business_rules(m, support_pct, profile=None, profile_global=None, dataset_mode=None, churn_driver_info=None, domain_sig=None):
     profile = profile or {{}}
     profile_global = profile_global or {{}}
+    domain_sig = domain_sig or {{}}
     cl = get_metric(m, ['cl_total', 'cl', 'sự cố'])
     comp = get_metric(m, ['complaint', 'khiếu nại'])
     call = get_metric(m, ['call_total', 'call', 'gọi', 'cuộc gọi'])
@@ -138,32 +139,48 @@ def apply_business_rules(m, support_pct, profile=None, profile_global=None, data
         name = "Nhóm hành vi chưa rõ"
         priority_score = 15 + (support_pct * 10)
 
-    # 5. Composite Signal Overrides (chỉ khi base engine CHƯA phân loại HIGH/EXTREME) — dùng độ lệch
-    # TƯƠNG ĐỐI so với profile_global, không dùng ngưỡng tuyệt đối cố định, chọn tín hiệu lệch nhiều nhất.
-    if severity not in ("HIGH", "EXTREME") and risk not in ("HIGH", "EXTREME"):
+    # 5. Composite Signal Overrides — trước đây CHỈ chạy khi severity/risk chưa HIGH/EXTREME. Giữ
+    # nguyên gate đó cho các tên ĐÃ CÓ Ý NGHĨA rõ ràng từ bước 4 (vd "Khách hàng bất mãn" khi
+    # comp>=1.0, hay tên severity kỹ thuật) — không tự ý ghi đè chúng. NHƯNG mở rộng thêm 1 exception:
+    # name == "Liên hệ CSKH bất thường" (nhánh `risk == "EXTREME"`, dòng ~113) là 1 CATCH-ALL không
+    # phân biệt nguyên nhân (chỉ dựa `call >= 50` tuyệt đối) — ĐÃ XẢY RA TRÊN DỮ LIỆU THẬT: 4/5 cụm
+    # hoàn toàn khác nhau (1 cụm complaint+technical cao, 1 cụm loyalty tăng mạnh, 1 cụm usage
+    # giảm/gần như không tín hiệu gì) đều rơi vào risk=EXTREME và bị gán CHUNG tên này, xoá sạch ý
+    # nghĩa phân cụm. Với catch-all này, LUÔN cho phép composite override chạy để tìm tên cụ thể hơn
+    # dựa trên domain_signature/profile — nếu không có gì đủ mạnh thì mới giữ nguyên tên catch-all.
+    if name == "Liên hệ CSKH bất thường" or (severity not in ("HIGH", "EXTREME") and risk not in ("HIGH", "EXTREME")):
         def rel_dev(key):
             g = profile_global.get(key, 0)
             v = profile.get(key, 0)
             return (v - g) / abs(g) if g != 0 else v
+
+        def dom_stars(dom):
+            info = domain_sig.get(dom)
+            return info.get('stars', 0) if isinstance(info, dict) else 0
 
         combo_decline = max(rel_dev('tier_downgrade_rate'), rel_dev('usage_decline_mild_pct'))
         if profile.get('high_spender_pct', 0) >= 0.3 and rel_dev('high_spender_pct') >= 0.25 and combo_decline >= 0.25:
             name = "Khách hàng chi tiêu cao có dấu hiệu suy giảm"
             priority_score = max(priority_score, 85 + (support_pct * 10))
         else:
+            # (key, tên, base_score, "dev" đã chuẩn hoá) — profile dùng rel_dev (tỉ lệ lệch so với
+            # global), domain_sig dùng (stars-1)/4 quy về cùng khoảng 0-1 để so sánh công bằng trên 1
+            # thang điểm duy nhất, tránh phải duy trì 2 hệ so sánh tách rời.
             candidates = [
-                ('status_worsening_pct', "Khách hàng có dấu hiệu tạm ngưng dịch vụ", 75),
-                ('usage_decline_strong_pct', "Khách hàng suy giảm mạnh", 65),
-                ('tier_downgrade_rate', "Khách hàng có dấu hiệu hạ cấp dịch vụ", 55),
-                ('usage_unstable_pct', "Khách hàng sử dụng dao động thất thường", 50),
-                ('usage_decline_mild_pct', "Khách hàng giảm sử dụng nhẹ", 45),
-                ('high_spender_pct', "Khách hàng chi tiêu cao, ổn định", 40),
-                ('tier_upgrade_rate', "Khách hàng có xu hướng nâng cấp dịch vụ", 35),
+                ('status_worsening_pct', "Khách hàng có dấu hiệu tạm ngưng dịch vụ", 75, rel_dev('status_worsening_pct')),
+                ('usage_decline_strong_pct', "Khách hàng suy giảm mạnh", 65, rel_dev('usage_decline_strong_pct')),
+                ('tier_downgrade_rate', "Khách hàng có dấu hiệu hạ cấp dịch vụ", 55, rel_dev('tier_downgrade_rate')),
+                ('usage_unstable_pct', "Khách hàng sử dụng dao động thất thường", 50, rel_dev('usage_unstable_pct')),
+                ('usage_decline_mild_pct', "Khách hàng giảm sử dụng nhẹ", 45, rel_dev('usage_decline_mild_pct')),
+                ('high_spender_pct', "Khách hàng chi tiêu cao, ổn định", 40, rel_dev('high_spender_pct')),
+                ('tier_upgrade_rate', "Khách hàng có xu hướng nâng cấp dịch vụ", 35, rel_dev('tier_upgrade_rate')),
+                (None, "Khách hàng bất mãn, khiếu nại tăng mạnh", 78, (dom_stars('complaint') - 1) / 4.0),
+                (None, "Khách hàng gặp sự cố kỹ thuật lặp lại", 74, (dom_stars('technical') - 1) / 4.0),
+                (None, "Liên hệ CSKH/cuộc gọi tăng bất thường", 66, (max(dom_stars('call'), dom_stars('missed')) - 1) / 4.0),
             ]
             best_name, best_score, best_dev = None, 0, 0.25  # 0.25 = ngưỡng lệch tối thiểu để được coi là "đáng nói"
-            for key, cname, base_score in candidates:
-                d = rel_dev(key)
-                if d > best_dev and profile.get(key, 0) > 0:
+            for key, cname, base_score, d in candidates:
+                if d > best_dev and (key is None or profile.get(key, 0) > 0):
                     best_name, best_score, best_dev = cname, base_score, d
             loyalty_dev = rel_dev('loyalty_rank_avg')
             if loyalty_dev <= -0.4 and -loyalty_dev > best_dev:
@@ -558,7 +575,7 @@ business_metadata = {{}}
 base_names = {{}}
 for cid, row in cluster_stats.iterrows():
     sp = cluster_sizes[cid] / len(data)
-    meta = apply_business_rules(row.to_dict(), sp, profile_attributes.get(cid, {{}}), profile_global_means, dataset_mode, churn_drivers.get(cid, {{}}))
+    meta = apply_business_rules(row.to_dict(), sp, profile_attributes.get(cid, {{}}), profile_global_means, dataset_mode, churn_drivers.get(cid, {{}}), domain_signature.get(cid, {{}}))
     business_metadata[cid] = meta
     base_names[cid] = meta['persona_name']
 

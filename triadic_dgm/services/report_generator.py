@@ -541,17 +541,19 @@ class ReportGenerator:
         return n.lower()
 
     def _narrative_magnitude(self, val: float, global_mean: float) -> str:
-        """Same underlying math as _quantify, phrased to slot into 'có xu hướng {noun} ___'."""
-        if global_mean > 0:
-            ratio = val / global_mean
-            if ratio >= 2:
-                return f"cao gấp {ratio:.0f} lần"
-            delta_pct = (val - global_mean) / global_mean * 100
-            return f"cao hơn {delta_pct:.0f}%" if delta_pct >= 0 else f"thấp hơn {abs(delta_pct):.0f}%"
-        if global_mean < 0:
+        """Qualitative-only phrasing (KHÔNG kèm số liệu thô %/lần) để lắp vào 'có xu hướng {noun}
+        ___' — văn phong business-facing kiểu 'cao hơn hẳn'/'thấp hơn' thay vì 'cao gấp X lần'/
+        'cao hơn Y%', theo đúng tông của các bullet mẫu (không ghi số phần trăm nào)."""
+        if global_mean != 0:
             delta_pct = (val - global_mean) / abs(global_mean) * 100
-            return f"cao hơn {delta_pct:.0f}%" if delta_pct >= 0 else f"thấp hơn {abs(delta_pct):.0f}%"
-        return "nổi bật so với phần còn lại" if val > 0 else "ở mức tương đương trung bình"
+        else:
+            delta_pct = val * 100
+        abs_pct = abs(delta_pct)
+        if abs_pct < 20:
+            return "ở mức tương đương trung bình"
+        if delta_pct > 0:
+            return "cao vượt trội" if abs_pct >= 200 else ("cao hơn hẳn" if abs_pct >= 75 else "cao hơn")
+        return "thấp hơn hẳn" if abs_pct >= 75 else "thấp hơn"
 
     def _build_persona_story(self, p: dict, global_means: dict):
         """POST_CHURN storytelling paragraph (3 câu: ai + vì sao rời mạng, bằng chứng định lượng
@@ -674,22 +676,27 @@ class ReportGenerator:
             return f"**{at_risk_pct:.1f}% khách hàng** đang thuộc nhóm rủi ro cao, cần hành động ưu tiên ngay."
         return f"**{stable_pct:.1f}% khách hàng** đang ở trạng thái ổn định, không phát hiện nhóm rủi ro cao nào."
 
-    def _quantify(self, val: float, global_mean: float) -> str:
-        """Concrete magnitude to append to a signal phrase — 'tăng rất mạnh' alone doesn't tell a
-        reader HOW much vs average; this always attaches the real number (ratio or %)."""
-        if global_mean > 0:
-            ratio = val / global_mean
-            if ratio >= 2:
-                return f"gấp {ratio:.1f} lần trung bình"
-            delta_pct = (val - global_mean) / global_mean * 100
-            return f"{delta_pct:+.0f}% so với trung bình"
-        if global_mean < 0:
-            delta_pct = (val - global_mean) / abs(global_mean) * 100
-            return f"{delta_pct:+.0f}% so với trung bình"
-        return "trong khi trung bình toàn quần thể gần như bằng 0" if val > 0 else "tương đương trung bình (≈0)"
+    def _qualitative_magnitude(self, val: float, global_mean: float) -> tuple:
+        """Bucket a REAL (val, global_mean) deviation into a qualitative Vietnamese phrase — NO
+        raw %/ratio number attached. Mirrors the target persona-card style (vd 'Có xu hướng sử
+        dụng giảm nhẹ trong 3 tháng gần nhất', 'Xu hướng sử dụng không còn ổn định và giảm mạnh')
+        where every bullet is a plain business statement, never a "gấp X lần trung bình" figure.
+        Returns (direction, phrase) where direction is 'up'/'down'/'flat'."""
+        delta_pct = ((val - global_mean) / abs(global_mean)) * 100 if global_mean != 0 else val * 100
+        abs_pct = abs(delta_pct)
+        if abs_pct < 20:
+            return ('flat', 'ổn định')
+        direction = 'up' if delta_pct > 0 else 'down'
+        if abs_pct >= 200:
+            return (direction, 'rất mạnh')
+        if abs_pct >= 75:
+            return (direction, 'mạnh')
+        return (direction, 'nhẹ')
 
     def _get_business_signal(self, feature: str, val: float, global_mean: float) -> str:
-        """SEMANTIC LAYER: Converts feature and data into natural, quantified business signals."""
+        """SEMANTIC LAYER: Converts feature and data into concrete, qualitative business signals —
+        no raw %/ratio numbers (matches the target persona-card style: plain statements like "Có
+        lịch sử tăng giá gói cước", "Đa số là KH Combo Net Pay", never "tăng gấp X lần trung bình")."""
         key = str(feature).lower()
         base_name = _FEATURE_SEMANTIC_MAP_LOWER.get(key) or _pattern_semantic_name(key) or feature
 
@@ -703,38 +710,34 @@ class ReportGenerator:
 
         # Handle Boolean 1.0 flags
         if val == 1.0 and ("no_" in key or "escalating_" in key or "declining_" in key):
-            return f"Tồn tại {base_name.lower()}"
+            return f"Có lịch sử {base_name.lower()}"
         if val == 0.0 and ("no_" in key):
             return f"Có phát sinh {base_name.lower()}"
 
-        # Delta comparison
-        delta_pct = ((val - global_mean) / abs(global_mean)) * 100 if global_mean != 0 else val * 100
-        quant = self._quantify(val, global_mean)
+        direction, mag = self._qualitative_magnitude(val, global_mean)
 
         if key in _DIRECTIONAL_FLAG_FEATURES:
             # base_name đã tự mang hướng (vd "Chi tiêu đang giảm") — độ lệch ở đây nói về MỨC ĐỘ
             # PHỔ BIẾN của tín hiệu đó trong cụm này so với toàn quần thể, không phải hướng thứ 2.
-            if delta_pct > 100:
-                return f"{base_name} — phổ biến hơn hẳn trong nhóm này ({quant})"
-            elif delta_pct > 0:
-                return f"{base_name} — phổ biến hơn trung bình ({quant})"
-            elif delta_pct < -100:
-                return f"{base_name} — hiếm gặp trong nhóm này ({quant})"
-            elif delta_pct < 0:
-                return f"{base_name} — ít phổ biến hơn trung bình ({quant})"
+            if direction == 'up' and mag == 'rất mạnh':
+                return f"{base_name} — phổ biến hơn hẳn trong nhóm này"
+            elif direction == 'up':
+                return f"{base_name} — phổ biến hơn trung bình"
+            elif direction == 'down' and mag == 'rất mạnh':
+                return f"{base_name} — hiếm gặp trong nhóm này"
+            elif direction == 'down':
+                return f"{base_name} — ít phổ biến hơn trung bình"
             else:
                 return f"{base_name} — ở mức trung bình"
 
-        if delta_pct > 100:
-            return f"{base_name} tăng rất mạnh ({quant})"
-        elif delta_pct > 0:
-            return f"{base_name} có xu hướng tăng ({quant})"
-        elif delta_pct < -100:
-            return f"{base_name} giảm rất mạnh ({quant})"
-        elif delta_pct < 0:
-            return f"{base_name} có xu hướng giảm ({quant})"
-        else:
-            return f"{base_name} ổn định"
+        if direction == 'flat':
+            return f"{base_name} ổn định so với trung bình"
+        verb = "tăng" if direction == 'up' else "giảm"
+        # base_name đã bắt đầu bằng "Xu hướng ..." (vd "Xu hướng sự cố kỹ thuật") thì KHÔNG thêm
+        # "có xu hướng" nữa — tránh câu lặp nghĩa "Xu hướng X có xu hướng giảm".
+        if str(base_name).startswith("Xu hướng"):
+            return f"{base_name} {verb} {mag}"
+        return f"{base_name} có xu hướng {verb} {mag}"
 
     def _get_means(self, p: dict) -> dict:
         means = p.get('feature_means', p.get('evidence', {}))
@@ -888,6 +891,126 @@ class ReportGenerator:
             domains.append({'domain_contrast_note': f"Các domain sau ở mức BÌNH THƯỜNG (1★, dùng làm đối chứng, KHÔNG suy diễn thêm): {', '.join(low_domains)}"})
         return domains
 
+    def _build_profile_context(self, p: dict) -> dict:
+        """SUPPORTING/CONTEXT facts from profile_attributes (ARPU, loyalty, tier upgrade/downgrade,
+        service/package mix) — domain_signals alone only carries whichever 1-2 features had the
+        strongest deviation per domain, so ARPU/loyalty/service mix were NEVER reaching the LLM at
+        all (persona_interpretation could only ever reference call/missed/usage/complaint, never
+        "ARPU trung bình 650k" or "chủ yếu dùng Net Pay 62%" — exactly what was reported missing)."""
+        profile = p.get('profile_attributes') or {}
+        ctx = {}
+        if 'avg_fee' in profile:
+            ctx['arpu_trung_binh'] = profile['avg_fee']
+        if 'high_spender_pct' in profile:
+            ctx['ty_le_chi_tieu_cao'] = profile['high_spender_pct']
+        if 'loyalty_rank_avg' in profile:
+            ctx['hang_loyalty_trung_binh'] = profile['loyalty_rank_avg']
+        if 'tier_upgrade_rate' in profile:
+            ctx['ty_le_nang_hang_phan_khuc'] = profile['tier_upgrade_rate']
+        if 'tier_downgrade_rate' in profile:
+            ctx['ty_le_tut_hang_phan_khuc'] = profile['tier_downgrade_rate']
+        if 'usage_decline_strong_pct' in profile:
+            ctx['ty_le_giam_su_dung_manh'] = profile['usage_decline_strong_pct']
+        if 'csat_avg' in profile:
+            ctx['csat_trung_binh'] = profile['csat_avg']
+        if 'ces_avg' in profile:
+            ctx['ces_trung_binh'] = profile['ces_avg']
+        svc = profile.get('service_composition')
+        if svc:
+            top_svc = sorted(svc.items(), key=lambda kv: -kv[1])[:2]
+            ctx['dich_vu_chinh'] = [f"{k} ({v * 100:.0f}%)" for k, v in top_svc]
+        pkg = profile.get('package_composition')
+        if pkg:
+            top_pkg = sorted(pkg.items(), key=lambda kv: -kv[1])[:2]
+            ctx['goi_cuoc_chinh'] = [f"{k} ({v * 100:.0f}%)" for k, v in top_pkg]
+        return ctx
+
+    def _compose_profile_value_sentence(self, profile_context: dict) -> str:
+        """Deterministic (no-LLM) 'Customer Value' opening sentence from profile_context — ARPU,
+        % chi tiêu cao, tỷ lệ tụt/nâng hạng, loyalty, dịch vụ chính. Dùng làm fallback khi LLM
+        narrative không khả dụng, để layer Insight không bao giờ biến mất khỏi report chỉ vì LLM
+        timeout/lỗi kết nối (đã xảy ra nhiều lần trên live run)."""
+        parts = []
+        high_pct = profile_context.get('ty_le_chi_tieu_cao')
+        arpu = profile_context.get('arpu_trung_binh')
+        if high_pct is not None and arpu is not None:
+            parts.append(f"tỷ lệ khách hàng giá trị cao khoảng {high_pct * 100:.0f}%, mức cước trung bình khoảng {arpu / 1000:.0f} nghìn đồng/tháng")
+        elif arpu is not None:
+            parts.append(f"mức cước trung bình khoảng {arpu / 1000:.0f} nghìn đồng/tháng")
+        elif high_pct is not None:
+            parts.append(f"tỷ lệ khách hàng giá trị cao khoảng {high_pct * 100:.0f}%")
+
+        downgrade = profile_context.get('ty_le_tut_hang_phan_khuc')
+        upgrade = profile_context.get('ty_le_nang_hang_phan_khuc')
+        if downgrade is not None and downgrade >= 0.2:
+            parts.append("số lần tụt hạng phân khúc cao hơn mặt bằng chung")
+        elif upgrade is not None and upgrade >= 0.2:
+            parts.append("số lần nâng hạng phân khúc cao hơn mặt bằng chung")
+
+        loyalty = profile_context.get('hang_loyalty_trung_binh')
+        if loyalty is not None and loyalty >= 1.0:
+            parts.append("hạng khách hàng thân thiết ở mức khá")
+
+        svc = profile_context.get('dich_vu_chinh')
+        if svc:
+            parts.append(f"chủ yếu sử dụng {', '.join(svc)}")
+
+        if not parts:
+            return ""
+        return "Nhóm này có " + ", ".join(parts) + "."
+
+    def _compose_deterministic_insight(self, p: dict, global_means: dict) -> str:
+        """Fallback 'Insight' đoạn văn (layer 4/4: Trigger → Value → Behavior → Insight) dùng KHI
+        LLM narrative thất bại/timeout — ghép từ profile_context + contradictions đã tính sẵn
+        (100% deterministic, không gọi LLM). Trước đây khi LLM lỗi, Business Interpretation biến
+        mất hoàn toàn khỏi report (chỉ còn Business Signals top-3 rời rạc) — đây là fallback để
+        layer insight luôn có mặt, kể cả khi generate_llm_narrative() raise exception."""
+        profile_context = self._build_profile_context(p)
+        value_sentence = self._compose_profile_value_sentence(profile_context)
+
+        contradictions = self._detect_contradictions(p)
+        if contradictions:
+            c = contradictions[0]
+            insight_sentence = "Song song đó, " + c[0].lower() + c[1:] + "."
+        else:
+            domain_signals = self._get_domain_signals(p, global_means)
+            top = next((d for d in domain_signals if 'domain' in d), None)
+            if top and top.get('evidence'):
+                ev = top['evidence'][0]
+                insight_sentence = "Song song đó, " + ev[0].lower() + ev[1:] + "."
+            else:
+                insight_sentence = ""
+
+        return " ".join(s for s in (value_sentence, insight_sentence) if s)
+
+    def _detect_contradictions(self, p: dict) -> list:
+        """Deterministically flags TENSION pairs (vd ARPU cao + complaint cao, loyalty cao +
+        tương tác giảm) — đây chính là kiểu câu 'Mặc dù... vẫn... Điều này cho thấy...' mà lãnh đạo
+        thích đọc nhất, nhưng nếu để LLM tự tìm thì không ổn định — tính sẵn ở đây để LLM chỉ cần
+        DIỄN GIẢI thành câu, không phải tự suy luận từ số liệu rời rạc."""
+        domain_sig = p.get('domain_signature') or {}
+        profile = p.get('profile_attributes') or {}
+
+        def stars(dom):
+            info = domain_sig.get(dom)
+            return info.get('stars', 0) if isinstance(info, dict) else 0
+
+        value_high = stars('value') >= 3 or profile.get('high_spender_pct', 0) >= 0.4
+        complaint_high = stars('complaint') >= 3
+        technical_high = stars('technical') >= 3
+        call_high = stars('call') >= 3 or stars('missed') >= 3
+        usage_declining = stars('usage') >= 3
+        loyalty_high = profile.get('loyalty_rank_avg', 0) >= 1.0
+
+        contradictions = []
+        if value_high and (complaint_high or technical_high):
+            contradictions.append("ARPU/giá trị cao NHƯNG complaint hoặc sự cố kỹ thuật cũng cao — chất lượng dịch vụ đang ảnh hưởng ngay cả nhóm khách hàng giá trị cao")
+        if loyalty_high and (call_high or usage_declining):
+            contradictions.append("Loyalty cao NHƯNG mức độ tương tác/sử dụng đang giảm — có thể là dấu hiệu suy giảm âm thầm dù khách hàng vẫn trung thành")
+        if value_high and usage_declining and not (complaint_high or technical_high or call_high):
+            contradictions.append("Giá trị cao NHƯNG usage giảm, KHÔNG có complaint/sự cố kỹ thuật đi kèm — nguyên nhân nhiều khả năng KHÔNG phải chất lượng dịch vụ")
+        return contradictions
+
     def _build_prompt(self, personas_data: list, global_means: dict) -> str:
         """Prepares a heavily sterilized JSON for the LLM"""
         clean_data = []
@@ -912,6 +1035,13 @@ class ReportGenerator:
                 c['business_signals'] = [self._get_business_signal(f, val, g_val) for f, val, g_val, dev in deviations]
                 confidence_dev = deviations[0][3] if deviations else 0
 
+            profile_context = self._build_profile_context(p)
+            if profile_context:
+                c['profile_context'] = profile_context
+            contradictions = self._detect_contradictions(p)
+            if contradictions:
+                c['contradictions'] = contradictions
+
             c['confidence'] = "High" if confidence_dev > 1.0 else "Medium"
             c['cluster_id'] = p.get('cluster_id')
             clean_data.append(c)
@@ -925,7 +1055,8 @@ QUY TẮC CỨNG:
 - KHÔNG sinh số liệu. KHÔNG nhắc lại số liệu.
 - KHÔNG suy diễn ngoài Business Signals/domain_signals được cấp.
 - KHÔNG đề xuất hành động mới (Action/Investigation).
-- Độ dài: Tối đa 2 câu cho mỗi trường phân tích.
+- Độ dài: Tối đa 2 câu cho mỗi trường phân tích (business_interpretation được nới lên tối đa 3 câu
+  KHI có `profile_context` — xem quy tắc riêng bên dưới).
 - NẾU có `domain_signals` (nhiều domain, mỗi domain có "stars" 1-5): business_interpretation PHẢI
   LIÊN KẾT các domain có stars cao với nhau thành 1 câu chuyện — KHÔNG được chỉ mô tả 1 domain
   riêng lẻ. Ví dụ 1: complaint=5★ + technical=4★ + value=5★ + usage=1★ (thấp) → "Khách hàng giá trị
@@ -952,6 +1083,26 @@ QUY TẮC CỨNG:
   "ban đầu/gần đây".
 - `domain_contrast_note` (nếu có trong domain_signals) liệt kê các domain ở mức BÌNH THƯỜNG (1★) —
   dùng làm đối chứng tường minh, KHÔNG suy diễn thêm ngoài domain được liệt kê.
+- NẾU có `profile_context` (ARPU, tỷ lệ chi tiêu cao, loyalty, tỷ lệ nâng/tụt hạng phân khúc, dịch vụ
+  chính...): business_interpretation PHẢI MỞ ĐẦU bằng 1 câu mô tả nhóm khách hàng này là ai, dùng
+  ĐÚNG các con số trong profile_context (không bịa, không làm tròn quá mức). Câu domain_signals/
+  contrastive đứng SAU, nối bằng "Song song với đó," / "Đồng thời," / "Trong khi đó,". Ví dụ:
+  profile_context = {{"arpu_trung_binh": 666198, "ty_le_chi_tieu_cao": 0.446,
+  "ty_le_tut_hang_phan_khuc": 0.42}} + domain_signals cho thấy complaint tăng mạnh → "Nhóm này có tỷ
+  lệ khách hàng giá trị cao gần 45%, mức cước trung bình khoảng 666 nghìn đồng và số lần tụt hạng
+  phân khúc cao hơn mặt bằng chung. Song song với đó, số lượng khiếu nại và dấu hiệu leo thang khiếu
+  nại tăng rất mạnh. Điều này cho thấy doanh nghiệp đang đánh mất những khách hàng có giá trị ngay
+  sau các trải nghiệm dịch vụ tiêu cực." KHÔNG được bỏ qua profile_context và chỉ mô tả domain_signals
+  như khi không có profile_context.
+- NẾU có `contradictions` (danh sách nghịch lý đã tính sẵn): mỗi phần tử PHẢI được diễn giải lại
+  thành ĐÚNG 1 câu theo cấu trúc "Mặc dù/Dù ... vẫn/nhưng ... " + 1 câu hệ quả "Điều này cho thấy...".
+  KHÔNG bỏ qua, KHÔNG viết chung chung. Ví dụ: "ARPU/giá trị cao NHƯNG complaint hoặc sự cố kỹ thuật
+  cũng cao..." → "Mặc dù khách hàng vẫn mang lại doanh thu cao, chất lượng dịch vụ đang làm gia tăng
+  mức độ bất mãn." Ví dụ khác: "Loyalty cao NHƯNG mức độ tương tác/sử dụng đang giảm..." → "Dù vẫn
+  duy trì giá trị tích lũy cao, mức độ tương tác với kênh truyền thống đang giảm."
+- Khi CÓ `profile_context`, business_interpretation được phép dài TỐI ĐA 3 CÂU (thay vì 2) để chứa đủ
+  câu mô tả profile_context + câu domain_signals/contradiction + câu hệ quả. Các trường phân tích khác
+  (Operational Impact, Customer Profile...) vẫn giữ tối đa 2 câu.
 
 Dữ liệu Business Facts duy nhất bạn được thấy:
 {data_str}
@@ -1063,11 +1214,18 @@ Dữ liệu Business Facts duy nhất bạn được thấy:
         md += "## 2. Methodology\n\n"
         md += "`Dataset ➔ Feature Engineering ➔ Clustering ➔ Rule Engine ➔ Semantic Layer ➔ Presentation Layer ➔ Narrative Generator (LLM) ➔ Report Composer`\n\n"
         
-        # Persona Overview — infographic-style card per persona: icon + tên + % + tag cường độ,
-        # theo sau là 3 bullet bằng chứng THẬT (top feature deviations + dịch vụ chiếm ưu thế).
-        # Không có bullet nào ở đây là văn bản tự bịa — mọi dòng đều trace được về JSON gốc.
+        # narrative_dict được build SỚM hơn (trước đây chỉ build ở mục 4) để Persona Overview cũng
+        # dùng được business_interpretation do LLM tổng hợp — tránh tình trạng card Overview chỉ là
+        # bullet rời rạc (feature-by-feature, %/lần lệch) trong khi mục 4 mới có văn xuôi thật.
+        narrative_dict = {n.cluster_id: n for n in narrative.personas_analysis}
+
+        # Persona Overview — infographic-style card per persona: icon + tên + % + tag cường độ, theo
+        # sau là 1 ĐOẠN VĂN diễn giải (không phải bullet rời rạc từng feature). POST_CHURN dùng story
+        # composer xác định (đã trace được); các persona khác dùng business_interpretation do LLM
+        # tổng hợp từ domain_signals/business_signals (đã sterilize, không tự bịa số liệu/domain).
         md += "## 3. Persona Overview\n\n"
         for p in personas_data:
+            cid = p.get('cluster_id')
             p_name = self.clean_persona_name(p.get('persona_name', 'Unknown'))
             icon = self._get_persona_icon(p_name)
             tag = self._get_intensity_tag(p)
@@ -1077,14 +1235,24 @@ Dữ liệu Business Facts duy nhất bạn được thấy:
             md += f"### {icon} {p_name} — {sup_pct:.1f}% ({tag})\n\n"
             md += f"*Quy mô: {sup_str} | Severity: {p.get('severity','N/A')} | Risk: {p.get('risk','N/A')}*\n\n"
             # POST_CHURN personas read as a short story (ai + vì sao rời mạng + bằng chứng mạnh
-            # nhất); các mode khác vẫn giữ dạng bullet đã có (severity/risk framing phù hợp hơn).
+            # nhất); các mode khác dùng đoạn văn LLM tổng hợp đa-feature (business_interpretation).
             story = self._build_persona_story(p, global_means)
+            n = narrative_dict.get(cid)
             if story:
                 md += f"{story}\n\n"
+            elif n and getattr(n, 'business_interpretation', None):
+                md += f"{n.business_interpretation}\n\n"
             else:
-                for b in self._get_evidence_bullets(p, global_means, top_n=3):
-                    md += f"- {b}\n"
-                md += "\n"
+                # LLM narrative không khả dụng (timeout/lỗi kết nối) — vẫn ưu tiên 1 đoạn văn
+                # deterministic ghép từ profile_context/contradictions thay vì rơi thẳng xuống
+                # bullet rời rạc, để card Overview không bao giờ trông như "cluster thống kê".
+                insight = self._compose_deterministic_insight(p, global_means)
+                if insight:
+                    md += f"{insight}\n\n"
+                else:
+                    for b in self._get_evidence_bullets(p, global_means, top_n=3):
+                        md += f"- {b}\n"
+                    md += "\n"
 
         # Risk Tier Grouping (only if at least one persona has risk_tier computed) — mỗi persona
         # kèm 1 dòng "why" lấy từ tín hiệu lệch mạnh nhất thực tế của chính nó (không suy diễn thêm).
@@ -1117,8 +1285,7 @@ Dữ liệu Business Facts duy nhất bạn được thấy:
 
         # Persona Analysis
         md += "## 4. Persona Analysis\n\n"
-        narrative_dict = {n.cluster_id: n for n in narrative.personas_analysis}
-        
+
         for p in personas_data:
             cid = p.get('cluster_id')
             n = narrative_dict.get(cid)
@@ -1185,6 +1352,13 @@ Dữ liệu Business Facts duy nhất bạn được thấy:
             if n:
                 md += f"**Business Interpretation:**\n{n.business_interpretation}\n\n"
                 md += f"**Operational Impact:**\n{n.operational_impact}\n\n"
+            else:
+                # LLM narrative không khả dụng cho cả report — vẫn hiển thị Business Interpretation
+                # bằng đoạn deterministic ghép từ profile_context/contradictions, để mục 4 không bị
+                # thiếu hẳn layer Insight chỉ vì gọi LLM lỗi/timeout.
+                insight = self._compose_deterministic_insight(p, global_means)
+                if insight:
+                    md += f"**Business Interpretation:**\n{insight}\n\n"
 
             # Customer Profile — qualitative, business-readable summary (Adobe/Salesforce-style
             # persona card) derived from domain_signature stars + service_composition, so business
