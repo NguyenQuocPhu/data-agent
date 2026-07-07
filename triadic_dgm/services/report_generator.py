@@ -409,7 +409,7 @@ _PROFILE_DOMAIN_FALLBACK_KEYWORDS = {
 _CHURN_DRIVER_NARRATIVE_CLAUSE = {
     "Bất mãn kéo dài, không được xử lý": "trải qua một thời gian dài bất mãn mà không được xử lý triệt để",
     "Sự cố/khiếu nại cấp tính ngay trước khi rời mạng": "xuất hiện nhiều khiếu nại mới trong thời gian gần đây",
-    "Nhu cầu hỗ trợ không được đáp ứng đầy đủ": "liên hệ CSKH nhiều lần nhưng nhu cầu chưa được đáp ứng đầy đủ",
+    "Tăng liên hệ CSKH/cuộc gọi nhỡ trước khi rời mạng": "tần suất liên hệ CSKH/cuộc gọi nhỡ tăng cao trước khi rời mạng",
     "Khách hàng giá trị cao, chủ động rời mạng": "không có dấu hiệu bất mãn nào, dù là nhóm chi tiêu cao — nguyên nhân nhiều khả năng đến từ giá cước hoặc ưu đãi đối thủ cạnh tranh",
     "Khách hàng âm thầm rời mạng": "hành vi sử dụng dịch vụ suy giảm dần mà không hề khiếu nại hay liên hệ CSKH trước đó",
     "Khách hàng giá trị cao nhưng trải nghiệm suy giảm": "hành vi sử dụng dịch vụ suy giảm rõ rệt dù là nhóm chi tiêu cao, và KHÔNG hề khiếu nại hay liên hệ CSKH trước đó — dấu hiệu rời mạng trong im lặng ở nhóm giá trị cao",
@@ -419,7 +419,7 @@ _CHURN_DRIVER_NARRATIVE_CLAUSE = {
 _CHURN_DRIVER_NARRATIVE_NOUN = {
     "Bất mãn kéo dài, không được xử lý": "sự bất mãn kéo dài chưa được xử lý",
     "Sự cố/khiếu nại cấp tính ngay trước khi rời mạng": "sự gia tăng bất mãn",
-    "Nhu cầu hỗ trợ không được đáp ứng đầy đủ": "nhu cầu hỗ trợ chưa được đáp ứng",
+    "Tăng liên hệ CSKH/cuộc gọi nhỡ trước khi rời mạng": "tần suất liên hệ CSKH/cuộc gọi nhỡ tăng cao",
     "Khách hàng giá trị cao, chủ động rời mạng": "yếu tố ngoài trải nghiệm dịch vụ (giá cước, cạnh tranh)",
     "Khách hàng âm thầm rời mạng": "xu hướng rời mạng trong im lặng, không qua kênh CSKH",
     "Khách hàng giá trị cao nhưng trải nghiệm suy giảm": "xu hướng rời mạng trong im lặng ở nhóm giá trị cao",
@@ -555,6 +555,65 @@ class ReportGenerator:
             return "cao vượt trội" if abs_pct >= 200 else ("cao hơn hẳn" if abs_pct >= 75 else "cao hơn")
         return "thấp hơn hẳn" if abs_pct >= 75 else "thấp hơn"
 
+    def _compose_fallback_driver(self, p: dict) -> dict:
+        """Khi `churn_driver` KHÔNG nằm trong danh sách driver đã biết (pipeline LLM không dùng
+        đúng classify_churn_driver, tự sinh 1 chuỗi vô nghĩa kiểu "Dựa trên hành vi quan sát được từ
+        hệ thống CSKH" — ĐÃ XẢY RA TRÊN DỮ LIỆU THẬT: chuỗi này lan truyền y nguyên vào CẢ TÊN lẫn
+        STORY của mọi persona, vì _CHURN_DRIVER_NARRATIVE_CLAUSE/_NOUN.get(driver, driver.lower())
+        chỉ hạ chữ thường driver gốc khi không khớp key nào, biến "lý do phân tích" thành "nguyên
+        nhân rời mạng" một cách vô nghĩa), suy ra tên + lý do rời mạng TRỰC TIẾP từ domain_signature/
+        profile_attributes — 100% Python, không phụ thuộc pipeline LLM tuân thủ đúng
+        classify_churn_driver. Thứ tự ưu tiên giống classify_churn_driver: combo cụ thể trước,
+        generic sau."""
+        domain_sig = p.get('domain_signature') or {}
+        profile = p.get('profile_attributes') or {}
+
+        def stars(dom):
+            info = domain_sig.get(dom)
+            return info.get('stars', 1) if isinstance(info, dict) else 1
+
+        s_complaint, s_call, s_missed = stars('complaint'), stars('call'), stars('missed')
+        s_usage = stars('usage')
+        loyalty = profile.get('loyalty_rank_avg', 0)
+        high_spender = profile.get('high_spender_pct', 0)
+        downgrade = profile.get('tier_downgrade_rate', 0)
+
+        if s_complaint >= 4:
+            return {
+                'name': "Khách hàng rời mạng sau khi khiếu nại gia tăng",
+                'clause': "khiếu nại/phàn nàn tăng mạnh trước khi rời mạng",
+                'noun_phrase': "xu hướng khiếu nại tăng mạnh",
+            }
+        if s_call >= 3 or s_missed >= 3:
+            return {
+                'name': "Khách hàng rời mạng sau giai đoạn liên hệ CSKH liên tục",
+                'clause': "tần suất liên hệ CSKH/cuộc gọi nhỡ tăng cao trước khi rời mạng",
+                'noun_phrase': "tần suất liên hệ CSKH/cuộc gọi nhỡ tăng cao",
+            }
+        if loyalty >= 1.0:
+            return {
+                'name': "Khách hàng thân thiết nhưng vẫn rời mạng",
+                'clause': "vẫn rời mạng dù mức độ gắn bó/loyalty cao hơn hẳn trung bình",
+                'noun_phrase': "mức độ gắn bó/loyalty cao bất thường so với việc rời mạng",
+            }
+        if high_spender >= 0.3 and (s_usage >= 3 or downgrade >= 0.3):
+            return {
+                'name': "Khách hàng giá trị cao suy giảm sử dụng trước khi rời mạng",
+                'clause': "hành vi sử dụng dịch vụ suy giảm dần dù thuộc nhóm chi tiêu cao",
+                'noun_phrase': "xu hướng suy giảm sử dụng ở nhóm giá trị cao",
+            }
+        if loyalty < 0.3 and s_complaint <= 2 and s_call <= 2:
+            return {
+                'name': "Khách hàng giá trị thấp rời mạng âm thầm",
+                'clause': "rời mạng trong im lặng, không qua khiếu nại hay liên hệ CSKH",
+                'noun_phrase': "xu hướng rời mạng trong im lặng",
+            }
+        return {
+            'name': "Khách hàng rời mạng không rõ nguyên nhân hành vi",
+            'clause': "không có dấu hiệu hành vi nổi bật trước khi rời mạng",
+            'noun_phrase': "thiếu tín hiệu hành vi rõ ràng",
+        }
+
     def _build_persona_story(self, p: dict, global_means: dict):
         """POST_CHURN storytelling paragraph (3 câu: ai + vì sao rời mạng, bằng chứng định lượng
         mạnh nhất + dịch vụ chủ yếu, kết luận ngắn) — vẫn 100% Python-composed từ dữ liệu đã tính
@@ -562,10 +621,23 @@ class ReportGenerator:
         driver = p.get('churn_driver')
         if not driver:
             return None
+        if driver not in _CHURN_DRIVER_NARRATIVE_CLAUSE:
+            # driver không khớp danh sách đã biết -> suy ra lại toàn bộ từ domain_signature/profile
+            fb = self._compose_fallback_driver(p)
+            driver, clause, noun_phrase_override = fb['name'], fb['clause'], fb['noun_phrase']
+        else:
+            clause = _CHURN_DRIVER_NARRATIVE_CLAUSE[driver]
+            noun_phrase_override = None
         sup_str = f"{p.get('support', 0):,}".replace(",", ".")
         sup_pct = p.get('support_pct', 0) * 100
-        clause = _CHURN_DRIVER_NARRATIVE_CLAUSE.get(driver, driver.lower())
         sentences = [f"Khoảng {sup_str} khách hàng ({sup_pct:.1f}%) rời mạng sau khi {clause}."]
+
+        # Câu định lượng (ARPU/high spender/loyalty/downgrade/service mix) — trước đây story chỉ có
+        # 1 domain signal + tên dịch vụ, đọc như "cluster thống kê" chứ chưa phải chân dung khách
+        # hàng (thiếu 3-5 feature định lượng để người đọc hình dung rõ nhóm này là ai).
+        value_sentence = self._compose_profile_value_sentence(self._build_profile_context(p))
+        if value_sentence:
+            sentences.append(value_sentence)
 
         means = self._get_means(p)
         top = self._top_signals(means, global_means, top_n=1) if means else []
@@ -574,14 +646,19 @@ class ReportGenerator:
             base_name = _FEATURE_SEMANTIC_MAP_LOWER.get(f.lower()) or _pattern_semantic_name(f.lower()) or f
             noun = self._narrative_noun(base_name)
             magnitude = self._narrative_magnitude(val, g_val)
-            svc_clause = ""
-            svc_comp = (p.get('profile_attributes') or {}).get('service_composition')
-            if svc_comp:
-                top_svc = max(svc_comp.items(), key=lambda kv: kv[1])[0]
-                svc_clause = f" và chủ yếu sử dụng dịch vụ {top_svc}"
-            sentences.append(f"So với toàn bộ khách hàng, nhóm này có xu hướng {noun} {magnitude}{svc_clause}.")
+            if value_sentence:
+                # profile_context đã nêu ARPU/loyalty/downgrade/service mix — câu này chỉ nối thêm
+                # domain signal, KHÔNG lặp lại dịch vụ chủ yếu (đã nói ở câu trên).
+                sentences.append(f"Song song đó, nhóm này có xu hướng {noun} {magnitude}.")
+            else:
+                svc_clause = ""
+                svc_comp = (p.get('profile_attributes') or {}).get('service_composition')
+                if svc_comp:
+                    top_svc = max(svc_comp.items(), key=lambda kv: kv[1])[0]
+                    svc_clause = f" và chủ yếu sử dụng dịch vụ {top_svc}"
+                sentences.append(f"So với toàn bộ khách hàng, nhóm này có xu hướng {noun} {magnitude}{svc_clause}.")
 
-        noun_phrase = _CHURN_DRIVER_NARRATIVE_NOUN.get(driver, driver.lower())
+        noun_phrase = noun_phrase_override or _CHURN_DRIVER_NARRATIVE_NOUN.get(driver, driver.lower())
         sentences.append(f"Dữ liệu cho thấy {noun_phrase} là dấu hiệu nổi bật trước khi chấm dứt dịch vụ.")
         return " ".join(sentences)
 
@@ -616,8 +693,16 @@ class ReportGenerator:
         name = raw_name
         if " - Cluster " in name:
             name = name.split(" - Cluster ")[0].strip()
-        if " - Nhóm" in name:
-            name = name.split(" - Nhóm")[0].strip()
+        # " - Nhóm {idx}" là hậu tố PHÂN BIỆT do dedup logic ở prompts.py tự thêm khi 2 cụm khác
+        # nhau lỡ nhận cùng 1 tên gốc từ apply_business_rules (vd cả 2 đều fallback "Nhóm hành vi ổn
+        # định" dù feature/risk hoàn toàn khác nhau) — verifier CHỈ pass vì 2 tên JSON thực sự khác
+        # nhau nhờ hậu tố này. TUYỆT ĐỐI KHÔNG được xoá trắng như "- Cluster"/"- Rank" (những hậu tố
+        # kỹ thuật thuần tuý không mang nghĩa) — ĐÃ XẢY RA TRÊN DỮ LIỆU THẬT: xoá trắng làm 2 persona
+        # hiện ra y hệt nhau ở report dù verifier đã pass đúng vì chúng khác nhau. Giữ lại dưới dạng
+        # số thứ tự ngắn gọn "(idx)" thay vì xoá hẳn.
+        m = re.search(r" - Nhóm (\d+)$", name)
+        if m:
+            name = f"{name[:m.start()].strip()} ({m.group(1)})"
         if " - Rank" in name:
             name = name.split(" - Rank")[0].strip()
         return name
@@ -766,6 +851,20 @@ class ReportGenerator:
     def _top_signals(self, means: dict, global_means: dict, top_n: int = 3) -> list:
         return self._resolve_conflicts(self._ranked_deviations(means, global_means))[:top_n]
 
+    def _get_feature_val(self, p: dict, keywords: list) -> float:
+        """Đọc trực tiếp 1 giá trị feature_means/evidence theo substring keyword — dùng cho các
+        feature phụ (active_call_months, call_recent_only...) mà domain_signature không giữ lại
+        (domain_signature chỉ giữ top-2 feature lệch NHIỀU NHẤT mỗi domain, các feature phụ khác bị
+        bỏ phí dù vẫn có trong feature_means/evidence gốc)."""
+        means = p.get('feature_means') or p.get('evidence') or {}
+        for f, v in means.items():
+            if any(kw in str(f).lower() for kw in keywords):
+                try:
+                    return float(v)
+                except (TypeError, ValueError):
+                    continue
+        return None
+
     def _build_customer_profile_bullets(self, p: dict, global_means: dict = None) -> list:
         """Qualitative persona summary (Adobe/Salesforce-style) — derived from domain_signature
         stars, profile_attributes and onset_sequence. Deliberately NOT just 2 bullets — a real
@@ -836,7 +935,19 @@ class ReportGenerator:
         if technical_stars >= 3:
             bullets.append("Từng gặp sự cố kỹ thuật nhiều hơn trung bình")
         if call_stars >= 3 or missed_stars >= 3:
-            bullets.append("Tần suất liên hệ CSKH/cuộc gọi nhỡ cao hơn trung bình")
+            # active_*_months (persistent qua nhiều tháng) vs *_recent_only (chỉ mới phát sinh gần
+            # đây) đổi câu generic "cao hơn trung bình" thành câu có Ý NGHĨA NGHIỆP VỤ khác nhau —
+            # 1 khách gọi CSKH đều đặn 4-6 tháng liền là câu chuyện khác hẳn 1 khách chỉ mới gọi gần
+            # đây (và feature_means/evidence đã sẵn có active_call_months/call_recent_only, trước
+            # đây bị bỏ phí, chỉ dùng 1 câu chung chung như nhau cho cả 2 trường hợp).
+            active_months = self._get_feature_val(p, ['active_call_months', 'active_missed_months'])
+            recent_only = self._get_feature_val(p, ['call_recent_only', 'missed_recent_only'])
+            if active_months is not None and active_months >= 3:
+                bullets.append("Cường độ liên hệ CSKH/cuộc gọi nhỡ cao và LIÊN TỤC trong nhiều tháng, không chỉ phát sinh nhất thời")
+            elif recent_only is not None and recent_only >= 0.5 and complaint_stars <= 2:
+                bullets.append("Chủ yếu phát sinh liên hệ CSKH/cuộc gọi nhỡ trong giai đoạn gần đây, nhưng chưa chuyển thành khiếu nại chính thức")
+            else:
+                bullets.append("Tần suất liên hệ CSKH/cuộc gọi nhỡ cao hơn trung bình")
         if complaint_stars <= 1 and call_stars <= 1 and missed_stars <= 1 and technical_stars <= 1:
             bullets.append("Ít khi liên hệ CSKH hoặc khiếu nại trong suốt vòng đời")
 
@@ -924,6 +1035,100 @@ class ReportGenerator:
             top_pkg = sorted(pkg.items(), key=lambda kv: -kv[1])[:2]
             ctx['goi_cuoc_chinh'] = [f"{k} ({v * 100:.0f}%)" for k, v in top_pkg]
         return ctx
+
+    def _compute_profile_global(self, personas_data: list) -> dict:
+        """Trung bình CÓ TRỌNG SỐ (theo support) của profile_attributes trên TOÀN BỘ personas —
+        dùng làm baseline để tìm feature nào phân biệt 1 cụm rõ nhất so với các cụm còn lại (phục vụ
+        _distinguishing_suffix, thay thế hậu tố số thứ tự (1)/(2) vô nghĩa khi 2+ persona trùng tên
+        gốc — ĐÃ XẢY RA TRÊN DỮ LIỆU THẬT: 2 cụm rất khác nhau về ARPU/loyalty/downgrade nhưng cùng
+        tên, chỉ phân biệt được bằng số thứ tự chứ không phải đặc trưng thật)."""
+        keys = ['avg_fee', 'high_spender_pct', 'loyalty_rank_avg', 'tier_downgrade_rate', 'tier_upgrade_rate']
+        out = {}
+        for k in keys:
+            weighted_sum, weight = 0.0, 0.0
+            for p in personas_data:
+                profile = p.get('profile_attributes') or {}
+                if k not in profile:
+                    continue
+                sup = p.get('support', 0)
+                weighted_sum += profile[k] * sup
+                weight += sup
+            if weight > 0:
+                out[k] = weighted_sum / weight
+        return out
+
+    def _distinguishing_suffix(self, p: dict, profile_global: dict) -> str:
+        """Trả về cụm từ NGẮN mô tả feature lệch NHIỀU NHẤT so với baseline toàn quần thể (vd 'ARPU
+        cao hơn', 'loyalty thấp hơn') — dùng làm hậu tố phân biệt persona theo ĐẶC TRƯNG THẬT thay vì
+        số thứ tự vô nghĩa. Trả về "" nếu không có feature nào lệch đủ rõ (>=15%)."""
+        profile = p.get('profile_attributes') or {}
+
+        def rel_dev(key):
+            g = profile_global.get(key, 0)
+            v = profile.get(key, 0)
+            return (v - g) / abs(g) if g != 0 else 0.0
+
+        labels = {
+            'avg_fee': ("ARPU cao hơn", "ARPU thấp hơn"),
+            'high_spender_pct': ("tỷ lệ chi tiêu cao hơn", "tỷ lệ chi tiêu thấp hơn"),
+            'loyalty_rank_avg': ("loyalty cao hơn", "loyalty thấp hơn"),
+            'tier_downgrade_rate': ("tỷ lệ downgrade cao hơn", "tỷ lệ downgrade thấp hơn"),
+            'tier_upgrade_rate': ("tỷ lệ upgrade cao hơn", "tỷ lệ upgrade thấp hơn"),
+        }
+        candidates = []
+        for key, (label_up, label_down) in labels.items():
+            if key not in profile:
+                continue
+            d = rel_dev(key)
+            if abs(d) >= 0.15:
+                candidates.append((abs(d), label_up if d > 0 else label_down))
+        if not candidates:
+            return ""
+        candidates.sort(key=lambda x: -x[0])
+        return candidates[0][1]
+
+    def _disambiguate_display_names(self, personas_data: list) -> dict:
+        """Map cluster_id -> tên hiển thị CUỐI CÙNG. Khi 2+ persona trùng tên gốc (churn_driver nếu
+        có, hoặc clean_persona_name), thay vì hậu tố số thứ tự "(N)" vô nghĩa, gắn thêm feature THẬT
+        phân biệt nhất của từng cụm (vd "— ARPU cao hơn" / "— loyalty thấp hơn"). Nếu không tìm được
+        feature nào đủ rõ, fallback về số thứ tự để đảm bảo KHÔNG BAO GIỜ có 2 tên hiển thị giống hệt
+        nhau (an toàn hơn là để trống)."""
+        profile_global = self._compute_profile_global(personas_data)
+        base_names = {}
+        for p in personas_data:
+            cid = p.get('cluster_id')
+            # Anomaly cluster (<1% data) PHẢI giữ tên riêng "Hành vi bất thường" — không gộp nhóm
+            # theo churn_driver dù có thể trùng với 1 cụm bình thường khác (ANOMALY GATE: không bao
+            # giờ đặt tên persona bình thường cho cụm quá nhỏ).
+            churn_driver = None if p.get('is_anomaly') else p.get('churn_driver')
+            # churn_driver không khớp danh sách đã biết (pipeline LLM tự sinh 1 chuỗi vô nghĩa, vd
+            # "Dựa trên hành vi quan sát được từ hệ thống CSKH" — ĐÃ XẢY RA TRÊN DỮ LIỆU THẬT) -> suy
+            # ra lại tên TỪ domain_signature/profile_attributes thay vì dùng chuỗi rác làm tên persona
+            # (dùng CHUNG hàm _compose_fallback_driver với _build_persona_story để tên và story luôn
+            # khớp nhau, không lệch pha).
+            if churn_driver and churn_driver not in _CHURN_DRIVER_NARRATIVE_CLAUSE:
+                churn_driver = self._compose_fallback_driver(p)['name']
+            base_names[cid] = churn_driver or self.clean_persona_name(p.get('persona_name', ''))
+
+        groups = {}
+        for cid, base in base_names.items():
+            groups.setdefault(base, []).append(cid)
+
+        display = {}
+        for base, cids in groups.items():
+            if len(cids) == 1:
+                display[cids[0]] = base
+                continue
+            used_suffixes = set()
+            for idx, cid in enumerate(cids, start=1):
+                p = next((pp for pp in personas_data if pp.get('cluster_id') == cid), {})
+                suffix = self._distinguishing_suffix(p, profile_global)
+                if suffix and suffix not in used_suffixes:
+                    used_suffixes.add(suffix)
+                    display[cid] = f"{base} — {suffix}"
+                else:
+                    display[cid] = f"{base} ({idx})"
+        return display
 
     def _compose_profile_value_sentence(self, profile_context: dict) -> str:
         """Deterministic (no-LLM) 'Customer Value' opening sentence from profile_context — ARPU,
@@ -1103,6 +1308,20 @@ QUY TẮC CỨNG:
 - Khi CÓ `profile_context`, business_interpretation được phép dài TỐI ĐA 3 CÂU (thay vì 2) để chứa đủ
   câu mô tả profile_context + câu domain_signals/contradiction + câu hệ quả. Các trường phân tích khác
   (Operational Impact, Customer Profile...) vẫn giữ tối đa 2 câu.
+- NẾU KHÔNG có `domain_signals` (rỗng — không domain nào lệch đáng kể) VÀ `profile_context` cũng
+  không cho thấy tín hiệu mạnh (loyalty thấp, ARPU trung bình, downgrade thấp): TUYỆT ĐỐI KHÔNG suy
+  diễn ra kết luận mang tính dự đoán/khuyến nghị kiểu "có cơ hội phát triển"/"tiềm năng tăng trưởng"
+  — đây là suy luận NHẢY CÓC không có bằng chứng hỗ trợ (đã bị phát hiện trên báo cáo thật: profile
+  chỉ cho thấy "loyalty thấp, giá trị trung bình, không có vấn đề nổi bật" nhưng lại kết luận "doanh
+  nghiệp có cơ hội để phát triển nhóm này"). Dùng đúng khung câu AN TOÀN sau, chỉ thay số liệu theo
+  profile_context thực tế, KHÔNG thêm từ "cơ hội"/"tiềm năng": "Đây là nhóm khách hàng phổ thông có
+  hành vi ổn định nhưng mức độ gắn kết còn thấp, phù hợp với các chương trình tăng tương tác và bán
+  chéo."
+- NẾU `profile_context.dich_vu_chinh` cho thấy 1 dịch vụ chiếm ưu thế rõ rệt (>=60% theo % đã cho):
+  PHẢI biến thành 1 câu insight về cơ hội kinh doanh, KHÔNG chỉ liệt kê tên dịch vụ suông. Ví dụ:
+  dich_vu_chinh = ["Net Pay (73%)", "Net Pay Cam (10%)"] → "Phần lớn khách hàng chỉ dùng Net Pay đơn
+  lẻ, rất ít sử dụng dịch vụ tích hợp như Net Pay Cam — cho thấy dư địa cho các chiến dịch upsell dịch
+  vụ tích hợp." KHÔNG bịa số liệu ngoài % đã cho trong `dich_vu_chinh`.
 
 Dữ liệu Business Facts duy nhất bạn được thấy:
 {data_str}
@@ -1218,6 +1437,9 @@ Dữ liệu Business Facts duy nhất bạn được thấy:
         # dùng được business_interpretation do LLM tổng hợp — tránh tình trạng card Overview chỉ là
         # bullet rời rạc (feature-by-feature, %/lần lệch) trong khi mục 4 mới có văn xuôi thật.
         narrative_dict = {n.cluster_id: n for n in narrative.personas_analysis}
+        # Tên hiển thị cuối cùng — khi 2+ cụm trùng tên gốc, phân biệt bằng feature THẬT (ARPU/
+        # loyalty/downgrade...) thay vì hậu tố số thứ tự "(1)/(2)" vô nghĩa (xem _disambiguate_display_names).
+        display_name_map = self._disambiguate_display_names(personas_data)
 
         # Persona Overview — infographic-style card per persona: icon + tên + % + tag cường độ, theo
         # sau là 1 ĐOẠN VĂN diễn giải (không phải bullet rời rạc từng feature). POST_CHURN dùng story
@@ -1226,7 +1448,7 @@ Dữ liệu Business Facts duy nhất bạn được thấy:
         md += "## 3. Persona Overview\n\n"
         for p in personas_data:
             cid = p.get('cluster_id')
-            p_name = self.clean_persona_name(p.get('persona_name', 'Unknown'))
+            p_name = display_name_map.get(cid, self.clean_persona_name(p.get('persona_name', 'Unknown')))
             icon = self._get_persona_icon(p_name)
             tag = self._get_intensity_tag(p)
             sup_pct = p.get('support_pct', 0) * 100
@@ -1268,7 +1490,7 @@ Dữ liệu Business Facts duy nhất bạn được thấy:
                 t = p.get('risk_tier')
                 if t not in tiers:
                     continue
-                p_name = self.clean_persona_name(p.get('persona_name', ''))
+                p_name = display_name_map.get(p.get('cluster_id'), self.clean_persona_name(p.get('persona_name', '')))
                 means = self._get_means(p)
                 top = self._top_signals(means, global_means, top_n=1) if means else []
                 why = self._get_business_signal(*top[0][:3]) if top else None
@@ -1289,7 +1511,7 @@ Dữ liệu Business Facts duy nhất bạn được thấy:
         for p in personas_data:
             cid = p.get('cluster_id')
             n = narrative_dict.get(cid)
-            p_name = self.clean_persona_name(p.get('persona_name', f'Nhóm {cid}'))
+            p_name = display_name_map.get(cid, self.clean_persona_name(p.get('persona_name', f'Nhóm {cid}')))
             actions = p.get('recommended_actions', [])
             primary_action = actions[0] if actions else "N/A"
             sup_str = self.format_support(p.get('support', 0))
@@ -1415,7 +1637,7 @@ Dữ liệu Business Facts duy nhất bạn được thấy:
         md += "|---|---|---|---|---|---|---|\n"
 
         for rank, p in enumerate(ranked_personas, start=1):
-            p_name = self.clean_persona_name(p.get('persona_name', ''))
+            p_name = display_name_map.get(p.get('cluster_id'), self.clean_persona_name(p.get('persona_name', '')))
             sup_str = self.format_support(p.get('support', 0))
             sup_pct = p.get('support_pct', 0) * 100
             actions = p.get('recommended_actions', [])
@@ -1457,7 +1679,7 @@ Dữ liệu Business Facts duy nhất bạn được thấy:
         md += "### Cluster Feature Statistics\n"
         
         for p in personas_data:
-            p_name = self.clean_persona_name(p.get('persona_name', ''))
+            p_name = display_name_map.get(p.get('cluster_id'), self.clean_persona_name(p.get('persona_name', '')))
             md += f"#### {p_name}\n"
             md += "| Feature | Value | Benchmark | Dev % |\n"
             md += "|---|---|---|---|\n"

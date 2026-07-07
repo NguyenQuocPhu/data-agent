@@ -1,66 +1,0 @@
-/eval.sh: line 2: set: pipefail: invalid option name
-+ source $'/opt/miniconda3/bin/activate\r'
-/eval.sh: line 3: /opt/miniconda3/bin/activate: No such file or directory
-+ conda activate $'testbed\r'
-
-CondaError: Run 'conda init' before 'conda activate'
-
-+ cd $'/testbed\r'
-/eval.sh: line 5: cd: $'/testbed\r': No such file or directory
-+ git config --global --add safe.directory $'/testbed\r'
-+ cd $'/testbed\r'
-/eval.sh: line 7: cd: $'/testbed\r': No such file or directory
-+ git $'status\r'
-git: 'status' is not a git command. See 'git --help'.
-
-The most similar command is
-	status
-+ git $'show\r'
-git: 'show' is not a git command. See 'git --help'.
-
-The most similar command is
-	show
-+ git -c core.fileMode=false diff $'f30284ef926ebaf04b176f21b421e2dffc679792\r'
-fatal: ambiguous argument 'f30284ef926ebaf04b176f21b421e2dffc679792?': unknown revision or path not in the working tree.
-Use '--' to separate paths from revisions, like this:
-'git <command> [<revision>...] -- [<file>...]'
-+ source $'/opt/miniconda3/bin/activate\r'
-/eval.sh: line 11: /opt/miniconda3/bin/activate: No such file or directory
-+ conda activate $'testbed\r'
-
-CondaError: Run 'conda init' before 'conda activate'
-
-+ python -m pip install -e '.[test]'
-ERROR: .[test] is not a valid editable requirement. It should either be a path to a local project or a VCS URL (beginning with bzr+http, bzr+https, bzr+ssh, bzr+sftp, bzr+ftp, bzr+lp, bzr+file, git+http, git+https, git+ssh, git+git, git+file, hg+file, hg+http, hg+https, hg+ssh, hg+static-http, svn+ssh, svn+http, svn+https, svn+svn, svn+file).
-+ git checkout f30284ef926ebaf04b176f21b421e2dffc679792 tests/roots/test-linkcheck/links.txt $'tests/test_build_linkcheck.py\r'
-error: pathspec 'tests/test_build_linkcheck.py?' did not match any file(s) known to git
-+ git apply -v -
-Checking patch tests/roots/test-linkcheck/links.txt...
-error: while searching for:
-* `Example Bar invalid <https://www.google.com/#top>`_?
-* `Example anchor invalid <http://www.sphinx-doc.org/en/1.7/intro.html#does-not-exist>`_?
-* `Complete nonsense <https://localhost:7777/doesnotexist>`_?
-?
-.. image:: https://www.google.com/image.png?
-.. figure:: https://www.google.com/image2.png?
-
-error: patch failed: tests/roots/test-linkcheck/links.txt:11
-error: tests/roots/test-linkcheck/links.txt: patch does not apply
-Checking patch tests/test_build_linkcheck.py...
-error: while searching for:
-    # images should fail?
-    assert "Not Found for url: https://www.google.com/image.png" in content?
-    assert "Not Found for url: https://www.google.com/image2.png" in content?
-    assert len(content.splitlines()) == 5?
-?
-?
-@pytest.mark.sphinx('linkcheck', testroot='linkcheck', freshenv=True)?
-
-error: patch failed: tests/test_build_linkcheck.py:30
-error: tests/test_build_linkcheck.py: patch does not apply
-+ : '>>>>> Start Test Output'
-+ tox --current-env -epy39 -v -- $'tests/test_build_linkcheck.py\r'
-/eval.sh: line 75: tox: command not found
-+ : '>>>>> End Test Output'
-+ git checkout f30284ef926ebaf04b176f21b421e2dffc679792 tests/roots/test-linkcheck/links.txt $'tests/test_build_linkcheck.py\r'
-error: pathspec 'tests/test_build_linkcheck.py?' did not match any file(s) known to git

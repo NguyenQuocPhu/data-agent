@@ -185,6 +185,12 @@ def apply_business_rules(m, support_pct, profile=None, profile_global=None, data
             loyalty_dev = rel_dev('loyalty_rank_avg')
             if loyalty_dev <= -0.4 and -loyalty_dev > best_dev:
                 best_name, best_score, best_dev = "Khách hàng giảm gắn bó, cần tái kích hoạt", 58, -loyalty_dev
+            elif loyalty_dev >= 1.0 and loyalty_dev > best_dev:
+                # loyalty_rank_avg cao GẤP ĐÔI trở lên trung bình quần thể — đủ nổi bật để gọi thẳng
+                # là "trung thành" thay vì chỉ "gắn bó" chung chung (ĐÃ XẢY RA TRÊN DỮ LIỆU THẬT: 1
+                # cụm có loyalty_rank_avg lệch +690% vẫn chỉ rơi vào tên fallback "Khách hàng tương
+                # tác nhẹ" — cần 1 mức tên mạnh hơn hẳn cho trường hợp lệch cực đoan này).
+                best_name, best_score, best_dev = "Khách hàng trung thành", 46, loyalty_dev
             elif loyalty_dev >= 0.4 and loyalty_dev > best_dev:
                 best_name, best_score, best_dev = "Khách hàng gắn bó, thân thiết", 42, loyalty_dev
             if best_name:
@@ -296,11 +302,14 @@ def classify_churn_driver(grp, domain_sig=None):
             'Khiếu nại/sự cố tăng mạnh ở giai đoạn gần rời mạng so với trước đó — dấu hiệu một sự kiện cụ thể (sự cố kỹ thuật, trải nghiệm tệ) là nguyên nhân trực tiếp, khác với một quá trình bất mãn kéo dài.',
             'MEDIUM')
 
-    # 4. Nhu cầu hỗ trợ không đáp ứng (call/missed cao, KHÔNG đi kèm complaint/technical mạnh)
+    # 4. Liên hệ CSKH/cuộc gọi nhỡ tăng cao (call/missed cao, KHÔNG đi kèm complaint/technical mạnh)
+    # — TÊN VÀ EVIDENCE CHỈ MÔ TẢ QUAN SÁT (số lần liên hệ/cuộc gọi nhỡ), KHÔNG suy ra kết luận nhân
+    # quả "nhu cầu không được đáp ứng" — dữ liệu chỉ có TẦN SUẤT liên hệ, không có thông tin liên hệ
+    # đó có được xử lý/giải quyết hay không, nên không đủ căn cứ để khẳng định "chưa đáp ứng".
     if s_call >= 3 or s_missed >= 3:
         return result(
-            'Nhu cầu hỗ trợ không được đáp ứng đầy đủ',
-            'Tần suất liên hệ CSKH/cuộc gọi nhỡ ở mức cao gần thời điểm rời mạng — khách hàng đã chủ động tìm kiếm hỗ trợ nhưng có thể chưa được giải quyết thoả đáng.',
+            'Tăng liên hệ CSKH/cuộc gọi nhỡ trước khi rời mạng',
+            'Tần suất liên hệ CSKH/cuộc gọi nhỡ tăng cao gần thời điểm rời mạng — dữ liệu chỉ phản ánh SỐ LẦN liên hệ, không xác định được các lần liên hệ này đã được xử lý thoả đáng hay chưa.',
             'MEDIUM')
 
     # 5. Khách hàng giá trị cao, chủ động rời mạng (giá trị cao, MỌI domain khác đều thấp)
@@ -406,7 +415,15 @@ def compute_profile_attributes(df, cluster_col='cluster'):
     cols = df.columns
     col_map = {{
         'spend_flag':   get_column(cols, ['high_spender']),
-        'fee':          get_column(cols, ['fee_total', 'fee_avg']),
+        # BẮT BUỘC exact-match 'fee_avg' TRƯỚC — get_column() match theo THỨ TỰ CỘT trong DataFrame,
+        # KHÔNG theo thứ tự keyword truyền vào, nên get_column(cols, ['fee_total', 'fee_avg']) vẫn
+        # trả về 'fee_total' nếu cột đó đứng trước 'fee_avg' trong DataFrame (ĐÃ XẢY RA TRÊN DỮ LIỆU
+        # THẬT: fee_total ở vị trí cột 50, fee_avg ở vị trí 51 → avg_fee/"ARPU" hiển thị suốt session
+        # thực ra là TỔNG cước phí 6 tháng, không phải cước phí trung bình 1 tháng — bị thổi phồng
+        # gấp active_fee_months lần). 'fee_avg' là TRUNG BÌNH THÁNG thật sự — chỉ fallback về
+        # 'fee_total' nếu dataset không có cột fee_avg (còn hơn không có ARPU nào).
+        'fee': next((c for c in cols if str(c).lower() == 'fee_avg'), None) \
+               or next((c for c in cols if str(c).lower() == 'fee_total'), None),
         'tier_upgrade': get_column(cols, ['segment_upgrade_count']),
         'tier_downgrade': get_column(cols, ['segment_downgrade_count']),
         'usage_giam_nhe':  get_column(cols, ['ever_giam_nhe']),

@@ -142,6 +142,29 @@ class LAMBDA:
             logger.error(f"Error in open_board: {e}")
             return []
 
+    def _load_known_column_descriptions(self):
+        """Quét các file *_metadata.json ở root repo (vd data_processed_t4_metadata.json) — mỗi
+        file có dạng {{"columns": [{{"column": ..., "description": ...}}, ...]}} do
+        generate_metadata.py/update_metadata.py duy trì thủ công. Trả về list các dict
+        {{column_name: description}}, mỗi phần tử ứng với 1 file metadata tìm được. Lỗi đọc file
+        (JSON hỏng, thiếu field...) chỉ bị bỏ qua file đó, không làm crash refresh_workspace_context."""
+        import glob
+        repo_root = os.path.dirname(os.path.abspath(__file__))
+        desc_maps = []
+        for meta_path in glob.glob(os.path.join(repo_root, "*_metadata.json")):
+            try:
+                with open(meta_path, 'r', encoding='utf-8') as f:
+                    meta = json.load(f)
+                cols = meta.get("columns", [])
+                if isinstance(cols, list) and cols and isinstance(cols[0], dict):
+                    desc_map = {c["column"]: c.get("description", "") for c in cols if "column" in c}
+                    if desc_map:
+                        desc_maps.append(desc_map)
+            except Exception as e:
+                logger.warning(f"Skipping unreadable metadata file {meta_path}: {e}")
+                continue
+        return desc_maps
+
     def refresh_workspace_context(self, workspace_root: str):
         try:
             # [HOTFIX] Re-inject load_dataset to point to the correct session workspace instead of 'default'
@@ -237,17 +260,45 @@ def list_datasets():
             if not index_data:
                 return
                 
+            # Mô tả nghiệp vụ từng cột (tiếng Việt) được duy trì thủ công trong các file
+            # *_metadata.json ở root repo (vd data_processed_t4_metadata.json) — metadata TỰ SINH
+            # lúc upload (api/services/workspace.py:_save_uploads) chỉ có TÊN CỘT/dtype thô, không
+            # có nghĩa nghiệp vụ, khiến LLM phải tự đoán ý nghĩa cột qua substring tên cột — đây
+            # chính là nguyên nhân gốc của nhiều bug thật đã gặp trong session (fee_total bị chọn
+            # nhầm thay vì fee_avg cho ARPU, cột services bị nhầm sang cột số...). Tự động so khớp
+            # bộ cột đang active với các file *_metadata.json này, nếu khớp phần lớn thì bơm thẳng
+            # mô tả từng cột vào context thay vì chỉ liệt kê 20 tên cột đầu trơn.
+            known_desc_maps = self._load_known_column_descriptions()
+
             context_str = "\n\n[ACTIVE DATASETS]\n"
             for file_id, info in index_data.items():
                 context_str += f"- File ID: {file_id}\n  Filename: {info.get('filename', os.path.basename(info.get('path', file_id)))}\n"
-                
+
                 # Load metadata
                 meta_path = os.path.join(workspace_root, info.get("metadata_file", ""))
                 if os.path.exists(meta_path):
                     with open(meta_path, 'r', encoding='utf-8') as mf:
                         meta = json.load(mf)
                         cols = meta.get("columns", [])
-                        context_str += f"  Metadata: {meta.get('size_bytes')} bytes. Columns: {', '.join(cols[:20])}\n"
+
+                        matched_desc_map = None
+                        for desc_map in known_desc_maps:
+                            if cols and len(set(cols) & set(desc_map.keys())) / len(cols) >= 0.5:
+                                matched_desc_map = desc_map
+                                break
+
+                        if matched_desc_map:
+                            context_str += (
+                                f"  Metadata: {meta.get('size_bytes')} bytes, {len(cols)} cột.\n"
+                                f"  Mô tả nghiệp vụ từng cột (DÙNG ĐỂ CHỌN ĐÚNG CỘT theo Ý NGHĨA, "
+                                f"KHÔNG suy đoán qua substring tên cột):\n"
+                            )
+                            for c in cols:
+                                desc = matched_desc_map.get(c)
+                                context_str += f"    - {c}: {desc}\n" if desc else f"    - {c}\n"
+                        else:
+                            context_str += f"  Metadata: {meta.get('size_bytes')} bytes. Columns: {', '.join(cols[:20])}\n"
+
                         if 'dtypes' in meta:
                             dtypes = [f"{c} ({t})" for c, t in list(meta['dtypes'].items())[:10]]
                             context_str += f"  DTypes: {', '.join(dtypes)}\n"

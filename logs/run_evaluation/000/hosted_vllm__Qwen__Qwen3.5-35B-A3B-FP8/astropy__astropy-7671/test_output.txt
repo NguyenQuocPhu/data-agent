@@ -1,63 +1,0 @@
-/eval.sh: line 2: set: pipefail: invalid option name
-+ source $'/opt/miniconda3/bin/activate\r'
-/eval.sh: line 3: /opt/miniconda3/bin/activate: No such file or directory
-+ conda activate $'testbed\r'
-
-CondaError: Run 'conda init' before 'conda activate'
-
-+ cd $'/testbed\r'
-/eval.sh: line 5: cd: $'/testbed\r': No such file or directory
-+ git config --global --add safe.directory $'/testbed\r'
-+ cd $'/testbed\r'
-/eval.sh: line 7: cd: $'/testbed\r': No such file or directory
-+ git $'status\r'
-git: 'status' is not a git command. See 'git --help'.
-
-The most similar command is
-	status
-+ git $'show\r'
-git: 'show' is not a git command. See 'git --help'.
-
-The most similar command is
-	show
-+ git -c core.fileMode=false diff $'a7141cd90019b62688d507ae056298507678c058\r'
-fatal: ambiguous argument 'a7141cd90019b62688d507ae056298507678c058?': unknown revision or path not in the working tree.
-Use '--' to separate paths from revisions, like this:
-'git <command> [<revision>...] -- [<file>...]'
-+ source $'/opt/miniconda3/bin/activate\r'
-/eval.sh: line 11: /opt/miniconda3/bin/activate: No such file or directory
-+ conda activate $'testbed\r'
-
-CondaError: Run 'conda init' before 'conda activate'
-
-+ python -m pip install -e '.[test]' $'--verbose\r'
-
-Usage:   
-  /opt/miniconda3/bin/python -m pip install [options] <requirement specifier> [package-index-options] ...
-  /opt/miniconda3/bin/python -m pip install [options] -r <requirements file> [package-index-options] ...
-  /opt/miniconda3/bin/python -m pip install [options] [-e] <vcs project url> ...
-  /opt/miniconda3/bin/python -m pip install [options] [-e] <local project path> ...
-  /opt/miniconda3/bin/python -m pip install [options] <archive url/path> ...
-
-no such option: --verbose
-+ git checkout a7141cd90019b62688d507ae056298507678c058 $'astropy/utils/tests/test_introspection.py\r'
-error: pathspec 'astropy/utils/tests/test_introspection.py?' did not match any file(s) known to git
-+ git apply -v -
-Checking patch astropy/utils/tests/test_introspection.py...
-error: while searching for:
-    from types import ModuleType?
-    test_module = ModuleType(str("test_module"))?
-    test_module.__version__ = '0.12.2'?
-    good_versions = ['0.12', '0.12.1', '0.12.0.dev']?
-    bad_versions = ['1', '1.2rc1']?
-    for version in good_versions:?
-        assert minversion(test_module, version)?
-
-error: patch failed: astropy/utils/tests/test_introspection.py:67
-error: astropy/utils/tests/test_introspection.py: patch does not apply
-+ : '>>>>> Start Test Output'
-+ pytest -rA -vv -o console_output_style=classic --tb=no $'astropy/utils/tests/test_introspection.py\r'
-/eval.sh: line 31: pytest: command not found
-+ : '>>>>> End Test Output'
-+ git checkout a7141cd90019b62688d507ae056298507678c058 $'astropy/utils/tests/test_introspection.py\r'
-error: pathspec 'astropy/utils/tests/test_introspection.py?' did not match any file(s) known to git

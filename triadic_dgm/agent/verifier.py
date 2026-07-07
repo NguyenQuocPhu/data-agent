@@ -286,7 +286,16 @@ class SemanticVerifier:
 
             if not has_valid_json and verdict.get("status") != "REVISE":
                 verdict["status"] = "REVISE"
-                verdict["feedback"] = "⚠ Không tìm thấy JSON Output hợp lệ cho Persona. BẮT BUỘC phải dùng lệnh print('[JSON_START_PERSONA]'), sau đó print(json.dumps(personas)), và cuối cùng print('[JSON_END_PERSONA]')."
+                # KHÔNG được viết literal "[JSON_START_PERSONA]"/"[JSON_END_PERSONA]" (có ngoặc
+                # vuông) trong câu feedback này — mọi regex extract JSON (backend: engine.py,
+                # report_generator.py, verifier.py; frontend: three-panel-interface.tsx) đều tìm
+                # đúng pattern \[JSON_START_PERSONA\]...\[JSON_END_PERSONA\]. Nếu feedback REVISE
+                # này (không có JSON thật ở giữa 2 tag) lọt vào nội dung hiển thị, frontend sẽ hiểu
+                # nhầm đoạn text feedback là JSON thật và crash JSON.parse — ĐÃ XẢY RA TRÊN DỮ LIỆU
+                # THẬT ("Unexpected token '''..."). Bỏ ngoặc vuông khỏi câu feedback (chỉ câu feedback
+                # này, KHÔNG áp dụng cho code thật LLM phải viết — code thật vẫn PHẢI in
+                # print("[JSON_START_PERSONA]") có ngoặc vuông như mọi nơi khác trong prompt chính).
+                verdict["feedback"] = "⚠ Không tìm thấy JSON Output hợp lệ cho Persona. BẮT BUỘC phải in marker JSON_START_PERSONA (dạng print với ngoặc vuông bao quanh, xem hướng dẫn chính), sau đó print(json.dumps(personas)), và cuối cùng in marker JSON_END_PERSONA tương tự."
 
         # Rule 8: Hidden Pattern Actionable Logic (Decision Tree) & Hallucination Check
         if "CHURN PREDICTION RULES:" in exec_output:

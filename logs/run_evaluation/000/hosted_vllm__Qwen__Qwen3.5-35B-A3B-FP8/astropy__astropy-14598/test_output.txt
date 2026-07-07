@@ -1,62 +1,0 @@
-/eval.sh: line 2: set: pipefail: invalid option name
-+ source $'/opt/miniconda3/bin/activate\r'
-/eval.sh: line 3: /opt/miniconda3/bin/activate: No such file or directory
-+ conda activate $'testbed\r'
-
-CondaError: Run 'conda init' before 'conda activate'
-
-+ cd $'/testbed\r'
-/eval.sh: line 5: cd: $'/testbed\r': No such file or directory
-+ git config --global --add safe.directory $'/testbed\r'
-+ cd $'/testbed\r'
-/eval.sh: line 7: cd: $'/testbed\r': No such file or directory
-+ git $'status\r'
-git: 'status' is not a git command. See 'git --help'.
-
-The most similar command is
-	status
-+ git $'show\r'
-git: 'show' is not a git command. See 'git --help'.
-
-The most similar command is
-	show
-+ git -c core.fileMode=false diff $'80c3854a5f4f4a6ab86c03d9db7854767fcd83c1\r'
-fatal: ambiguous argument '80c3854a5f4f4a6ab86c03d9db7854767fcd83c1?': unknown revision or path not in the working tree.
-Use '--' to separate paths from revisions, like this:
-'git <command> [<revision>...] -- [<file>...]'
-+ source $'/opt/miniconda3/bin/activate\r'
-/eval.sh: line 11: /opt/miniconda3/bin/activate: No such file or directory
-+ conda activate $'testbed\r'
-
-CondaError: Run 'conda init' before 'conda activate'
-
-+ python -m pip install -e '.[test]' $'--verbose\r'
-
-Usage:   
-  /opt/miniconda3/bin/python -m pip install [options] <requirement specifier> [package-index-options] ...
-  /opt/miniconda3/bin/python -m pip install [options] -r <requirements file> [package-index-options] ...
-  /opt/miniconda3/bin/python -m pip install [options] [-e] <vcs project url> ...
-  /opt/miniconda3/bin/python -m pip install [options] [-e] <local project path> ...
-  /opt/miniconda3/bin/python -m pip install [options] <archive url/path> ...
-
-no such option: --verbose
-+ git checkout 80c3854a5f4f4a6ab86c03d9db7854767fcd83c1 $'astropy/io/fits/tests/test_header.py\r'
-error: pathspec 'astropy/io/fits/tests/test_header.py?' did not match any file(s) known to git
-+ git apply -v -
-Checking patch astropy/io/fits/tests/test_header.py...
-error: while searching for:
-                "CONTINUE  '' / comments in line 1 comments with ''.                             "?
-            )?
-?
-    def test_continue_card_with_equals_in_value(self):?
-        """?
-        Regression test for https://aeon.stsci.edu/ssb/trac/pyfits/ticket/117?
-
-error: patch failed: astropy/io/fits/tests/test_header.py:582
-error: astropy/io/fits/tests/test_header.py: patch does not apply
-+ : '>>>>> Start Test Output'
-+ pytest -rA $'astropy/io/fits/tests/test_header.py\r'
-/eval.sh: line 45: pytest: command not found
-+ : '>>>>> End Test Output'
-+ git checkout 80c3854a5f4f4a6ab86c03d9db7854767fcd83c1 $'astropy/io/fits/tests/test_header.py\r'
-error: pathspec 'astropy/io/fits/tests/test_header.py?' did not match any file(s) known to git

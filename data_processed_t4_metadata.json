@@ -306,7 +306,7 @@
             "column": "fee_total",
             "type": "float",
             "sample": "900000.0",
-            "description": "Tổng cước phí/doanh thu trong 6 tháng"
+            "description": "Tổng cước phí/doanh thu trong 3 tháng"
         },
         {
             "column": "fee_avg",

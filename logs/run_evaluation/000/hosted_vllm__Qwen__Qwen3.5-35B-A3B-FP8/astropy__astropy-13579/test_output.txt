@@ -1,59 +1,0 @@
-/eval.sh: line 2: set: pipefail: invalid option name
-+ source $'/opt/miniconda3/bin/activate\r'
-/eval.sh: line 3: /opt/miniconda3/bin/activate: No such file or directory
-+ conda activate $'testbed\r'
-
-CondaError: Run 'conda init' before 'conda activate'
-
-+ cd $'/testbed\r'
-/eval.sh: line 5: cd: $'/testbed\r': No such file or directory
-+ git config --global --add safe.directory $'/testbed\r'
-+ cd $'/testbed\r'
-/eval.sh: line 7: cd: $'/testbed\r': No such file or directory
-+ git $'status\r'
-git: 'status' is not a git command. See 'git --help'.
-
-The most similar command is
-	status
-+ git $'show\r'
-git: 'show' is not a git command. See 'git --help'.
-
-The most similar command is
-	show
-+ git -c core.fileMode=false diff $'0df94ff7097961e92fd7812036a24b145bc13ca8\r'
-fatal: ambiguous argument '0df94ff7097961e92fd7812036a24b145bc13ca8?': unknown revision or path not in the working tree.
-Use '--' to separate paths from revisions, like this:
-'git <command> [<revision>...] -- [<file>...]'
-+ source $'/opt/miniconda3/bin/activate\r'
-/eval.sh: line 11: /opt/miniconda3/bin/activate: No such file or directory
-+ conda activate $'testbed\r'
-
-CondaError: Run 'conda init' before 'conda activate'
-
-+ python -m pip install -e '.[test]' $'--verbose\r'
-
-Usage:   
-  /opt/miniconda3/bin/python -m pip install [options] <requirement specifier> [package-index-options] ...
-  /opt/miniconda3/bin/python -m pip install [options] -r <requirements file> [package-index-options] ...
-  /opt/miniconda3/bin/python -m pip install [options] [-e] <vcs project url> ...
-  /opt/miniconda3/bin/python -m pip install [options] [-e] <local project path> ...
-  /opt/miniconda3/bin/python -m pip install [options] <archive url/path> ...
-
-no such option: --verbose
-+ git checkout 0df94ff7097961e92fd7812036a24b145bc13ca8 $'astropy/wcs/wcsapi/wrappers/tests/test_sliced_wcs.py\r'
-error: pathspec 'astropy/wcs/wcsapi/wrappers/tests/test_sliced_wcs.py?' did not match any file(s) known to git
-+ git apply -v -
-Checking patch astropy/wcs/wcsapi/wrappers/tests/test_sliced_wcs.py...
-error: while searching for:
-    for int_coord, np64_coord in zip(int_sliced.pixel_to_world_values(*pixel_arrays),?
-                                     np64_sliced.pixel_to_world_values(*pixel_arrays)):?
-        assert all(int_coord == np64_coord)?
-
-error: patch failed: astropy/wcs/wcsapi/wrappers/tests/test_sliced_wcs.py:899
-error: astropy/wcs/wcsapi/wrappers/tests/test_sliced_wcs.py: patch does not apply
-+ : '>>>>> Start Test Output'
-+ pytest -rA $'astropy/wcs/wcsapi/wrappers/tests/test_sliced_wcs.py\r'
-/eval.sh: line 62: pytest: command not found
-+ : '>>>>> End Test Output'
-+ git checkout 0df94ff7097961e92fd7812036a24b145bc13ca8 $'astropy/wcs/wcsapi/wrappers/tests/test_sliced_wcs.py\r'
-error: pathspec 'astropy/wcs/wcsapi/wrappers/tests/test_sliced_wcs.py?' did not match any file(s) known to git

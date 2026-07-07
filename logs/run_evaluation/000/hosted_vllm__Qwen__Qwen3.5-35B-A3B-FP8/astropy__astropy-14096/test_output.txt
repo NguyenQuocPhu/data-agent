@@ -1,59 +1,0 @@
-/eval.sh: line 2: set: pipefail: invalid option name
-+ source $'/opt/miniconda3/bin/activate\r'
-/eval.sh: line 3: /opt/miniconda3/bin/activate: No such file or directory
-+ conda activate $'testbed\r'
-
-CondaError: Run 'conda init' before 'conda activate'
-
-+ cd $'/testbed\r'
-/eval.sh: line 5: cd: $'/testbed\r': No such file or directory
-+ git config --global --add safe.directory $'/testbed\r'
-+ cd $'/testbed\r'
-/eval.sh: line 7: cd: $'/testbed\r': No such file or directory
-+ git $'status\r'
-git: 'status' is not a git command. See 'git --help'.
-
-The most similar command is
-	status
-+ git $'show\r'
-git: 'show' is not a git command. See 'git --help'.
-
-The most similar command is
-	show
-+ git -c core.fileMode=false diff $'1a4462d72eb03f30dc83a879b1dd57aac8b2c18b\r'
-fatal: ambiguous argument '1a4462d72eb03f30dc83a879b1dd57aac8b2c18b?': unknown revision or path not in the working tree.
-Use '--' to separate paths from revisions, like this:
-'git <command> [<revision>...] -- [<file>...]'
-+ source $'/opt/miniconda3/bin/activate\r'
-/eval.sh: line 11: /opt/miniconda3/bin/activate: No such file or directory
-+ conda activate $'testbed\r'
-
-CondaError: Run 'conda init' before 'conda activate'
-
-+ python -m pip install -e '.[test]' $'--verbose\r'
-
-Usage:   
-  /opt/miniconda3/bin/python -m pip install [options] <requirement specifier> [package-index-options] ...
-  /opt/miniconda3/bin/python -m pip install [options] -r <requirements file> [package-index-options] ...
-  /opt/miniconda3/bin/python -m pip install [options] [-e] <vcs project url> ...
-  /opt/miniconda3/bin/python -m pip install [options] [-e] <local project path> ...
-  /opt/miniconda3/bin/python -m pip install [options] <archive url/path> ...
-
-no such option: --verbose
-+ git checkout 1a4462d72eb03f30dc83a879b1dd57aac8b2c18b $'astropy/coordinates/tests/test_sky_coord.py\r'
-error: pathspec 'astropy/coordinates/tests/test_sky_coord.py?' did not match any file(s) known to git
-+ git apply -v -
-Checking patch astropy/coordinates/tests/test_sky_coord.py...
-error: while searching for:
-    npt.assert_array_equal(idx, [0, 1, 2, 3])?
-    assert_allclose(angle, 0 * u.deg, atol=1e-14 * u.deg, rtol=0)?
-    assert_allclose(distance, 0 * u.kpc, atol=1e-14 * u.kpc, rtol=0)?
-
-error: patch failed: astropy/coordinates/tests/test_sky_coord.py:2165
-error: astropy/coordinates/tests/test_sky_coord.py: patch does not apply
-+ : '>>>>> Start Test Output'
-+ pytest -rA $'astropy/coordinates/tests/test_sky_coord.py\r'
-/eval.sh: line 44: pytest: command not found
-+ : '>>>>> End Test Output'
-+ git checkout 1a4462d72eb03f30dc83a879b1dd57aac8b2c18b $'astropy/coordinates/tests/test_sky_coord.py\r'
-error: pathspec 'astropy/coordinates/tests/test_sky_coord.py?' did not match any file(s) known to git

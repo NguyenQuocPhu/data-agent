@@ -1,65 +1,0 @@
-/eval.sh: line 2: set: pipefail: invalid option name
-+ source $'/opt/miniconda3/bin/activate\r'
-/eval.sh: line 3: /opt/miniconda3/bin/activate: No such file or directory
-+ conda activate $'testbed\r'
-
-CondaError: Run 'conda init' before 'conda activate'
-
-+ cd $'/testbed\r'
-/eval.sh: line 5: cd: $'/testbed\r': No such file or directory
-+ git config --global --add safe.directory $'/testbed\r'
-+ cd $'/testbed\r'
-/eval.sh: line 7: cd: $'/testbed\r': No such file or directory
-+ git $'status\r'
-git: 'status' is not a git command. See 'git --help'.
-
-The most similar command is
-	status
-+ git $'show\r'
-git: 'show' is not a git command. See 'git --help'.
-
-The most similar command is
-	show
-+ git -c core.fileMode=false diff $'dd1615c59dc6fff633e27dbb3861f2d27e1fb976\r'
-fatal: ambiguous argument 'dd1615c59dc6fff633e27dbb3861f2d27e1fb976?': unknown revision or path not in the working tree.
-Use '--' to separate paths from revisions, like this:
-'git <command> [<revision>...] -- [<file>...]'
-+ source $'/opt/miniconda3/bin/activate\r'
-/eval.sh: line 11: /opt/miniconda3/bin/activate: No such file or directory
-+ conda activate $'testbed\r'
-
-CondaError: Run 'conda init' before 'conda activate'
-
-+ python -m pip install -e '.[test]'
-ERROR: .[test] is not a valid editable requirement. It should either be a path to a local project or a VCS URL (beginning with bzr+http, bzr+https, bzr+ssh, bzr+sftp, bzr+ftp, bzr+lp, bzr+file, git+http, git+https, git+ssh, git+git, git+file, hg+file, hg+http, hg+https, hg+ssh, hg+static-http, svn+ssh, svn+http, svn+https, svn+svn, svn+file).
-+ git checkout dd1615c59dc6fff633e27dbb3861f2d27e1fb976 $'tests/test_ext_autodoc_autoclass.py\r'
-error: pathspec 'tests/test_ext_autodoc_autoclass.py?' did not match any file(s) known to git
-+ git apply -v -
-<stdin>:6: trailing whitespace.
-class Foo:
-<stdin>:7: trailing whitespace.
-    def __init__(self):
-<stdin>:8: trailing whitespace.
-        self.attr1 = None  #: docstring foo
-<stdin>:9: trailing whitespace.
-        self.attr2 = None  #: docstring foo
-<stdin>:10: trailing whitespace.
-
-Checking patch tests/roots/test-ext-autodoc/target/instance_variable.py...
-Checking patch tests/test_ext_autodoc_autoclass.py...
-error: while searching for:
-    ]?
-?
-?
-def test_decorators(app):?
-    actual = do_autodoc(app, 'class', 'target.decorator.Baz')?
-    assert list(actual) == [?
-
-error: patch failed: tests/test_ext_autodoc_autoclass.py:51
-error: tests/test_ext_autodoc_autoclass.py: patch does not apply
-+ : '>>>>> Start Test Output'
-+ tox --current-env -epy39 -v -- tests/roots/test-ext-autodoc/target/instance_variable.py $'tests/test_ext_autodoc_autoclass.py\r'
-/eval.sh: line 99: tox: command not found
-+ : '>>>>> End Test Output'
-+ git checkout dd1615c59dc6fff633e27dbb3861f2d27e1fb976 $'tests/test_ext_autodoc_autoclass.py\r'
-error: pathspec 'tests/test_ext_autodoc_autoclass.py?' did not match any file(s) known to git

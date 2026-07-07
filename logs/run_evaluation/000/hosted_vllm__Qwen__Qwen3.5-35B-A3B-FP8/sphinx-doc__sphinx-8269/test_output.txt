@@ -1,64 +1,0 @@
-/eval.sh: line 2: set: pipefail: invalid option name
-+ source $'/opt/miniconda3/bin/activate\r'
-/eval.sh: line 3: /opt/miniconda3/bin/activate: No such file or directory
-+ conda activate $'testbed\r'
-
-CondaError: Run 'conda init' before 'conda activate'
-
-+ cd $'/testbed\r'
-/eval.sh: line 5: cd: $'/testbed\r': No such file or directory
-+ git config --global --add safe.directory $'/testbed\r'
-+ cd $'/testbed\r'
-/eval.sh: line 7: cd: $'/testbed\r': No such file or directory
-+ git $'status\r'
-git: 'status' is not a git command. See 'git --help'.
-
-The most similar command is
-	status
-+ git $'show\r'
-git: 'show' is not a git command. See 'git --help'.
-
-The most similar command is
-	show
-+ git -c core.fileMode=false diff $'1e2ccd8f0eca0870cf6f8fce6934e2da8eba9b72\r'
-fatal: ambiguous argument '1e2ccd8f0eca0870cf6f8fce6934e2da8eba9b72?': unknown revision or path not in the working tree.
-Use '--' to separate paths from revisions, like this:
-'git <command> [<revision>...] -- [<file>...]'
-+ source $'/opt/miniconda3/bin/activate\r'
-/eval.sh: line 11: /opt/miniconda3/bin/activate: No such file or directory
-+ conda activate $'testbed\r'
-
-CondaError: Run 'conda init' before 'conda activate'
-
-+ python -m pip install -e '.[test]'
-ERROR: .[test] is not a valid editable requirement. It should either be a path to a local project or a VCS URL (beginning with bzr+http, bzr+https, bzr+ssh, bzr+sftp, bzr+ftp, bzr+lp, bzr+file, git+http, git+https, git+ssh, git+git, git+file, hg+file, hg+http, hg+https, hg+ssh, hg+static-http, svn+ssh, svn+http, svn+https, svn+svn, svn+file).
-+ git checkout 1e2ccd8f0eca0870cf6f8fce6934e2da8eba9b72 $'tests/test_build_linkcheck.py\r'
-error: pathspec 'tests/test_build_linkcheck.py?' did not match any file(s) known to git
-+ git apply -v -
-<stdin>:6: trailing whitespace.
-exclude_patterns = ['_build']
-<stdin>:7: trailing whitespace.
-linkcheck_anchors = True
-<stdin>:13: trailing whitespace.
-`local server <http://localhost:7777/#anchor>`_
-Checking patch tests/roots/test-linkcheck-localserver/conf.py...
-Checking patch tests/roots/test-linkcheck-localserver/index.rst...
-Checking patch tests/test_build_linkcheck.py...
-error: while searching for:
-    :license: BSD, see LICENSE for details.?
-"""?
-?
-import json?
-import re?
-from unittest import mock?
-import pytest?
-?
-
-error: patch failed: tests/test_build_linkcheck.py:8
-error: tests/test_build_linkcheck.py: patch does not apply
-+ : '>>>>> Start Test Output'
-+ tox --current-env -epy39 -v -- tests/roots/test-linkcheck-localserver/conf.py tests/roots/test-linkcheck-localserver/index.rst $'tests/test_build_linkcheck.py\r'
-/eval.sh: line 91: tox: command not found
-+ : '>>>>> End Test Output'
-+ git checkout 1e2ccd8f0eca0870cf6f8fce6934e2da8eba9b72 $'tests/test_build_linkcheck.py\r'
-error: pathspec 'tests/test_build_linkcheck.py?' did not match any file(s) known to git

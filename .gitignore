@@ -77,6 +77,15 @@ test_stub_dl/
 triadic_dgm.egg-info/
 workspace/
 {working_path}/
+
+# ==========================================
+#   Large benchmark/eval artifacts & unrelated embedded project
+#   (not imported by the running app — only bloats clone/pull size)
+# ==========================================
+triadic_dgm/benchmark/harness/swebench/predictions_100/
+logs/
+Understand-Anything/
+dgm_agent_v2/rimrule_archive.json
 blade_benchmark/
 *.pkl
 *.joblib
