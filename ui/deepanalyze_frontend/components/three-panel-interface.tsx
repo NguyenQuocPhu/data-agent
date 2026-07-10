@@ -1139,6 +1139,10 @@ export function ThreePanelInterface() {
   const [exportingFormat, setExportingFormat] = useState<"md" | "pdf" | null>(
     null
   );
+  // Khi bật: xuất báo cáo chỉ gồm nội dung <Answer> cuối cùng, bỏ hẳn phần "Appendix: Detailed
+  // Process" (log Analyze/Code/Execute) — dùng khi bàn giao file cho đội khác (vd UI team tích hợp),
+  // họ chỉ cần đúng báo cáo, không cần trace xử lý.
+  const [exportCleanOnly, setExportCleanOnly] = useState(false);
 
   const lastScrollTimeRef = useRef(0);
   const scrollRafRef = useRef<number | null>(null);
@@ -1514,6 +1518,12 @@ export function ThreePanelInterface() {
           ? "请先填写自定义 API Base 地址"
           : "Please provide a custom API base URL first.",
       exportCenter: uiLanguage === "zh" ? "导出中心" : "Export Center",
+      exportCleanOnly:
+        uiLanguage === "zh" ? "仅最终报告" : "Final report only",
+      exportCleanOnlyHint:
+        uiLanguage === "zh"
+          ? "关闭后导出文件将包含 Analyze/Code/Execute 处理日志附录"
+          : "When off, the export includes an appendix with the Analyze/Code/Execute process log.",
       exportHint:
         uiLanguage === "zh"
           ? "支持报告导出，结果会同步写入 generated 目录"
@@ -3007,6 +3017,7 @@ export function ThreePanelInterface() {
         messages: buildExportMessages(),
         title: getPrevUserQuestionText(messages.length),
         session_id: sessionId,
+        include_appendix: !exportCleanOnly,
       };
       const data = await requestExport(API_URLS.EXPORT_REPORT, payload);
       const pdfStatus = data.pdf_status || (data.files?.pdf ? "ok" : null);
@@ -5976,6 +5987,16 @@ export function ThreePanelInterface() {
                           </span>
                         </Button>
                       </div>
+                    </div>
+                    <div className="mt-2 flex items-center gap-2 text-xs text-gray-600 dark:text-gray-400">
+                      <Switch
+                        className="data-[state=unchecked]:bg-gray-200 data-[state=unchecked]:border data-[state=unchecked]:border-gray-300"
+                        checked={exportCleanOnly}
+                        onCheckedChange={(v: boolean) => setExportCleanOnly(!!v)}
+                      />
+                      <span title={textLabels.exportCleanOnlyHint}>
+                        {textLabels.exportCleanOnly}
+                      </span>
                     </div>
                     {exportingFormat === "pdf" && (
                       <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] text-amber-700 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-200">

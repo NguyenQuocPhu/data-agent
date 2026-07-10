@@ -42,7 +42,15 @@ def _format_appendix_segment(tag: str, segment: str) -> str:
     return segment
 
 
-def extract_sections_from_messages(messages: list[dict[str, Any]]) -> str:
+def extract_sections_from_messages(
+    messages: list[dict[str, Any]],
+    *,
+    include_appendix: bool = True,
+) -> str:
+    """include_appendix=False strips the "Appendix: Detailed Process" section (the
+    Analyze/Understand/Code/Execute trace) entirely, leaving only the final `<Answer>` content — for
+    handoff to another team (e.g. a UI team integrating against the report) that just needs the clean
+    final report, not the step-by-step run log."""
     if not isinstance(messages, list):
         return ""
 
@@ -61,12 +69,14 @@ def extract_sections_from_messages(messages: list[dict[str, Any]]) -> str:
             segment = segment.strip()
             if tag == "Answer":
                 parts.append(f"{segment}\n")
+            if not include_appendix:
+                continue
             appendix_segment = _format_appendix_segment(tag, segment)
             appendix.append(f"\n### Step {step}: {tag}\n\n{appendix_segment}\n")
             step += 1
 
     final_text = "".join(parts).strip()
-    if appendix:
+    if include_appendix and appendix:
         final_text += (
             "\n\n\\newpage\n\n# Appendix: Detailed Process\n"
             + "".join(appendix).strip()
@@ -475,7 +485,12 @@ def export_report_from_body(body: dict[str, Any]) -> dict[str, Any]:
     workspace_dir = get_session_workspace(session_id)
     workspace_root = Path(workspace_dir)
 
-    md_text = extract_sections_from_messages(messages)
+    # include_appendix=False -> chỉ lấy nội dung <Answer> (báo cáo cuối cùng), bỏ hẳn phần "Appendix:
+    # Detailed Process" (log Analyze/Code/Execute) — dùng khi bàn giao file cho đội khác (vd UI team)
+    # chỉ cần đúng báo cáo, không cần trace xử lý. Mặc định True để giữ nguyên hành vi hiện có của 2 nút
+    # Export Markdown/PDF đang dùng chung endpoint này.
+    include_appendix = bool(body.get("include_appendix", True))
+    md_text = extract_sections_from_messages(messages, include_appendix=include_appendix)
     if not md_text:
         md_text = "(No <Analyze>/<Understand>/<Code>/<Execute>/<Answer> sections found.)"
 

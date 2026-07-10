@@ -47,11 +47,12 @@ Bộ dữ liệu đã bị xoá các cột time-series (T1, T2, T3, T4). Dưới
 {{METADATA_PLACEHOLDER}}
 --- KẾT THÚC METADATA --- 
 
-[LƯU Ý ĐẶC BIỆT DÀNH CHO DATA "ZERO-INFLATED" HIỆN TẠI]
-1. Tập dữ liệu này KHÔNG CÓ cột doanh thu (cuoc_hang_thang) và cột nhãn (RMDT). TUYỆT ĐỐI KHÔNG ĐƯỢC tự hardcode ARPU = 609,620 hay bất kỳ con số doanh thu/churn ảo nào. Nếu không có biến doanh thu, hãy để 0 trong báo cáo JSON. TUYỆT ĐỐI KHÔNG dùng CTBDV hay bất kỳ biến nào khác làm proxy để nhân lên thành doanh thu (như CTBDV * 2)!
-2. Các biến hành vi (COMPLAINT, CL, CSAT, Cuộc gọi...) trong data này gần như 100% bằng 0. Do đó, KHÔNG CỐ GẮNG ÉP K-Means để phân cụm theo các biến này vì sẽ gom tất cả thành 1 cụm vô nghĩa. Bạn hãy tuỳ chỉnh logic chọn biến: Nếu tất cả variance = 0, hãy bỏ qua clustering hoặc nhóm theo Location/Branch.
-3. Thay vì cố gắng phân cụm hành vi, hãy chuyển hướng phân tích: In ra thống kê tỷ lệ các biến bằng 0 là bao nhiêu %. Tập trung EDA vào các biến có giá trị thực tế hơn.
-4. Output JSON Persona phải phản ánh đúng thực trạng dữ liệu bị "Zero-inflated" này, không cố gắng tạo ra các Action ảo nếu không có Evidence thực sự. Hành động duy nhất nên đề xuất là "Thu thập thêm dữ liệu" nếu 100% hành vi = 0.
+QUY TẮC VỀ CỘT DOANH THU (áp dụng chung, không riêng dataset nào): nếu dataset KHÔNG CÓ cột doanh
+thu (cuoc_hang_thang) và/hoặc cột nhãn (RMDT), TUYỆT ĐỐI KHÔNG ĐƯỢC tự hardcode ARPU = 609,620 hay
+bất kỳ con số doanh thu/churn ảo nào — để 0 trong báo cáo JSON. TUYỆT ĐỐI KHÔNG dùng CTBDV hay bất kỳ
+biến nào khác làm proxy để nhân lên thành doanh thu (như CTBDV * 2)! (Nếu biến hành vi thực sự có
+variance = 0 — TỰ KIỂM TRA THẬT trên dữ liệu, KHÔNG giả định trước — pipeline K-Means/Stage-2/
+OUTLIER_DRIVEN ở các mục bên dưới đã có cơ chế fallback tương ứng, không cần xử lý riêng ở đây.)
 2. FEATURE EXCLUSION GATE & ANTI-HALLUCINATION: BẮT BUỘC LOẠI BỎ các biến sau khỏi quá trình clustering: fee_total, arpu, revenue, ctbdv, và các cột bắt đầu bằng fee_, segment_, cnt_. Các biến này chỉ dùng để tính Revenue Impact sau khi cluster xong. CHỈ sử dụng biến hành vi: call_total, complaint_total, cl_total, csat, network quality. KHÔNG ĐƯỢC TỰ BỊA RA TÊN CỘT ảo. BẠN BẮT BUỘC PHẢI lưu tập features dùng để train KMeans ra file trung gian `intermediate_features.csv` để người dùng kiểm định! LOẠI BỎ ID, Địa lý và Cước khi train. TUYỆT ĐỐI CẤM đưa các cột do CHÍNH PIPELINE này sinh ra (`cluster`, `persona_text`, `is_anomaly`, `priority_score`) vào `behavioral_features` — nếu để lọt, `cluster_stats`/`global_mean`/`evidence` sẽ hiện ra dòng "cluster tăng rất mạnh" vô nghĩa trong báo cáo cuối cùng.
 3. FEATURE PREPARATION & TYPE ERROR PREVENTION: KHÔNG ĐƯỢC gom cụm các biến T1, T2, T3, T4 nữa (vì đã bị xoá). HÃY TRỰC TIẾP SỬ DỤNG CÁC BIẾN ĐÃ ĐƯỢC TỔNG HỢP SẴN TRONG DATA (ví dụ các cột bắt đầu bằng `Total_` hoặc `TOTAL_`). CỰC KỲ CHÚ Ý: Dataset có nhiều cột chứa String/Text. NGAY SAU KHI `behavioral_features` được chốt danh sách cuối cùng (TRƯỚC KHI build `X`/train KMeans), BẮT BUỘC chạy ĐÚNG dòng sau để ép kiểu SỐ NGAY TRÊN `data` GỐC (không chỉ ép kiểu trên 1 bản sao/matrix riêng để train KMeans — nếu chỉ ép kiểu trên bản sao, các bước SAU đó như `cluster_stats = data.groupby('cluster')[behavioral_features].mean()` vẫn sẽ dùng cột String gốc và ném lỗi `TypeError: can only concatenate str (not "int") to str`, lỗi này ĐÃ XẢY RA TRÊN DỮ LIỆU THẬT):
 ```python
@@ -568,7 +569,7 @@ def try_substage_cluster(data, dominant_cid, cluster_col='cluster'):
 ```
 LƯU Ý: `compute_profile_attributes` CHỈ được gọi SAU KHI đã thử Stage-2 sub-clustering (xem mục 6b bên dưới) — KHÔNG gọi ngay sau khi vừa có `data['cluster']` từ Stage-1, nếu không các sub-cluster mới tách ra sẽ có `profile_attributes` giống hệt cụm gốc (mất hết ý nghĩa của Stage-2).
 
-XÁC ĐỊNH DATASET_MODE (BẮT BUỘC TÍNH Ở ĐÂY — DUY NHẤT MỘT LẦN, KHÔNG tính lại ở bước xuất JSON cuối cùng): `dataset_mode` PHẢI có giá trị TRƯỚC KHI gọi `apply_business_rules` bên dưới, vì persona cho dữ liệu KHÁCH HÀNG ĐÃ RỜI MẠNG cần logic khác hẳn (xem `apply_business_rules`/`classify_churn_driver` ở mục 4):
+XÁC ĐỊNH DATASET_MODE (BẮT BUỘC TÍNH Ở ĐÂY — DUY NHẤT MỘT LẦN, KHÔNG tính lại ở bước xuất JSON cuối cùng): `dataset_mode` PHẢI có giá trị TRƯỚC KHI gọi `apply_business_rules` bên dưới, vì persona cho dữ liệu KHÁCH HÀNG ĐÃ RỜI MẠNG cần logic khác hẳn (xem `apply_business_rules`/`classify_churn_driver` ở mục 4). MẶC ĐỊNH LÀ POST_CHURN (trừ khi có `has_churn_target` → PRE_CHURN) — has_fee/has_arpu KHÔNG được dùng để suy ra ACTIVE/BEHAVIOR_PLUS_FEE nữa, vì cước phí LỊCH SỬ vẫn tồn tại bình thường trong 1 tập khách hàng đã rời mạng (LỖI ĐÃ XẢY RA: dataset có fee_total/fee_avg lịch sử bị phân loại nhầm thành "BEHAVIOR_PLUS_FEE"/"ACTIVE" dù toàn bộ mẫu thực ra ĐÃ RỜI MẠNG, khiến "Risk" (nguy cơ rời mạng TRONG TƯƠNG LAI) bị tính cho người ĐÃ RỜI MẠNG RỒI — vô nghĩa, ra kết quả kiểu ">90% khách hàng risk thấp" ngay trên chính tập KH đã rời mạng). Phần lớn dataset trong dự án này là KH đã rời mạng nên POST_CHURN là default an toàn hơn:
 ```python
 has_arpu = "arpu" in global_mean and global_mean["arpu"] > 0
 has_fee = any("fee" in str(c).lower() for c in global_mean.keys())
@@ -576,14 +577,12 @@ has_churn_target = "rmdt" in [str(c).lower() for c in data.columns]
 
 if has_churn_target:
     dataset_mode = "PRE_CHURN"
-elif not has_arpu and not has_fee:
-    dataset_mode = "POST_CHURN"
-elif has_fee and not has_arpu:
-    dataset_mode = "BEHAVIOR_PLUS_FEE"
 else:
-    dataset_mode = "ACTIVE"
+    dataset_mode = "POST_CHURN"
 ```
-QUAN TRỌNG — GHI ĐÈ BẮT BUỘC: nếu người dùng đã nêu rõ trong yêu cầu/hội thoại rằng dữ liệu này là khách hàng ĐÃ RỜI MẠNG / ĐÃ CHURN (không phải khách hàng đang hoạt động), BẮT BUỘC đặt `dataset_mode = "POST_CHURN"` NGAY CẢ KHI dataset có cột fee/arpu — dữ liệu billing LỊCH SỬ (trước khi rời mạng) vẫn tồn tại bình thường trong một tập khách hàng đã rời mạng, nên has_fee/has_arpu KHÔNG ĐỦ để loại trừ POST_CHURN trong trường hợp này (LỖI ĐÃ XẢY RA: dataset có fee_total/fee_avg lịch sử bị phân loại nhầm thành "BEHAVIOR_PLUS_FEE" (nghĩa là KH đang hoạt động), trong khi toàn bộ mẫu thực ra ĐÃ RỜI MẠNG, khiến "Risk" (nguy cơ rời mạng TRONG TƯƠNG LAI) bị tính cho người ĐÃ RỜI MẠNG RỒI — vô nghĩa, ra kết quả kiểu ">90% khách hàng risk thấp" ngay trên chính tập KH đã rời mạng).
+QUAN TRỌNG — GHI ĐÈ 2 CHIỀU:
+- Nếu người dùng đã nêu rõ trong yêu cầu/hội thoại rằng dữ liệu này là khách hàng ĐÃ RỜI MẠNG/ĐÃ CHURN: GIỮ NGUYÊN `dataset_mode = "POST_CHURN"` (đã là default, không cần làm gì thêm).
+- CHỈ ghi đè sang `dataset_mode = "ACTIVE"` hoặc `"BEHAVIOR_PLUS_FEE"` khi người dùng đã NÊU RÕ TƯỜNG MINH trong yêu cầu/hội thoại rằng đây là KHÁCH HÀNG ĐANG HOẠT ĐỘNG (chưa rời mạng, cần đánh giá nguy cơ rời mạng trong TƯƠNG LAI) — dùng `has_fee`/`has_arpu` CHỈ để chọn giữa 2 mode này khi đã xác nhận là ACTIVE (`has_fee` và không `has_arpu` → `"BEHAVIOR_PLUS_FEE"`; có cả 2 → `"ACTIVE"`). NẾU KHÔNG có tín hiệu tường minh nào về việc KH đang hoạt động, TUYỆT ĐỐI KHÔNG tự suy luận sang ACTIVE/BEHAVIOR_PLUS_FEE chỉ vì có cột fee/arpu — GIỮ NGUYÊN POST_CHURN.
 
 SAU KHI TÍNH cluster_stats, dataset_mode, profile_attributes VÀ domain_signature Ở TRÊN (mục 4b), GỌI HÀM NHƯ SAU (BẮT BUỘC, KHÔNG THAY ĐỔI). `churn_drivers` dùng `domain_signature` (đã tính ở mục 4b), KHÔNG tính lại từ `cluster_stats`/`row.to_dict()`:
 profile_global_means = compute_profile_global_means(profile_attributes, cluster_sizes)

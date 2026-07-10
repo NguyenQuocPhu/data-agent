@@ -82,24 +82,27 @@ const RETENTION_SCRIPT_CATALOG: Record<string, { category: string; script: strin
 const FEATURE_SEMANTIC_MAP: Record<string, string> = {
   months_since_last_call: "Tần suất liên hệ CSKH",
   months_since_first_call: "Lịch sử liên hệ",
-  months_since_last_cl: "Tần suất khiếu nại",
-  cl_total_6m: "Tổng số khiếu nại",
+  // LƯU Ý: "cl" = sự cố kỹ thuật (Checklist) — KHÔNG PHẢI "complaint" (phàn nàn/khiếu nại), đây là
+  // 2 cột khác nhau trong dataset (đã fix bên report_generator.py's FEATURE_SEMANTIC_MAP nhưng bản
+  // port TS này bị bỏ sót, khiến markdown và dashboard hiện 2 cái tên KHÁC NHAU cho cùng 1 feature).
+  months_since_last_cl: "Số tháng kể từ lần phát sinh sự cố kỹ thuật gần nhất",
+  cl_total_6m: "Tổng số sự cố kỹ thuật (6 tháng)",
   call_total_6m: "Tổng số cuộc gọi",
   missed_total_6m: "Tỷ lệ cuộc gọi không thành công",
-  cl_trend: "Xu hướng khiếu nại",
+  cl_trend: "Xu hướng sự cố kỹ thuật",
   call_trend: "Xu hướng liên hệ",
   complaint_trend: "Xu hướng phàn nàn",
-  declining_cl: "Dấu hiệu giảm khiếu nại",
+  declining_cl: "Dấu hiệu giảm sự cố kỹ thuật",
   declining_contact: "Dấu hiệu giảm tương tác",
   declining_complaint: "Dấu hiệu giảm phàn nàn",
-  escalating_cl: "Dấu hiệu khiếu nại leo thang",
+  escalating_cl: "Dấu hiệu sự cố kỹ thuật leo thang",
   escalating_complaint: "Dấu hiệu phàn nàn leo thang",
   old_complaint: "Lịch sử phàn nàn cũ",
-  cl_recent_only: "Hành vi khiếu nại mới phát sinh",
-  no_cl_all_period: "Lịch sử khiếu nại",
+  cl_recent_only: "Sự cố kỹ thuật mới phát sinh",
+  no_cl_all_period: "Không phát sinh sự cố kỹ thuật trong toàn kỳ",
   no_complaint_all_period: "Lịch sử phàn nàn",
   call_cv: "Mức độ biến động liên hệ",
-  cl_avg_6m: "Mật độ khiếu nại trung bình",
+  cl_avg_6m: "Mật độ sự cố kỹ thuật trung bình",
   fee_total: "Tổng cước phí",
   fee_avg: "Cước phí trung bình",
   fee_trend: "Xu hướng cước phí",
@@ -154,7 +157,10 @@ function getBusinessSignal(feature: string, val: number, globalMean: number): st
 
   if (SENTINEL_MISSING_VALUES.has(val)) {
     if (key.includes("call")) return "Không phát sinh liên hệ trong kỳ";
-    if (key.includes("cl") || key.includes("complaint")) return "Không có khiếu nại trong kỳ";
+    // "cl" = sự cố kỹ thuật, KHÔNG PHẢI "complaint" — PHẢI check "complaint" TRƯỚC "cl" vì
+    // "declining_complaint" chứa substring "cl" (từ "de-CL-ining"), check "cl" trước sẽ nhận nhầm.
+    if (key.includes("complaint")) return "Không có khiếu nại trong kỳ";
+    if (key.includes("cl")) return "Không có sự cố kỹ thuật trong kỳ";
     return "Chưa có dữ liệu";
   }
 

@@ -1,5 +1,6 @@
 import json
 import re
+import time
 from datetime import datetime
 import instructor
 from openai import OpenAI
@@ -426,12 +427,37 @@ _CHURN_DRIVER_NARRATIVE_NOUN = {
     "Khách hàng gặp sự cố kỹ thuật không được xử lý triệt để": "sự cố kỹ thuật lặp lại không được xử lý dứt điểm",
     "Không rõ nguyên nhân hành vi (có thể do giá cước/cạnh tranh/khác)": "yếu tố ngoài hành vi tương tác",
 }
+# Câu kết insight RIÊNG cho từng driver đã biết — thay cho câu chung chung "Dữ liệu cho thấy X là dấu
+# hiệu nổi bật trước khi chấm dứt dịch vụ" lặp lại y hệt cấu trúc ở MỌI persona (đọc nhàm, không có
+# ý nghĩa nghiệp vụ cụ thể). Luôn HEDGE ("nhiều khả năng", "phản ánh", "cho thấy") — đây là tương quan
+# quan sát được trên tập KHÁCH HÀNG ĐÃ RỜI MẠNG, không phải nguyên nhân đã được xác nhận tuyệt đối,
+# TUYỆT ĐỐI KHÔNG khẳng định thẳng kiểu "chất lượng dịch vụ đang ảnh hưởng...".
+_CHURN_DRIVER_BUSINESS_INSIGHT = {
+    "Bất mãn kéo dài, không được xử lý": "Việc bất mãn kéo dài không được xử lý dứt điểm nhiều khả năng là yếu tố góp phần khiến khách hàng quyết định chấm dứt dịch vụ.",
+    "Sự cố/khiếu nại cấp tính ngay trước khi rời mạng": "Việc gia tăng khiếu nại ngay trước thời điểm rời mạng cho thấy trải nghiệm dịch vụ tiêu cực nhiều khả năng là yếu tố góp phần vào quyết định chấm dứt dịch vụ.",
+    "Tăng liên hệ CSKH/cuộc gọi nhỡ trước khi rời mạng": "Điều này phản ánh khách hàng có nhu cầu hỗ trợ cao hoặc gặp vướng mắc trong quá trình sử dụng, tuy nhiên các vấn đề chưa leo thang thành khiếu nại chính thức.",
+    "Khách hàng giá trị cao, chủ động rời mạng": "Việc rời mạng không đi kèm dấu hiệu bất mãn nào cho thấy nguyên nhân nhiều khả năng đến từ yếu tố bên ngoài (giá cước, ưu đãi đối thủ cạnh tranh) hơn là trải nghiệm dịch vụ.",
+    "Khách hàng âm thầm rời mạng": "Việc không phát sinh khiếu nại hay liên hệ CSKH trước khi rời mạng phản ánh nhóm này nhiều khả năng đã âm thầm chuyển sang nhà mạng khác mà không qua kênh phản hồi chính thức.",
+    "Khách hàng giá trị cao nhưng trải nghiệm suy giảm": "Hành vi sử dụng suy giảm dần mà không đi kèm khiếu nại cho thấy nhóm khách hàng giá trị cao này nhiều khả năng đã rời mạng trong im lặng, không qua kênh phản hồi chính thức.",
+    "Khách hàng gặp sự cố kỹ thuật không được xử lý triệt để": "Việc liên hệ nhiều lần vì sự cố lặp lại trong khi khiếu nại vẫn tiếp tục tăng cho thấy vấn đề kỹ thuật nhiều khả năng chưa được xử lý dứt điểm qua các lần liên hệ.",
+    "Không rõ nguyên nhân hành vi (có thể do giá cước/cạnh tranh/khác)": "Việc không ghi nhận tín hiệu hành vi bất thường cho thấy quyết định rời mạng của nhóm này nhiều khả năng đến từ yếu tố ngoài dữ liệu quan sát được, không phải trải nghiệm dịch vụ.",
+}
 # Tiền tố hay gặp trong FEATURE_SEMANTIC_MAP/pattern semantic name — cắt bỏ để nhét gọn vào câu
 # "có xu hướng {noun} cao gấp X lần" (giữ nguyên "Xu hướng" vì câu đã có sẵn từ "xu hướng").
 _NARRATIVE_NOUN_STRIP_PREFIXES = [
     "Xu hướng ", "Tổng số ", "Trung bình ", "Tỷ lệ ", "Số tháng phát sinh ",
     "Mức độ biến động tương đối ", "Mức độ biến động ", "Số tháng kể từ lần ",
 ]
+# classify_risk_tier() (prompts.py) gán risk_tier THUẦN theo severity/risk/profile, KHÔNG biết
+# dataset_mode — nên chuỗi gốc mang ngôn ngữ hành động TƯƠNG LAI ("giữ chân", "hành động ưu tiên")
+# vốn chỉ hợp với KH đang hoạt động. KHÔNG đổi chuỗi risk_tier GỐC (dùng để group/match, và frontend
+# persona-cards.tsx hardcode đúng 3 chuỗi này) — chỉ đổi NHÃN HIỂN THỊ trong markdown khi persona có
+# churn_driver (POST_CHURN), để tránh đề xuất "giữ chân" người ĐÃ rời mạng.
+_POST_CHURN_TIER_DISPLAY_LABELS = {
+    "Nhóm rủi ro cao – cần hành động ưu tiên": "Nhóm có dấu hiệu rõ ràng trước khi rời mạng – ưu tiên điều tra nguyên nhân",
+    "Nhóm bị động – theo dõi & cảnh báo": "Nhóm không có dấu hiệu hành vi rõ ràng trước khi rời mạng",
+    "Nhóm cần giữ chân ngay – ưu tiên giữ chân": "Nhóm giá trị cao đã rời mạng – ưu tiên phân tích nguyên nhân",
+}
 
 # ==============================================================
 # REPORT VALIDATION HARNESS
@@ -614,10 +640,12 @@ class ReportGenerator:
             'noun_phrase': "thiếu tín hiệu hành vi rõ ràng",
         }
 
-    def _build_persona_story(self, p: dict, global_means: dict):
-        """POST_CHURN storytelling paragraph (3 câu: ai + vì sao rời mạng, bằng chứng định lượng
-        mạnh nhất + dịch vụ chủ yếu, kết luận ngắn) — vẫn 100% Python-composed từ dữ liệu đã tính
-        sẵn trong JSON (churn_driver/feature_means/service_composition), không phải LLM tự viết."""
+    def _build_persona_story_facts(self, p: dict, global_means: dict):
+        """Tính các FACT thô cho câu chuyện POST_CHURN (KHÔNG ghép câu) — dùng CHUNG bởi
+        _build_persona_story (ghép cứng thành văn, dùng làm fallback deterministic khi LLM lỗi/
+        timeout) và _build_prompt (đưa cho LLM diễn đạt lại tự nhiên/đa dạng hơn) — đảm bảo 2 đường
+        LUÔN xuất phát từ đúng 1 bộ số liệu, không lệch nhau. Trả về None nếu persona không có
+        churn_driver (không phải POST_CHURN)."""
         driver = p.get('churn_driver')
         if not driver:
             return None
@@ -628,38 +656,80 @@ class ReportGenerator:
         else:
             clause = _CHURN_DRIVER_NARRATIVE_CLAUSE[driver]
             noun_phrase_override = None
-        sup_str = f"{p.get('support', 0):,}".replace(",", ".")
-        sup_pct = p.get('support_pct', 0) * 100
-        sentences = [f"Khoảng {sup_str} khách hàng ({sup_pct:.1f}%) rời mạng sau khi {clause}."]
 
         # Câu định lượng (ARPU/high spender/loyalty/downgrade/service mix) — trước đây story chỉ có
         # 1 domain signal + tên dịch vụ, đọc như "cluster thống kê" chứ chưa phải chân dung khách
         # hàng (thiếu 3-5 feature định lượng để người đọc hình dung rõ nhóm này là ai).
-        value_sentence = self._compose_profile_value_sentence(self._build_profile_context(p))
-        if value_sentence:
-            sentences.append(value_sentence)
+        value_sentence = self._compose_profile_value_sentence(
+            self._build_profile_context(p), (p.get('profile_attributes') or {}).get('service_composition'))
 
         means = self._get_means(p)
         top = self._top_signals(means, global_means, top_n=1) if means else []
+        magnitude, noun = None, None
         if top:
             f, val, g_val, _ = top[0]
             base_name = _FEATURE_SEMANTIC_MAP_LOWER.get(f.lower()) or _pattern_semantic_name(f.lower()) or f
             noun = self._narrative_noun(base_name)
             magnitude = self._narrative_magnitude(val, g_val)
-            if value_sentence:
+        is_elevated = magnitude in ("cao hơn", "cao hơn hẳn", "cao vượt trội")
+
+        signal_clause = None
+        if is_elevated:
+            signal_clause = f"xu hướng {noun} {magnitude}"
+        # Nếu KHÔNG elevated: KHÔNG nhét 1 feature lệch âm/trung tính vào câu "xu hướng X cao..."
+        # (đọc như đang mô tả nguyên nhân trong khi thực ra không có) — ĐÃ XẢY RA TRÊN BÁO CÁO THẬT
+        # với persona 92.8% "Không rõ nguyên nhân hành vi". signal_clause=None báo hiệu "không có
+        # tín hiệu hành vi nổi bật" cho cả 2 phía dùng chung.
+
+        svc_comp = (p.get('profile_attributes') or {}).get('service_composition')
+        svc_desc = self._describe_composition(svc_comp) if svc_comp else ""
+
+        insight = _CHURN_DRIVER_BUSINESS_INSIGHT.get(driver)
+        if not insight:
+            noun_phrase = noun_phrase_override or _CHURN_DRIVER_NARRATIVE_NOUN.get(driver, driver.lower())
+            insight = f"Dữ liệu cho thấy {noun_phrase} là dấu hiệu nổi bật trước khi chấm dứt dịch vụ."
+
+        return {
+            'driver': driver,
+            'support': p.get('support', 0),
+            'support_pct': p.get('support_pct', 0),
+            'clause': clause,
+            'value_sentence': value_sentence,
+            'is_elevated_signal': is_elevated,
+            'signal_clause': signal_clause,
+            'service_desc': svc_desc,
+            'insight': insight,
+        }
+
+    def _build_persona_story(self, p: dict, global_means: dict):
+        """POST_CHURN storytelling paragraph — bản GHÉP CỨNG (deterministic, 100% Python) từ
+        _build_persona_story_facts, dùng làm fallback khi LLM lỗi/timeout hoặc business_interpretation
+        rỗng, để layer Insight không bao giờ biến mất khỏi report."""
+        facts = self._build_persona_story_facts(p, global_means)
+        if not facts:
+            return None
+        sup_str = f"{facts['support']:,}".replace(",", ".")
+        sup_pct = facts['support_pct'] * 100
+        sentences = [f"Khoảng {sup_str} khách hàng ({sup_pct:.1f}%) rời mạng sau khi {facts['clause']}."]
+
+        if facts['value_sentence']:
+            sentences.append(facts['value_sentence'])
+
+        if facts['signal_clause']:
+            if facts['value_sentence']:
                 # profile_context đã nêu ARPU/loyalty/downgrade/service mix — câu này chỉ nối thêm
                 # domain signal, KHÔNG lặp lại dịch vụ chủ yếu (đã nói ở câu trên).
-                sentences.append(f"Song song đó, nhóm này có xu hướng {noun} {magnitude}.")
+                sentences.append(f"Song song đó, nhóm này có {facts['signal_clause']}.")
             else:
-                svc_clause = ""
-                svc_comp = (p.get('profile_attributes') or {}).get('service_composition')
-                if svc_comp:
-                    top_svc = max(svc_comp.items(), key=lambda kv: kv[1])[0]
-                    svc_clause = f" và chủ yếu sử dụng dịch vụ {top_svc}"
-                sentences.append(f"So với toàn bộ khách hàng, nhóm này có xu hướng {noun} {magnitude}{svc_clause}.")
+                svc_clause = f" và {facts['service_desc']}" if facts['service_desc'] else ""
+                sentences.append(f"So với toàn bộ khách hàng, nhóm này có {facts['signal_clause']}{svc_clause}.")
+        else:
+            sentences.append(
+                "Không ghi nhận tín hiệu bất thường về khiếu nại, liên hệ CSKH hay sự cố kỹ thuật "
+                "trước thời điểm rời mạng."
+            )
 
-        noun_phrase = noun_phrase_override or _CHURN_DRIVER_NARRATIVE_NOUN.get(driver, driver.lower())
-        sentences.append(f"Dữ liệu cho thấy {noun_phrase} là dấu hiệu nổi bật trước khi chấm dứt dịch vụ.")
+        sentences.append(facts['insight'])
         return " ".join(sentences)
 
     def _get_evidence_bullets(self, p: dict, global_means: dict, top_n: int = 3) -> list:
@@ -676,9 +746,9 @@ class ReportGenerator:
                 bullets.append(self._get_business_signal(f, val, g_val))
         profile = p.get('profile_attributes') or {}
         svc_comp = profile.get('service_composition')
-        if svc_comp:
-            top_svc, top_pct = max(svc_comp.items(), key=lambda kv: kv[1])
-            bullets.append(f"Đa số là KH dùng dịch vụ {top_svc} ({top_pct * 100:.1f}%)")
+        svc_desc = self._describe_composition(svc_comp) if svc_comp else ""
+        if svc_desc:
+            bullets.append(svc_desc[0].upper() + svc_desc[1:])
         return bullets if bullets else ["Không có tín hiệu nổi bật so với trung bình"]
 
     def _format_composition(self, comp: dict, top_n: int = 3) -> str:
@@ -789,8 +859,14 @@ class ReportGenerator:
         if val in [999, 999.0, 888, 888.0, 500.0, 500.95, 887, 886.77, 898.38, 898.34]:
             if 'call' in key:
                 return "Không phát sinh liên hệ trong kỳ"
-            if 'cl' in key or 'complaint' in key:
+            # "cl" = sự cố kỹ thuật (Checklist), KHÔNG PHẢI "complaint" (phàn nàn/khiếu nại) — 2 cột
+            # khác nhau trong dataset (xem cảnh báo tương tự ở FEATURE_SEMANTIC_MAP phía trên). PHẢI
+            # check "complaint" TRƯỚC "cl" — "declining_complaint" chứa substring "cl" (từ
+            # "de-CL-ining"), nên check 'cl' trước sẽ nhận nhầm cột complaint thành cột sự cố kỹ thuật.
+            if 'complaint' in key:
                 return "Không có khiếu nại trong kỳ"
+            if 'cl' in key:
+                return "Không có sự cố kỹ thuật trong kỳ"
             return "Chưa có dữ liệu"
 
         # Handle Boolean 1.0 flags
@@ -959,9 +1035,9 @@ class ReportGenerator:
             bullets.append(f"Trình tự tín hiệu: {signaled[0].get('metric', 'N/A')} xuất hiện sớm nhất, {signaled[-1].get('metric', 'N/A')} chỉ mới xuất hiện gần đây trước khi rời mạng")
 
         svc_comp = profile.get('service_composition')
-        if svc_comp:
-            top_svc = max(svc_comp.items(), key=lambda kv: kv[1])[0]
-            bullets.append(f"Chủ yếu sử dụng dịch vụ {top_svc}")
+        svc_desc = self._describe_composition(svc_comp) if svc_comp else ""
+        if svc_desc:
+            bullets.append(svc_desc[0].upper() + svc_desc[1:])
 
         return bullets
 
@@ -1130,7 +1206,38 @@ class ReportGenerator:
                     display[cid] = f"{base} ({idx})"
         return display
 
-    def _compose_profile_value_sentence(self, profile_context: dict) -> str:
+    def _flip_minority_pct(self, pct: float, label_pos: str, label_neg: str):
+        """Đồng bộ với QUY TẮC XOAY CHIỀU % trong _build_prompt (áp dụng cho path LLM) — bản Python
+        dùng cho fallback KHÔNG LLM, để hành vi giống hệt nhau dù narrative đến từ LLM hay từ
+        fallback. Nêu thẳng 1 tỷ lệ THIỂU SỐ (<40%) kèm nhãn dương tính dễ đọc nhầm thành đặc trưng
+        của CẢ nhóm. NẾU pct < 40%: xoay ngược thành phần bù (>=50%, luôn là ĐA SỐ thật) + đổi sang
+        `label_neg` — PHẢI là 1 phạm trù thực chất đối lập/trung tính (vd "giá trị thấp, trung bình"),
+        KHÔNG PHẢI phủ định đơn thuần kiểu "không {label_pos}" (phủ định suông không nói rõ nhóm này
+        THỰC SỰ là gì). NẾU >=40%: giữ nguyên. Trả về (pct_hiển_thị, nhãn_hiển_thị)."""
+        if pct < 0.4:
+            return 1 - pct, label_neg
+        return pct, label_pos
+
+    def _describe_composition(self, comp: dict, noun: str = "dịch vụ", top_n: int = 3) -> str:
+        """Cùng tinh thần với _flip_minority_pct nhưng cho composition dict ({category: fraction},
+        vd service_composition/package_composition hoặc field tương tự trong tương lai) — generic
+        cho MỌI field composition, không riêng dịch vụ. Trước đây code luôn lấy category % LỚN
+        NHẤT rồi gọi thẳng là "chủ yếu"/"đa số", bất kể mục đó có thực sự áp đảo hay không — nếu
+        phân bố khá đều (vd Net Pay 24%, Mobile Pay 23%, Bank 21%...) thì gọi Net Pay là "chủ yếu"
+        đánh lừa người đọc, vì 76% KH KHÔNG dùng Net Pay và không mục nào thực sự chiếm đa số. Chỉ
+        gọi mục đứng đầu là "chủ yếu" khi nó THỰC SỰ áp đảo (>=40%, cùng ngưỡng với QUY TẮC XOAY
+        CHIỀU %); nếu không, mô tả trung thực là dùng đa dạng/không tập trung, kèm số liệu thật.
+        Trả về "" nếu comp rỗng."""
+        if not comp:
+            return ""
+        items = sorted(comp.items(), key=lambda kv: -kv[1])
+        top1_name, top1_pct = items[0]
+        if top1_pct >= 0.4:
+            return f"chủ yếu sử dụng {noun} {top1_name} ({top1_pct * 100:.0f}%)"
+        listed = ", ".join(f"{k} ({v * 100:.0f}%)" for k, v in items[:top_n])
+        return f"sử dụng đa dạng {noun}, không tập trung vào 1 {noun} cụ thể ({listed})"
+
+    def _compose_profile_value_sentence(self, profile_context: dict, svc_comp: dict = None) -> str:
         """Deterministic (no-LLM) 'Customer Value' opening sentence from profile_context — ARPU,
         % chi tiêu cao, tỷ lệ tụt/nâng hạng, loyalty, dịch vụ chính. Dùng làm fallback khi LLM
         narrative không khả dụng, để layer Insight không bao giờ biến mất khỏi report chỉ vì LLM
@@ -1138,12 +1245,14 @@ class ReportGenerator:
         parts = []
         high_pct = profile_context.get('ty_le_chi_tieu_cao')
         arpu = profile_context.get('arpu_trung_binh')
+        if high_pct is not None:
+            high_pct, high_label = self._flip_minority_pct(high_pct, "giá trị cao", "giá trị thấp, trung bình")
         if high_pct is not None and arpu is not None:
-            parts.append(f"tỷ lệ khách hàng giá trị cao khoảng {high_pct * 100:.0f}%, mức cước trung bình khoảng {arpu / 1000:.0f} nghìn đồng/tháng")
+            parts.append(f"tỷ lệ khách hàng {high_label} khoảng {high_pct * 100:.0f}%, mức cước trung bình khoảng {arpu / 1000:.0f} nghìn đồng/tháng")
         elif arpu is not None:
             parts.append(f"mức cước trung bình khoảng {arpu / 1000:.0f} nghìn đồng/tháng")
         elif high_pct is not None:
-            parts.append(f"tỷ lệ khách hàng giá trị cao khoảng {high_pct * 100:.0f}%")
+            parts.append(f"tỷ lệ khách hàng {high_label} khoảng {high_pct * 100:.0f}%")
 
         downgrade = profile_context.get('ty_le_tut_hang_phan_khuc')
         upgrade = profile_context.get('ty_le_nang_hang_phan_khuc')
@@ -1152,13 +1261,20 @@ class ReportGenerator:
         elif upgrade is not None and upgrade >= 0.2:
             parts.append("số lần nâng hạng phân khúc cao hơn mặt bằng chung")
 
+        # Trước đây field này chỉ tồn tại trong profile_context cho LLM đọc, KHÔNG được dùng ở
+        # fallback deterministic — nhóm "Behavior" trong câu bị thiếu tín hiệu giảm sử dụng dù dữ
+        # liệu đã có sẵn.
+        usage_decline = profile_context.get('ty_le_giam_su_dung_manh')
+        if usage_decline is not None and usage_decline >= 0.2:
+            parts.append("tỷ lệ giảm sử dụng mạnh cao hơn mặt bằng chung")
+
         loyalty = profile_context.get('hang_loyalty_trung_binh')
         if loyalty is not None and loyalty >= 1.0:
             parts.append("hạng khách hàng thân thiết ở mức khá")
 
-        svc = profile_context.get('dich_vu_chinh')
-        if svc:
-            parts.append(f"chủ yếu sử dụng {', '.join(svc)}")
+        svc_desc = self._describe_composition(svc_comp) if svc_comp else ""
+        if svc_desc:
+            parts.append(svc_desc)
 
         if not parts:
             return ""
@@ -1171,7 +1287,8 @@ class ReportGenerator:
         mất hoàn toàn khỏi report (chỉ còn Business Signals top-3 rời rạc) — đây là fallback để
         layer insight luôn có mặt, kể cả khi generate_llm_narrative() raise exception."""
         profile_context = self._build_profile_context(p)
-        value_sentence = self._compose_profile_value_sentence(profile_context)
+        value_sentence = self._compose_profile_value_sentence(
+            profile_context, (p.get('profile_attributes') or {}).get('service_composition'))
 
         contradictions = self._detect_contradictions(p)
         if contradictions:
@@ -1209,7 +1326,10 @@ class ReportGenerator:
 
         contradictions = []
         if value_high and (complaint_high or technical_high):
-            contradictions.append("ARPU/giá trị cao NHƯNG complaint hoặc sự cố kỹ thuật cũng cao — chất lượng dịch vụ đang ảnh hưởng ngay cả nhóm khách hàng giá trị cao")
+            # Hedge ("nhiều khả năng là yếu tố góp phần") thay vì khẳng định thẳng "đang ảnh hưởng" —
+            # chuỗi này được dùng NGUYÊN VĂN (không qua LLM diễn giải lại) trong fallback deterministic
+            # _compose_deterministic_insight, nên bản thân câu FACT gốc cũng phải hedge sẵn.
+            contradictions.append("ARPU/giá trị cao NHƯNG complaint hoặc sự cố kỹ thuật cũng cao — trải nghiệm dịch vụ chưa tốt nhiều khả năng là yếu tố góp phần ảnh hưởng ngay cả nhóm khách hàng giá trị cao")
         if loyalty_high and (call_high or usage_declining):
             contradictions.append("Loyalty cao NHƯNG mức độ tương tác/sử dụng đang giảm — có thể là dấu hiệu suy giảm âm thầm dù khách hàng vẫn trung thành")
         if value_high and usage_declining and not (complaint_high or technical_high or call_high):
@@ -1222,6 +1342,26 @@ class ReportGenerator:
         for p in personas_data:
             c = {}
             c['persona'] = self.clean_persona_name(p.get('persona_name', ''))
+            # Đánh dấu persona ĐÃ RỜI MẠNG (churn_driver chỉ được gán ở mode POST_CHURN) để LLM biết
+            # dùng framing QUÁ KHỨ thay vì "đang có nguy cơ rời mạng" — xem QUY TẮC THÌ/FRAMING bên
+            # dưới.
+            if p.get('churn_driver'):
+                c['already_churned'] = True
+                # Đưa đúng bộ FACT đã tính sẵn (_build_persona_story_facts — CÙNG hàm dùng cho bản
+                # fallback deterministic ở dưới) để LLM diễn đạt lại TỰ NHIÊN/ĐA DẠNG hơn thay vì lộ
+                # rõ 1 khuôn câu giống hệt nhau ở mọi persona (đã bị phát hiện trên báo cáo thật: 3
+                # persona liền nhau đọc y hệt cấu trúc "Nhóm này có tỷ lệ... mức cước... chủ yếu sử
+                # dụng..."). LLM KHÔNG được bịa số liệu ngoài các facts này — xem QUY TẮC CHURN_STORY_
+                # FACTS bên dưới.
+                facts = self._build_persona_story_facts(p, global_means)
+                if facts:
+                    c['churn_story_facts'] = {
+                        'quy_mo': f"Khoảng {facts['support']:,} khách hàng ({facts['support_pct']*100:.1f}%)".replace(",", "."),
+                        'ly_do_roi_mang': facts['clause'],
+                        'thong_tin_gia_tri_hanh_vi_dich_vu': facts['value_sentence'] or None,
+                        'tin_hieu_hanh_vi_manh_nhat': facts['signal_clause'] or "không có tín hiệu hành vi nào cao hơn rõ rệt so với trung bình",
+                        'ket_luan_goi_y': facts['insight'],
+                    }
 
             domain_signals = self._get_domain_signals(p, global_means)
             if domain_signals:
@@ -1262,6 +1402,29 @@ QUY TẮC CỨNG:
 - KHÔNG đề xuất hành động mới (Action/Investigation).
 - Độ dài: Tối đa 2 câu cho mỗi trường phân tích (business_interpretation được nới lên tối đa 3 câu
   KHI có `profile_context` — xem quy tắc riêng bên dưới).
+- QUY TẮC CHURN_STORY_FACTS (ƯU TIÊN CAO NHẤT, đọc trước mọi quy tắc domain_signals/profile_context
+  bên dưới): NẾU persona có `churn_story_facts`, đây là bộ FACT đã tính sẵn 100% chính xác (quy mô,
+  lý do rời mạng, thông tin giá trị/hành vi/dịch vụ, tín hiệu hành vi mạnh nhất, kết luận gợi ý) —
+  PHẢI dùng CHÍNH bộ facts này để viết business_interpretation, BỎ QUA hoàn toàn các quy tắc
+  domain_signals/onset_order/contradictions bên dưới cho persona này (facts đã tổng hợp sẵn, không
+  cần suy luận lại từ dữ liệu thô). Nhiệm vụ của bạn CHỈ là DIỄN ĐẠT LẠI các facts này thành 1 đoạn
+  văn 3-4 câu TỰ NHIÊN — KHÔNG bịa thêm số liệu/domain/nguyên nhân ngoài facts đã cho, nhưng ĐƯỢC
+  PHÉP đổi thứ tự câu, gộp câu, đổi từ nối, miễn giữ đúng Ý NGHĨA từng fact. Đây chính là điểm quan
+  trọng nhất: KHÔNG được ghép các fact lại theo đúng 1 khuôn cố định giống hệt nhau ở mọi persona
+  (vd luôn "Nhóm này có tỷ lệ... mức cước... chủ yếu sử dụng..." — đã bị phát hiện đọc rất máy móc
+  trên báo cáo thật khi nhiều persona liên tiếp dùng y hệt cấu trúc này) — mỗi persona PHẢI đọc như
+  1 đoạn phân tích RIÊNG, câu chữ/thứ tự khác nhau tuỳ persona, dù vẫn tôn trọng đúng dữ liệu. Ví dụ:
+  churn_story_facts = {{"quy_mo": "Khoảng 1.346 khách hàng (2.5%)", "ly_do_roi_mang": "xuất hiện
+  nhiều khiếu nại mới trong thời gian gần đây", "thong_tin_gia_tri_hanh_vi_dich_vu": "tỷ lệ khách
+  hàng giá trị cao khoảng 42%, mức cước trung bình khoảng 220 nghìn đồng/tháng, chủ yếu sử dụng Net
+  Pay (62%)", "tin_hieu_hanh_vi_manh_nhat": "xu hướng phàn nàn cao vượt trội", "ket_luan_goi_y":
+  "Việc gia tăng khiếu nại ngay trước thời điểm rời mạng cho thấy trải nghiệm dịch vụ tiêu cực nhiều
+  khả năng là yếu tố góp phần vào quyết định chấm dứt dịch vụ."}} → "Khoảng 1.346 khách hàng (2.5%)
+  rời mạng ngay sau một đợt khiếu nại tăng đột biến. Đây là nhóm có giá trị tương đối cao (~42% chi
+  tiêu cao, ARPU khoảng 220 nghìn đồng/tháng) và chủ yếu gắn với Net Pay (62%), nhưng mức độ phàn nàn
+  lại vượt trội hẳn so với mặt bằng chung. Trải nghiệm dịch vụ tiêu cực nhiều khả năng là yếu tố góp
+  phần trực tiếp vào quyết định rời mạng của nhóm này." (Lưu ý: thứ tự câu và cách nối đã thay đổi so
+  với facts gốc, nhưng KHÔNG thêm số liệu nào ngoài facts).
 - NẾU có `domain_signals` (nhiều domain, mỗi domain có "stars" 1-5): business_interpretation PHẢI
   LIÊN KẾT các domain có stars cao với nhau thành 1 câu chuyện — KHÔNG được chỉ mô tả 1 domain
   riêng lẻ. Ví dụ 1: complaint=5★ + technical=4★ + value=5★ + usage=1★ (thấp) → "Khách hàng giá trị
@@ -1299,12 +1462,31 @@ QUY TẮC CỨNG:
   nại tăng rất mạnh. Điều này cho thấy doanh nghiệp đang đánh mất những khách hàng có giá trị ngay
   sau các trải nghiệm dịch vụ tiêu cực." KHÔNG được bỏ qua profile_context và chỉ mô tả domain_signals
   như khi không có profile_context.
+- QUY TẮC XOAY CHIỀU % (áp dụng cho MỌI trường tỷ lệ dạng phân số trong `profile_context`, vd
+  `ty_le_chi_tieu_cao`, `ty_le_nang_hang_phan_khuc`, `ty_le_tut_hang_phan_khuc`,
+  `ty_le_giam_su_dung_manh`, và bất kỳ trường `ty_le_...`/`...pct` nào khác xuất hiện): nêu thẳng 1
+  tỷ lệ THIỂU SỐ (<40%) kèm nhãn dương tính rất dễ đọc nhầm thành đặc trưng của CẢ nhóm (vd "tỷ lệ
+  khách hàng giá trị cao khoảng 24%" nghe như mô tả cả cụm, trong khi thực tế 76% KHÔNG như vậy).
+  Với MỖI trường tỷ lệ như vậy: NẾU giá trị < 40%, PHẢI xoay ngược thành phần bù (100% - x%, luôn
+  >=50%) và đổi nhãn sang MỘT PHẠM TRÙ THỰC CHẤT đối lập/trung tính (thấp, trung bình, ổn định...),
+  TUYỆT ĐỐI KHÔNG dùng phủ định đơn thuần kiểu thêm chữ "không" trước nhãn gốc — phủ định suông
+  ("không cao") không cho biết nhóm này THỰC SỰ là gì, phải nói rõ mức thực tế của họ. Vd: "giá trị
+  cao" → "giá trị thấp, trung bình" (KHÔNG viết "không thuộc nhóm chi tiêu cao"); "tụt hạng phân khúc
+  cao" → "tụt hạng phân khúc thấp, ổn định" (KHÔNG viết "không tụt hạng phân khúc"); "giảm sử dụng
+  mạnh" → "sử dụng ổn định, ít biến động" (KHÔNG viết "không giảm sử dụng mạnh"). NẾU giá trị >= 40%,
+  giữ nguyên chiều nêu số liệu như bình thường, KHÔNG xoay ngược. Ví dụ: `ty_le_chi_tieu_cao` = 0.24
+  → viết "khoảng 76% khách hàng có giá trị thấp, trung bình", KHÔNG viết "tỷ lệ khách hàng giá trị
+  cao khoảng 24%" và KHÔNG viết "76% khách hàng không thuộc nhóm chi tiêu cao". Quy tắc này áp dụng
+  ĐỘC LẬP cho từng trường — mỗi trường tự xét ngưỡng 40% của chính nó, không gộp chung.
 - NẾU có `contradictions` (danh sách nghịch lý đã tính sẵn): mỗi phần tử PHẢI được diễn giải lại
   thành ĐÚNG 1 câu theo cấu trúc "Mặc dù/Dù ... vẫn/nhưng ... " + 1 câu hệ quả "Điều này cho thấy...".
-  KHÔNG bỏ qua, KHÔNG viết chung chung. Ví dụ: "ARPU/giá trị cao NHƯNG complaint hoặc sự cố kỹ thuật
-  cũng cao..." → "Mặc dù khách hàng vẫn mang lại doanh thu cao, chất lượng dịch vụ đang làm gia tăng
-  mức độ bất mãn." Ví dụ khác: "Loyalty cao NHƯNG mức độ tương tác/sử dụng đang giảm..." → "Dù vẫn
-  duy trì giá trị tích lũy cao, mức độ tương tác với kênh truyền thống đang giảm."
+  KHÔNG bỏ qua, KHÔNG viết chung chung. Câu hệ quả PHẢI hedge ("nhiều khả năng", "có thể là yếu tố góp
+  phần") — đây là tương quan quan sát được, KHÔNG PHẢI nguyên nhân đã xác nhận tuyệt đối, TUYỆT ĐỐI
+  KHÔNG khẳng định thẳng kiểu "chất lượng dịch vụ đang ảnh hưởng...". Ví dụ: "ARPU/giá trị cao NHƯNG
+  complaint hoặc sự cố kỹ thuật cũng cao..." → "Mặc dù khách hàng vẫn mang lại doanh thu cao, trải
+  nghiệm dịch vụ chưa tốt nhiều khả năng là yếu tố góp phần làm gia tăng mức độ bất mãn." Ví dụ khác:
+  "Loyalty cao NHƯNG mức độ tương tác/sử dụng đang giảm..." → "Dù vẫn duy trì giá trị tích lũy cao,
+  mức độ tương tác với kênh truyền thống có dấu hiệu giảm."
 - Khi CÓ `profile_context`, business_interpretation được phép dài TỐI ĐA 3 CÂU (thay vì 2) để chứa đủ
   câu mô tả profile_context + câu domain_signals/contradiction + câu hệ quả. Các trường phân tích khác
   (Operational Impact, Customer Profile...) vẫn giữ tối đa 2 câu.
@@ -1314,37 +1496,104 @@ QUY TẮC CỨNG:
   — đây là suy luận NHẢY CÓC không có bằng chứng hỗ trợ (đã bị phát hiện trên báo cáo thật: profile
   chỉ cho thấy "loyalty thấp, giá trị trung bình, không có vấn đề nổi bật" nhưng lại kết luận "doanh
   nghiệp có cơ hội để phát triển nhóm này"). Dùng đúng khung câu AN TOÀN sau, chỉ thay số liệu theo
-  profile_context thực tế, KHÔNG thêm từ "cơ hội"/"tiềm năng": "Đây là nhóm khách hàng phổ thông có
-  hành vi ổn định nhưng mức độ gắn kết còn thấp, phù hợp với các chương trình tăng tương tác và bán
-  chéo."
+  profile_context thực tế, KHÔNG thêm từ "cơ hội"/"tiềm năng":
+  - NẾU KHÔNG có `already_churned: true` (khách hàng đang hoạt động): "Đây là nhóm khách hàng phổ
+    thông có hành vi ổn định nhưng mức độ gắn kết còn thấp, phù hợp với các chương trình tăng tương
+    tác và bán chéo."
+  - NẾU CÓ `already_churned: true` (khách hàng ĐÃ RỜI MẠNG): KHÔNG được dùng câu trên (đề xuất
+    "chương trình tăng tương tác/bán chéo" cho người ĐÃ rời mạng là vô nghĩa). Dùng thay: "Đây là
+    nhóm khách hàng rời mạng có hành vi ổn định, không ghi nhận tín hiệu bất thường rõ ràng trước
+    thời điểm rời mạng."
+- QUY TẮC THÌ/FRAMING cho khách hàng ĐÃ RỜI MẠNG (`already_churned: true` trong persona): TOÀN BỘ
+  business_interpretation PHẢI dùng framing QUÁ KHỨ — "trước thời điểm rời mạng", "ngay trước khi
+  chấm dứt dịch vụ", "quan sát được trong giai đoạn trước khi rời mạng", "là dấu hiệu phổ biến ở
+  nhóm khách hàng đã rời mạng". TUYỆT ĐỐI KHÔNG dùng framing TƯƠNG LAI/rủi ro kiểu "đang có nguy cơ
+  rời mạng", "cần giữ chân", "có thể rời mạng" — dữ liệu này là KHÁCH HÀNG ĐÃ RỜI MẠNG RỒI, không
+  phải khách hàng đang hoạt động cần dự đoán rủi ro tương lai.
 - NẾU `profile_context.dich_vu_chinh` cho thấy 1 dịch vụ chiếm ưu thế rõ rệt (>=60% theo % đã cho):
   PHẢI biến thành 1 câu insight về cơ hội kinh doanh, KHÔNG chỉ liệt kê tên dịch vụ suông. Ví dụ:
   dich_vu_chinh = ["Net Pay (73%)", "Net Pay Cam (10%)"] → "Phần lớn khách hàng chỉ dùng Net Pay đơn
   lẻ, rất ít sử dụng dịch vụ tích hợp như Net Pay Cam — cho thấy dư địa cho các chiến dịch upsell dịch
   vụ tích hợp." KHÔNG bịa số liệu ngoài % đã cho trong `dich_vu_chinh`.
+- QUY TẮC "% LỚN NHẤT KHÔNG ĐỒNG NGHĨA VỚI CHỦ YẾU" (áp dụng cho MỌI trường composition dạng danh
+  sách "Tên (X%)" trong `profile_context`, vd `dich_vu_chinh`, `goi_cuoc_chinh`, và bất kỳ trường
+  composition nào khác xuất hiện): mục đứng ĐẦU danh sách chỉ là mục có % LỚN NHẤT trong nhóm, KHÔNG
+  tự động là "chủ yếu"/"phần lớn"/"đa số" — nếu các mục còn lại có % gần bằng nhau (phân bố khá đều)
+  thì gọi mục đầu là "chủ yếu" ĐÁNH LỪA người đọc, vì phần lớn khách hàng thực ra KHÔNG dùng mục đó.
+  NẾU mục đứng đầu < 40%: TUYỆT ĐỐI KHÔNG dùng "chủ yếu"/"phần lớn"/"đa số"/"chỉ dùng" cho riêng mục
+  đó — PHẢI mô tả là khách hàng sử dụng ĐA DẠNG, không tập trung vào 1 mục cụ thể, kèm liệt kê % thật
+  đã cho. Ví dụ: `dich_vu_chinh` = ["Net Pay (24%)", "Mobile Pay (23%)"] → viết "khách hàng sử dụng đa
+  dạng dịch vụ (Net Pay 24%, Mobile Pay 23%...), không tập trung vào 1 dịch vụ cụ thể", KHÔNG viết
+  "chủ yếu sử dụng dịch vụ Net Pay". NẾU mục đứng đầu >= 40%, được phép nêu là "chủ yếu" như bình
+  thường (ngưỡng >=60% ở quy tắc trên chỉ áp dụng riêng cho việc có thêm câu insight upsell hay
+  không, không ảnh hưởng đến việc có được dùng từ "chủ yếu" hay không).
 
 Dữ liệu Business Facts duy nhất bạn được thấy:
 {data_str}
 """
 
-    def generate_llm_narrative(self, personas_data: list, global_means: dict) -> ReportNarrative:
-        prompt = self._build_prompt(personas_data, global_means)
-        try:
-            report_narrative: ReportNarrative = self.client.chat.completions.create(
-                model=self.model_name,
-                response_model=ReportNarrative,
-                messages=[{"role": "user", "content": prompt}],
-                max_retries=2
-            )
-            return report_narrative
-        except Exception as e:
-            # Sanitize before re-raising — a raw upstream error (nginx/gateway 504 pages are full
-            # HTML documents) must NEVER be dumped verbatim into the user-facing chat/report; it
-            # happened on a live run and read as a broken page dumped mid-conversation.
-            msg = str(e)
-            if "<html" in msg.lower() or len(msg) > 300:
-                msg = "LLM service tạm thời không phản hồi (timeout/gateway error)."
-            raise RuntimeError(f"Failed to generate LLM Narrative: {msg}")
+    def _call_narrative_llm(self, prompt: str) -> ReportNarrative:
+        """1 lệnh gọi LLM (structured output qua instructor) + retry NGOÀI với backoff — khác với
+        max_retries=2 của instructor bên dưới (cái đó CHỈ retry khi response về đúng nhưng SAI SCHEMA
+        Pydantic, không bắt được lỗi mạng/gateway timeout xảy ra TRƯỚC khi có response để validate, vd
+        504 từ Qwen proxy trả về nguyên trang HTML thay vì JSON — ĐÃ XẢY RA NHIỀU LẦN trên live run)."""
+        last_err = None
+        for attempt in range(3):
+            try:
+                return self.client.chat.completions.create(
+                    model=self.model_name,
+                    response_model=ReportNarrative,
+                    messages=[{"role": "user", "content": prompt}],
+                    max_retries=2
+                )
+            except Exception as e:
+                last_err = e
+                if attempt < 2:
+                    time.sleep(2 * (attempt + 1))  # 2s, rồi 4s trước lần thử tiếp theo
+        # Sanitize before re-raising — a raw upstream error (nginx/gateway 504 pages are full
+        # HTML documents) must NEVER be dumped verbatim into the user-facing chat/report; it
+        # happened on a live run and read as a broken page dumped mid-conversation.
+        msg = str(last_err)
+        if "<html" in msg.lower() or len(msg) > 300:
+            msg = "LLM service tạm thời không phản hồi (timeout/gateway error)."
+        raise RuntimeError(f"Failed to generate LLM Narrative: {msg}")
+
+    def generate_llm_narrative(self, personas_data: list, global_means: dict, batch_size: int = 3) -> ReportNarrative:
+        """Chia personas_data thành các BATCH nhỏ (batch_size persona/lần gọi) thay vì 1 lệnh gọi
+        DUY NHẤT cho TOÀN BỘ report — trước đây 1 request gộp hết mọi persona nên prompt/output càng
+        lúc càng dài (đặc biệt sau khi thêm churn_story_facts + hàng loạt QUY TẮC mới), dễ vượt
+        ngưỡng timeout của gateway (504, ĐÃ XẢY RA TRÊN LIVE RUN — log cho thấy request treo ~94s
+        trước khi gateway trả 504) — và 1 lần fail làm mất SẠCH phần LLM viết lại cho MỌI persona,
+        rơi hết về bản ghép cứng giống hệt nhau giữa các persona cùng driver (ĐÃ XẢY RA TRÊN BÁO CÁO
+        THẬT). Với batch nhỏ: mỗi request ngắn hơn (ít khả năng chạm timeout), và nếu 1 batch fail thì
+        CHỈ personas trong batch đó rơi về fallback deterministic, các batch khác vẫn giữ được bản LLM.
+        executive_summary/conclusion lấy từ batch THÀNH CÔNG ĐẦU TIÊN (không cần mọi persona mới viết
+        được 1 đoạn tổng quan hợp lý — report đã có _build_executive_headline() deterministic đứng
+        trước để cung cấp số liệu chính xác, đây chỉ là văn phong bổ sung)."""
+        batches = [personas_data[i:i + batch_size] for i in range(0, len(personas_data), batch_size)]
+        merged_personas = []
+        exec_summary, conclusion = None, None
+        last_err = None
+        for batch in batches:
+            prompt = self._build_prompt(batch, global_means)
+            try:
+                batch_narrative = self._call_narrative_llm(prompt)
+            except Exception as e:
+                last_err = e
+                print(f"[ReportGenerator] LLM narrative batch failed ({len(batch)} persona(s)), "
+                      f"những persona này sẽ dùng fallback deterministic: {e}")
+                continue
+            merged_personas.extend(batch_narrative.personas_analysis)
+            if exec_summary is None:
+                exec_summary = batch_narrative.executive_summary
+                conclusion = batch_narrative.conclusion
+
+        if exec_summary is None:
+            # TOÀN BỘ batch đều fail — không còn gì để trả, để caller (render_markdown) bắt exception
+            # và rơi về _fallback_narrative() như hành vi cũ.
+            raise RuntimeError(f"Failed to generate LLM Narrative for any batch: {last_err}")
+
+        return ReportNarrative(executive_summary=exec_summary, personas_analysis=merged_personas, conclusion=conclusion)
 
     def _fallback_narrative(self) -> ReportNarrative:
         """Used when generate_llm_narrative() fails (timeout, gateway error, etc.) so the report
@@ -1355,7 +1604,6 @@ Dữ liệu Business Facts duy nhất bạn được thấy:
                 executive_overview="AI narrative tạm thời không khả dụng do lỗi kết nối dịch vụ LLM. Các số liệu, phân tích nguyên nhân và roadmap bên dưới vẫn được tính toán đầy đủ và chính xác — chỉ thiếu phần diễn giải văn phong bổ sung từ AI."
             ),
             personas_analysis=[],
-            recommendations_analysis=[],
             conclusion="Báo cáo được tạo với dữ liệu và phân tích đầy đủ; phần diễn giải mở rộng từ AI tạm thời không khả dụng do lỗi kết nối dịch vụ."
         )
 
@@ -1442,9 +1690,11 @@ Dữ liệu Business Facts duy nhất bạn được thấy:
         display_name_map = self._disambiguate_display_names(personas_data)
 
         # Persona Overview — infographic-style card per persona: icon + tên + % + tag cường độ, theo
-        # sau là 1 ĐOẠN VĂN diễn giải (không phải bullet rời rạc từng feature). POST_CHURN dùng story
-        # composer xác định (đã trace được); các persona khác dùng business_interpretation do LLM
-        # tổng hợp từ domain_signals/business_signals (đã sterilize, không tự bịa số liệu/domain).
+        # sau là 1 ĐOẠN VĂN diễn giải (không phải bullet rời rạc từng feature). POST_CHURN: LLM viết
+        # lại từ churn_story_facts (đa dạng câu chữ hơn, tránh 1 khuôn cố định lặp lại ở mọi persona
+        # — phát hiện trên báo cáo thật), fallback về story composer deterministic khi LLM lỗi/timeout/
+        # rỗng; các persona khác dùng business_interpretation LLM tổng hợp từ domain_signals/
+        # business_signals như cũ (đã sterilize, không tự bịa số liệu/domain).
         md += "## 3. Persona Overview\n\n"
         for p in personas_data:
             cid = p.get('cluster_id')
@@ -1456,14 +1706,16 @@ Dữ liệu Business Facts duy nhất bạn được thấy:
 
             md += f"### {icon} {p_name} — {sup_pct:.1f}% ({tag})\n\n"
             md += f"*Quy mô: {sup_str} | Severity: {p.get('severity','N/A')} | Risk: {p.get('risk','N/A')}*\n\n"
-            # POST_CHURN personas read as a short story (ai + vì sao rời mạng + bằng chứng mạnh
-            # nhất); các mode khác dùng đoạn văn LLM tổng hợp đa-feature (business_interpretation).
             story = self._build_persona_story(p, global_means)
             n = narrative_dict.get(cid)
+            llm_text = getattr(n, 'business_interpretation', None) if n else None
             if story:
-                md += f"{story}\n\n"
-            elif n and getattr(n, 'business_interpretation', None):
-                md += f"{n.business_interpretation}\n\n"
+                # story != None => POST_CHURN (có churn_driver) => đã gửi churn_story_facts cho LLM
+                # viết lại tự nhiên hơn. Ưu tiên bản LLM khi có, fallback về bản ghép cứng khi LLM
+                # lỗi/timeout/trả rỗng — layer Insight không bao giờ mất, chỉ mất phần "đa dạng câu chữ".
+                md += f"{llm_text if llm_text else story}\n\n"
+            elif llm_text:
+                md += f"{llm_text}\n\n"
             else:
                 # LLM narrative không khả dụng (timeout/lỗi kết nối) — vẫn ưu tiên 1 đoạn văn
                 # deterministic ghép từ profile_context/contradictions thay vì rơi thẳng xuống
@@ -1480,6 +1732,7 @@ Dữ liệu Business Facts duy nhất bạn được thấy:
         # kèm 1 dòng "why" lấy từ tín hiệu lệch mạnh nhất thực tế của chính nó (không suy diễn thêm).
         if any(p.get('risk_tier') for p in personas_data):
             md += "## 3b. Risk Tier Grouping\n\n"
+            is_post_churn = any(p.get('churn_driver') for p in personas_data)
             tier_order = [
                 "Nhóm rủi ro cao – cần hành động ưu tiên",
                 "Nhóm bị động – theo dõi & cảnh báo",
@@ -1493,11 +1746,22 @@ Dữ liệu Business Facts duy nhất bạn được thấy:
                 p_name = display_name_map.get(p.get('cluster_id'), self.clean_persona_name(p.get('persona_name', '')))
                 means = self._get_means(p)
                 top = self._top_signals(means, global_means, top_n=1) if means else []
-                why = self._get_business_signal(*top[0][:3]) if top else None
+                why = None
+                if top:
+                    f, val, g_val, _ = top[0]
+                    # CHỈ nêu "why" khi feature lệch MẠNH NHẤT thực sự TĂNG/CAO hơn baseline — 1
+                    # feature GIẢM (vd khiếu nại giảm mạnh) tuy lệch nhiều nhất về con số nhưng
+                    # KHÔNG giải thích được vì sao nhóm này rơi vào risk tier này (cùng lỗi đã fix ở
+                    # _build_persona_story: top-deviation ≠ nguyên nhân nếu chiều lệch không phải
+                    # "cao hơn").
+                    direction, _ = self._qualitative_magnitude(val, g_val)
+                    if direction == 'up':
+                        why = self._get_business_signal(f, val, g_val)
                 tiers[t].append((p_name, why))
 
             for t in tier_order:
-                md += f"**{t}**\n\n"
+                label = _POST_CHURN_TIER_DISPLAY_LABELS.get(t, t) if is_post_churn else t
+                md += f"**{label}**\n\n"
                 if tiers[t]:
                     for name, why in tiers[t]:
                         md += f"- **{name}**" + (f" — {why}\n" if why else "\n")
