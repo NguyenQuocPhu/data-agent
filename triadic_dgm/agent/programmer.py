@@ -2,8 +2,16 @@ import openai
 from triadic_dgm.prompts.prompts import PROGRAMMER_PROMPT
 from triadic_dgm.knowledge.knw_in import retrieval_knowledge
 import os
+import time
 import traceback
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
+
+# Qwen3.5 (hosted qua proxy proxy.onebot.meobeo.ai) hỗ trợ chế độ "thinking" — sinh 1 đoạn suy luận
+# nội bộ dài trước khi trả lời thật, làm request lâu hơn nhiều và dễ chạm timeout của gateway (504,
+# ĐÃ XẢY RA NHIỀU LẦN trên live run, request treo ~90s trước khi gateway trả 504). Tắt hẳn để giảm
+# thời gian sinh — cùng pattern đã dùng cho đúng model/proxy này ở
+# triadic_dgm/benchmark/implementations/qwen_llm.py (comment gốc: "proxy thường xuyên rớt").
+_DISABLE_THINKING_EXTRA_BODY = {"chat_template_kwargs": {"enable_thinking": False}}
 
 
 class Programmer:
@@ -56,7 +64,8 @@ class Programmer:
         params = {
             "model": self.model,
             "messages": self.messages,
-            "max_tokens": self._compute_max_tokens()
+            "max_tokens": self._compute_max_tokens(),
+            "extra_body": _DISABLE_THINKING_EXTRA_BODY,
         }
 
         if include_functions:
@@ -95,27 +104,42 @@ class Programmer:
             "model": self.model,
             "messages": self.messages,
             "stream": True,
-            "max_tokens": self._compute_max_tokens()
+            "max_tokens": self._compute_max_tokens(),
+            "extra_body": _DISABLE_THINKING_EXTRA_BODY,
         }
 
         if include_functions:
             params['functions'] = functions
             params['function_call'] = "auto"
 
-        try:
-            stream = self.client.chat.completions.create(**params)
-            self.messages[-1]["content"] = temp
-            for chunk in stream:
-                if (hasattr(chunk, 'choices') and
-                        chunk.choices and
-                        len(chunk.choices) > 0 and
-                        chunk.choices[0].delta.content is not None):
-                    chunk_message = chunk.choices[0].delta.content
-                    yield chunk_message
-        except Exception as e:
-            print(f"Error calling chat model: {e}")
-            traceback.print_exc()
-            yield f"\n\n[LLM ERROR: {e}]\n\n"
+        # Retry với backoff — đây là lệnh gọi LLM NẶNG NHẤT và chạy ĐẦU TIÊN trong cả pipeline (sinh
+        # toàn bộ code K-Means/business-rules/JSON), trước đây KHÔNG có retry nào cả: 1 lần gateway
+        # timeout (504, cùng loại lỗi đã gặp ở report_generator.py) là mất trắng, không có gì để
+        # fallback (khác narrative LLM call — cái đó còn rơi về bản deterministic). CHỈ retry khi
+        # CHƯA yield được chunk nào (stream fail ngay từ đầu, an toàn để thử lại từ đầu) — nếu đã
+        # stream ra 1 phần nội dung rồi mới fail thì KHÔNG retry (sẽ bị lặp nội dung trong chat).
+        max_attempts = 3
+        for attempt in range(max_attempts):
+            yielded_any = False
+            try:
+                stream = self.client.chat.completions.create(**params)
+                self.messages[-1]["content"] = temp
+                for chunk in stream:
+                    if (hasattr(chunk, 'choices') and
+                            chunk.choices and
+                            len(chunk.choices) > 0 and
+                            chunk.choices[0].delta.content is not None):
+                        chunk_message = chunk.choices[0].delta.content
+                        yielded_any = True
+                        yield chunk_message
+                return
+            except Exception as e:
+                print(f"Error calling chat model (attempt {attempt + 1}/{max_attempts}): {e}")
+                traceback.print_exc()
+                if yielded_any or attempt == max_attempts - 1:
+                    yield f"\n\n[LLM ERROR: {e}]\n\n"
+                    return
+                time.sleep(2 * (attempt + 1))  # 2s, rồi 4s trước lần thử tiếp theo
 
     def clear(self):
         self.messages = [

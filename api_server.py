@@ -1,11 +1,23 @@
+from contextlib import asynccontextmanager
+
 import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from api.routers.workspace import router as workspace_router
 from api.routers.chat import router as chat_router
 from api.routers.export import router as export_router
+from api.routers.convergence import router as convergence_router
+from api.services.convergence_loop import convergence_loop
 
-app = FastAPI(title="LAMBDA Unified Backend (DeepAnalyze Compatible)")
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    convergence_loop.start()
+    yield
+    convergence_loop.stop()
+
+
+app = FastAPI(title="LAMBDA Unified Backend (DeepAnalyze Compatible)", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
@@ -19,6 +31,7 @@ app.add_middleware(
 app.include_router(workspace_router)
 app.include_router(chat_router)
 app.include_router(export_router)
+app.include_router(convergence_router)
 
 from fastapi.responses import FileResponse
 from fastapi import Query

@@ -1544,7 +1544,10 @@ Dữ liệu Business Facts duy nhất bạn được thấy:
                     model=self.model_name,
                     response_model=ReportNarrative,
                     messages=[{"role": "user", "content": prompt}],
-                    max_retries=2
+                    max_retries=2,
+                    # Tắt "thinking mode" của Qwen3.5 — giảm thời gian sinh, giảm khả năng chạm
+                    # timeout của gateway (cùng lý do đã áp dụng ở programmer.py).
+                    extra_body={"chat_template_kwargs": {"enable_thinking": False}},
                 )
             except Exception as e:
                 last_err = e

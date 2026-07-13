@@ -1,0 +1,234 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { API_URLS } from "@/lib/config";
+
+interface ComparisonInfo {
+  prior_run_id: string;
+  prior_created_at: number;
+  prior_support_pct: number;
+  delta_support_pct_points: number;
+  status: "converged" | "diverging";
+}
+
+interface PersonaFeedItem {
+  run_id: string;
+  created_at: number;
+  cluster_id: number | null;
+  persona_name: string;
+  support: number | null;
+  support_pct: number | null;
+  churn_driver: string | null;
+  risk: string | null;
+  severity: string | null;
+  priority_score: number | null;
+  description: string;
+  stats_table: { feature: string; value: number; benchmark: number; dev_pct: number | null }[];
+  comparison: ComparisonInfo | null;
+  total_occurrences: number | null;
+  first_seen_at: number | null;
+}
+
+interface LoopStatus {
+  running: boolean;
+  run_count: number;
+  error_count: number;
+  last_run_at: number | null;
+  last_error: string | null;
+}
+
+const POLL_INTERVAL_MS = 7000;
+
+function formatTime(ts: number | null): string {
+  if (!ts) return "—";
+  return new Date(ts * 1000).toLocaleString();
+}
+
+function formatPct(pct: number | null): string {
+  if (pct === null || pct === undefined) return "—";
+  return `${(pct * 100).toFixed(1)}%`;
+}
+
+export default function ConvergencePage() {
+  const [personas, setPersonas] = useState<PersonaFeedItem[]>([]);
+  const [status, setStatus] = useState<LoopStatus | null>(null);
+  const [markdown, setMarkdown] = useState<string>("");
+  const [showMarkdown, setShowMarkdown] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const poll = async () => {
+      try {
+        const [personasRes, statusRes, markdownRes] = await Promise.all([
+          fetch(API_URLS.CONVERGENCE_PERSONAS),
+          fetch(API_URLS.CONVERGENCE_STATUS),
+          fetch(API_URLS.CONVERGENCE_MARKDOWN),
+        ]);
+        if (!personasRes.ok || !statusRes.ok) {
+          throw new Error("Request failed");
+        }
+        const personasData = await personasRes.json();
+        const statusData = await statusRes.json();
+        const markdownText = markdownRes.ok ? await markdownRes.text() : "";
+        if (!cancelled) {
+          setPersonas(personasData.personas || []);
+          setStatus(statusData);
+          setMarkdown(markdownText);
+          setError(null);
+        }
+      } catch (e) {
+        if (!cancelled) setError("Không thể kết nối tới backend.");
+      }
+    };
+
+    poll();
+    const interval = setInterval(poll, POLL_INTERVAL_MS);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, []);
+
+  return (
+    <main className="min-h-screen bg-background p-6">
+      <div className="mx-auto max-w-4xl space-y-4">
+        <div>
+          <h1 className="text-xl font-semibold">Persona Convergence Feed</h1>
+          <p className="text-sm text-muted-foreground">
+            20 persona duy nhất gần nhất (không lặp lại) từ vòng lặp chạy nền liên tục trên dataset cố định.
+          </p>
+        </div>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between py-3">
+            <CardTitle className="text-sm">
+              File markdown tổng hợp (workspace/convergence/generated/convergence_personas_latest.md)
+            </CardTitle>
+            <button
+              className="text-xs text-muted-foreground underline"
+              onClick={() => setShowMarkdown((v) => !v)}
+            >
+              {showMarkdown ? "Thu gọn" : "Xem"}
+            </button>
+          </CardHeader>
+          {showMarkdown && (
+            <CardContent className="max-h-96 overflow-auto border-t pt-3">
+              {markdown ? (
+                <div className="prose prose-sm max-w-none dark:prose-invert">
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>{markdown}</ReactMarkdown>
+                </div>
+              ) : (
+                <span className="text-sm text-muted-foreground">Chưa có nội dung.</span>
+              )}
+            </CardContent>
+          )}
+        </Card>
+
+        <Card>
+          <CardContent className="flex flex-wrap items-center gap-4 py-4 text-sm">
+            {status ? (
+              <>
+                <Badge variant={status.running ? "default" : "secondary"}>
+                  {status.running ? "Đang chạy" : "Đã dừng"}
+                </Badge>
+                <span>Số lần chạy: {status.run_count}</span>
+                <span>Lỗi: {status.error_count}</span>
+                <span>Lần chạy gần nhất: {formatTime(status.last_run_at)}</span>
+                {status.last_error && (
+                  <span className="text-destructive">Lỗi gần nhất: {status.last_error}</span>
+                )}
+              </>
+            ) : (
+              <span className="text-muted-foreground">Đang tải trạng thái...</span>
+            )}
+          </CardContent>
+        </Card>
+
+        {error && <p className="text-sm text-destructive">{error}</p>}
+
+        {personas.length === 0 && !error && (
+          <p className="text-sm text-muted-foreground">
+            Chưa có persona nào được sinh ra. Đang chờ vòng lặp chạy xong lượt đầu tiên...
+          </p>
+        )}
+
+        <div className="space-y-3">
+          {personas.map((p, idx) => (
+            <Card key={`${p.run_id}-${p.cluster_id}-${idx}`}>
+              <CardHeader className="flex flex-row items-start justify-between gap-2 pb-2">
+                <div>
+                  <CardTitle className="text-base">{p.persona_name}</CardTitle>
+                  <p className="text-xs text-muted-foreground">
+                    Run {p.run_id.slice(0, 8)} · {formatTime(p.created_at)}
+                    {p.total_occurrences && p.total_occurrences > 1 && (
+                      <> · Đã xuất hiện {p.total_occurrences} lượt kể từ {formatTime(p.first_seen_at)}</>
+                    )}
+                  </p>
+                </div>
+                {p.comparison ? (
+                  <Badge variant={p.comparison.status === "converged" ? "default" : "destructive"}>
+                    {p.comparison.status === "converged" ? "▲ Hội tụ" : "▼ Đang dao động"}{" "}
+                    {p.comparison.delta_support_pct_points > 0 ? "+" : ""}
+                    {p.comparison.delta_support_pct_points.toFixed(1)}pp
+                  </Badge>
+                ) : (
+                  <Badge variant="outline">Lần xuất hiện đầu tiên</Badge>
+                )}
+              </CardHeader>
+              <CardContent className="space-y-2 text-sm">
+                {p.description && (
+                  <p className="text-foreground/90">{p.description}</p>
+                )}
+                <div className="flex flex-wrap gap-x-6 gap-y-1 text-muted-foreground">
+                  <span>Support: {p.support ?? "—"} ({formatPct(p.support_pct)})</span>
+                  {p.churn_driver && <span>Churn driver: {p.churn_driver}</span>}
+                  {p.risk && <span>Risk: {p.risk}</span>}
+                  {p.severity && <span>Severity: {p.severity}</span>}
+                  {p.comparison && (
+                    <span>
+                      Lần trước: {formatPct(p.comparison.prior_support_pct)} ({formatTime(p.comparison.prior_created_at)})
+                    </span>
+                  )}
+                </div>
+                {p.stats_table && p.stats_table.length > 0 && (
+                  <div className="overflow-x-auto pt-1">
+                    <table className="w-full text-xs">
+                      <thead>
+                        <tr className="text-left text-muted-foreground">
+                          <th className="pr-4 font-medium">Feature</th>
+                          <th className="pr-4 font-medium">Value</th>
+                          <th className="pr-4 font-medium">Benchmark</th>
+                          <th className="font-medium">Dev %</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {p.stats_table.map((row) => (
+                          <tr key={row.feature}>
+                            <td className="pr-4 py-0.5 text-muted-foreground">{row.feature}</td>
+                            <td className="pr-4 py-0.5">{row.value}</td>
+                            <td className="pr-4 py-0.5 text-muted-foreground">{row.benchmark}</td>
+                            <td className="py-0.5">
+                              {typeof row.dev_pct === "number"
+                                ? `${row.dev_pct > 0 ? "+" : ""}${row.dev_pct}%`
+                                : "—"}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
+    </main>
+  );
+}

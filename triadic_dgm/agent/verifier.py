@@ -101,7 +101,10 @@ class SemanticVerifier:
 
         try:
             response = self.client.chat.completions.create(
-                model=self.model, messages=messages, temperature=0.2
+                model=self.model, messages=messages, temperature=0.2,
+                # Tắt "thinking mode" của Qwen3.5 — giảm thời gian sinh, giảm khả năng chạm timeout
+                # của gateway (cùng lý do đã áp dụng ở programmer.py/report_generator.py).
+                extra_body={"chat_template_kwargs": {"enable_thinking": False}},
             )
             feedback = response.choices[0].message.content
         except Exception as e:

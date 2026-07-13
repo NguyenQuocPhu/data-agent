@@ -141,8 +141,24 @@ class CodeKernel(object):
                         all_output.append(('display_jpeg', output))
                         save_b64_2_img(output, self.session_cache_path)
             elif iopub_msg['msg_type'] == 'error':
-                if 'traceback' in iopub_msg['content']:
-                    output = '\n'.join(iopub_msg['content']['traceback'])
+                content = iopub_msg['content']
+                # A script calling sys.exit(0) to stop early (e.g. a pipeline's intentional
+                # hard-stop after already printing its output) raises SystemExit, which the
+                # Jupyter protocol reports as an 'error' message like any other exception —
+                # even though it's a clean, intentional stop, not a crash. Treating it as a
+                # real error routes it into the code-repair loop, whose "fix" (remove the
+                # exit call) re-runs the script without it and silently drops whatever was
+                # already printed just before the exit. Only an explicit success exit code
+                # (sys.exit(0) / sys.exit(None) / bare sys.exit()) is exempted here —
+                # sys.exit(1) or sys.exit("some message") still correctly flags as a real error.
+                is_clean_exit = (
+                    content.get('ename') == 'SystemExit'
+                    and str(content.get('evalue', '')).strip() in ('0', 'None', '')
+                )
+                if is_clean_exit:
+                    continue
+                if 'traceback' in content:
+                    output = '\n'.join(content['traceback'])
                     all_output.append(('error', output))
 
         return all_output

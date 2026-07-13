@@ -5,9 +5,9 @@
 env/
 venv/
 ENV/
-bin/
-lib/
-include/
+/bin/
+/lib/
+/include/
 pip-selfcheck.json
 __pycache__/
 *.pyc

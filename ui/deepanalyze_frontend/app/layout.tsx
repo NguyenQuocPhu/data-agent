@@ -8,6 +8,7 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { Suspense } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as SonnerToaster } from "sonner";
+import Link from "next/link";
 
 export const metadata: Metadata = {
   title: "v0 App",
@@ -47,6 +48,11 @@ export default function RootLayout({
       <body suppressHydrationWarning>
         <Suspense fallback={<div>Loading...</div>}>
           <ThemeProvider defaultTheme="light" storageKey="theme">
+            <div className="fixed top-2 right-2 z-50">
+              <Link href="/convergence" className="text-xs text-muted-foreground underline">
+                Convergence Feed
+              </Link>
+            </div>
             {children}
             <Toaster />
             <SonnerToaster richColors closeButton position="bottom-right" />
