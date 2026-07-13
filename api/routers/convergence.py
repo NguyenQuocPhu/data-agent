@@ -25,5 +25,5 @@ async def get_markdown_feed(limit: int = Query(20, ge=1, le=100)):
     """The persisted markdown file summarizing the latest persona feed — same content the
     background loop writes to workspace/convergence/generated/ after every run, regenerated
     on-demand here so it's never stale even between runs."""
-    md = render_markdown(build_feed_items(convergence_loop.db_path, limit=limit))
+    md = render_markdown(build_feed_items(convergence_loop.db_path, limit=limit), status=convergence_loop.status())
     return PlainTextResponse(md, media_type="text/markdown")

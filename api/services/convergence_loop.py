@@ -135,9 +135,9 @@ class ConvergenceLoop:
         config.pop("figure_list", None)
 
         self._agent = TriadicAgent(config)
-        # Reused for its pure-Python deterministic narrative/stats methods only (see
-        # convergence_runner.enrich_personas) — constructing it never makes a network call,
-        # only self.client.chat.completions.create(...) would, and that's never invoked here.
+        # Used for both its LLM-backed narrative generation (generate_llm_narrative — same
+        # call the full report makes) and its pure-Python deterministic composer methods as a
+        # fallback when that call fails (see convergence_runner.enrich_personas).
         self._report_gen = ReportGenerator(
             api_key=config["api_key"],
             base_url=config["base_url_programmer"],
@@ -189,11 +189,6 @@ class ConvergenceLoop:
                 except Exception as save_err:
                     print(f"[convergence] Failed to persist run: {save_err}")
 
-                try:
-                    self._write_markdown_snapshot()
-                except Exception as md_err:
-                    print(f"[convergence] Failed to write markdown snapshot: {md_err}")
-
                 self._run_count += 1
                 self._last_run_at = result.finished_at
                 # Treat "no personas produced" the same as a hard failure for observability —
@@ -206,7 +201,16 @@ class ConvergenceLoop:
                     self._last_error = result.error
                     print(f"[convergence] Run {result.run_id} produced no usable personas: {result.error}")
                 else:
+                    # Clear any stale error from a previous run — without this, last_error
+                    # sticks forever after the first failure even once the loop recovers,
+                    # making the status feed permanently look unhealthy.
+                    self._last_error = None
                     print(f"[convergence] Run {result.run_id} ok: {len(result.personas)} personas.")
+
+                try:
+                    self._write_markdown_snapshot()
+                except Exception as md_err:
+                    print(f"[convergence] Failed to write markdown snapshot: {md_err}")
             except Exception as loop_err:
                 # Should be unreachable (run_once never raises), but guarantees the loop
                 # thread itself can never die from a single bad iteration.
@@ -224,7 +228,7 @@ class ConvergenceLoop:
         workspace_root = resolve_workspace_root(CONVERGENCE_SESSION_ID)
         generated_dir = os.path.join(str(workspace_root), "generated")
         os.makedirs(generated_dir, exist_ok=True)
-        md = render_markdown(build_feed_items(self.db_path, limit=20))
+        md = render_markdown(build_feed_items(self.db_path, limit=20), status=self.status())
         with open(os.path.join(generated_dir, "convergence_personas_latest.md"), "w", encoding="utf-8") as f:
             f.write(md)
 

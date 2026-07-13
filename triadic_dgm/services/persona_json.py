@@ -8,11 +8,17 @@ parse a string.
 
 from __future__ import annotations
 
+import hashlib
 import json
 import re
 
 _PERSONA_JSON_RE = re.compile(r"\[JSON_START_PERSONA\]\s*(.*?)\s*\[JSON_END_PERSONA\]", re.DOTALL)
 _NHOM_SUFFIX_RE = re.compile(r" - Nhóm (\d+)$")
+
+# Mirrors report_generator.py's EXCLUDED_TECHNICAL_FEATURES — kept as its own small copy
+# rather than imported, same rationale as the rest of this module (dependency-free, no
+# ReportGenerator construction needed just to fingerprint a persona dict).
+_EXCLUDED_TECHNICAL_FEATURES = {"cluster", "cluster_id", "is_anomaly", "persona_type", "priority_score"}
 
 
 def extract_persona_list(raw_text: str) -> list[dict]:
@@ -75,6 +81,22 @@ def describe_persona(p: dict) -> str:
     return " ".join(parts) if parts else "Chưa có đủ dữ liệu để mô tả persona này."
 
 
+_DUPLICATE_NAME_SUFFIX_RE = re.compile(r"^(.+) \(\1\)$")
+
+
+def clean_display_persona_name(raw_name: str) -> str:
+    """Fix a display-only pipeline artifact: the disambiguation-suffix code sometimes ends up
+    appending the persona's OWN full name back onto itself in parens instead of a distinguishing
+    tier/cluster suffix (e.g. 'X (X)' — observed live: 'Khách hàng gặp sự cố kỹ thuật không
+    được xử lý triệt để (Khách hàng gặp sự cố kỹ thuật không được xử lý triệt để)'), presumably
+    because that run had only 1 cluster for that churn_driver so the 'distinguishing' text
+    came out identical to the base name. Collapses back to the base name. Does NOT touch
+    persona_name_normalized/fingerprint matching — this is purely a display cleanup."""
+    name = (raw_name or "").strip()
+    m = _DUPLICATE_NAME_SUFFIX_RE.match(name)
+    return m.group(1).strip() if m else name
+
+
 def normalize_persona_name(raw_name: str) -> str:
     """Strip disambiguation suffixes added when 2 clusters in the same run collide on a
     name (see prompts.py's apply_business_rules dedup logic), so persona_name can be used
@@ -90,3 +112,42 @@ def normalize_persona_name(raw_name: str) -> str:
     if " - Rank" in name:
         name = name.split(" - Rank")[0].strip()
     return name.lower()
+
+
+def compute_fingerprint(p: dict) -> str:
+    """Identify a persona across runs by its actual STATISTICS instead of its LLM-generated
+    display name. The clustering/persona-naming code is regenerated fresh every run, so the
+    same underlying cluster gets a different persona_name almost every time even though its
+    support_pct and feature_means are reproduced near-bit-for-bit (confirmed directly on live
+    convergence-loop data, e.g. feature_means['spending_decline']==0.7356 exactly across 4+
+    runs under 4+ different names) — matching on name alone made the convergence feed treat
+    a genuinely stable cluster as a stream of unrelated 'new' personas.
+
+    support_pct is rounded to 3 decimals (0.1pp) and every numeric feature_means/evidence
+    value to 3 decimals, sorted by feature name for order-independence, then hashed — cheap
+    to store/compare as a single indexed TEXT column instead of a fuzzy/distance query."""
+    support_pct = p.get("support_pct")
+    support_bucket = round(float(support_pct), 3) if isinstance(support_pct, (int, float)) else None
+
+    means = p.get("feature_means") or p.get("evidence") or {}
+    # Degenerate personas (e.g. "Clustering Failed" / "Error in generation" placeholder
+    # rows the pipeline emits on a bad run) have been observed with feature_means as a
+    # plain string instead of a dict — guard so one malformed row can't blow up a whole
+    # batch backfill/save_run transaction.
+    feature_sig = (
+        sorted(
+            (str(f), round(float(v), 3))
+            for f, v in means.items()
+            if isinstance(v, (int, float)) and str(f).lower() not in _EXCLUDED_TECHNICAL_FEATURES
+        )
+        if isinstance(means, dict)
+        else []
+    )
+
+    if support_bucket is None and not feature_sig:
+        # No usable stats at all (degenerate/error persona) — fall back to name so it still
+        # gets a stable (if imperfect) identity instead of colliding with every other blank one.
+        return "name:" + normalize_persona_name(p.get("persona_name", ""))
+
+    raw = json.dumps([support_bucket, feature_sig], sort_keys=True, ensure_ascii=False)
+    return hashlib.sha1(raw.encode("utf-8")).hexdigest()[:16]

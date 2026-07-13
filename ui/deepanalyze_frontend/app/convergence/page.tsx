@@ -7,12 +7,35 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { API_URLS } from "@/lib/config";
 
+interface FeatureComparisonRow {
+  feature: string;
+  prior_value: number;
+  current_value: number;
+  delta: number;
+}
+
 interface ComparisonInfo {
   prior_run_id: string;
   prior_created_at: number;
   prior_support_pct: number;
   delta_support_pct_points: number;
   status: "converged" | "diverging";
+  feature_comparison: FeatureComparisonRow[];
+}
+
+interface HistoryRun {
+  run_id: string;
+  created_at: number;
+  support_pct: number | null;
+  persona_name: string;
+  values: Record<string, number | null>;
+  narrative: string;
+}
+
+interface HistoryInfo {
+  features: string[];
+  runs: HistoryRun[];
+  narratives_identical: boolean;
 }
 
 interface PersonaFeedItem {
@@ -29,6 +52,7 @@ interface PersonaFeedItem {
   description: string;
   stats_table: { feature: string; value: number; benchmark: number; dev_pct: number | null }[];
   comparison: ComparisonInfo | null;
+  history: HistoryInfo | null;
   total_occurrences: number | null;
   first_seen_at: number | null;
 }
@@ -59,6 +83,16 @@ export default function ConvergencePage() {
   const [markdown, setMarkdown] = useState<string>("");
   const [showMarkdown, setShowMarkdown] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [expandedNarrativeHistory, setExpandedNarrativeHistory] = useState<Set<string>>(new Set());
+
+  const toggleNarrativeHistory = (key: string) => {
+    setExpandedNarrativeHistory((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -190,40 +224,112 @@ export default function ConvergencePage() {
                   {p.churn_driver && <span>Churn driver: {p.churn_driver}</span>}
                   {p.risk && <span>Risk: {p.risk}</span>}
                   {p.severity && <span>Severity: {p.severity}</span>}
-                  {p.comparison && (
-                    <span>
-                      Lần trước: {formatPct(p.comparison.prior_support_pct)} ({formatTime(p.comparison.prior_created_at)})
-                    </span>
-                  )}
                 </div>
-                {p.stats_table && p.stats_table.length > 0 && (
+
+                {p.history && p.history.runs.length > 1 ? (
                   <div className="overflow-x-auto pt-1">
+                    <p className="pb-1 text-xs text-muted-foreground">
+                      So sánh chỉ số qua {p.history.runs.length} lần chạy gần nhất — persona này được nhận diện
+                      là CÙNG 1 cụm (theo dấu vân tay thống kê) ở mọi cột dưới đây
+                    </p>
                     <table className="w-full text-xs">
                       <thead>
                         <tr className="text-left text-muted-foreground">
                           <th className="pr-4 font-medium">Feature</th>
-                          <th className="pr-4 font-medium">Value</th>
-                          <th className="pr-4 font-medium">Benchmark</th>
-                          <th className="font-medium">Dev %</th>
+                          {p.history.runs.map((r) => (
+                            <th key={r.run_id} className="pr-4 font-medium whitespace-nowrap">
+                              {formatTime(r.created_at)}
+                            </th>
+                          ))}
                         </tr>
                       </thead>
                       <tbody>
-                        {p.stats_table.map((row) => (
-                          <tr key={row.feature}>
-                            <td className="pr-4 py-0.5 text-muted-foreground">{row.feature}</td>
-                            <td className="pr-4 py-0.5">{row.value}</td>
-                            <td className="pr-4 py-0.5 text-muted-foreground">{row.benchmark}</td>
-                            <td className="py-0.5">
-                              {typeof row.dev_pct === "number"
-                                ? `${row.dev_pct > 0 ? "+" : ""}${row.dev_pct}%`
-                                : "—"}
+                        <tr>
+                          <td className="pr-4 py-0.5 font-medium">support_pct</td>
+                          {p.history.runs.map((r) => (
+                            <td key={r.run_id} className="pr-4 py-0.5">
+                              {formatPct(r.support_pct)}
                             </td>
+                          ))}
+                        </tr>
+                        {p.history!.features.map((f) => (
+                          <tr key={f}>
+                            <td className="pr-4 py-0.5 text-muted-foreground">{f}</td>
+                            {p.history!.runs.map((r) => (
+                              <td key={r.run_id} className="pr-4 py-0.5">
+                                {r.values[f] ?? "—"}
+                              </td>
+                            ))}
                           </tr>
                         ))}
                       </tbody>
                     </table>
                   </div>
-                )}
+                ) : null}
+
+                {p.history && p.history.runs.length > 1 && (() => {
+                  const cardKey = `${p.run_id}-${p.cluster_id}-${idx}`;
+                  const expanded = expandedNarrativeHistory.has(cardKey);
+                  return (
+                    <div className="pt-1">
+                      {p.history.narratives_identical ? (
+                        <p className="text-xs text-muted-foreground">
+                          Mô tả (narrative) giống hệt nhau ở cả {p.history.runs.length} lần chạy trên —
+                          LLM viết lại nhất quán dù được gọi riêng mỗi lần.
+                        </p>
+                      ) : (
+                        <>
+                          <button
+                            className="text-xs text-muted-foreground underline"
+                            onClick={() => toggleNarrativeHistory(cardKey)}
+                          >
+                            {expanded ? "Thu gọn" : "Xem"} mô tả qua {p.history.runs.length} lần chạy — LỆCH NHAU dù chỉ số giống nhau
+                          </button>
+                          {expanded && (
+                            <ul className="mt-1 space-y-1 text-xs text-muted-foreground">
+                              {p.history.runs.map((r) => (
+                                <li key={r.run_id}>
+                                  <span className="font-medium">{formatTime(r.created_at)}:</span> {r.narrative}
+                                </li>
+                              ))}
+                            </ul>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  );
+                })()}
+
+                {!p.history &&
+                  p.stats_table &&
+                  p.stats_table.length > 0 && (
+                    <div className="overflow-x-auto pt-1">
+                      <table className="w-full text-xs">
+                        <thead>
+                          <tr className="text-left text-muted-foreground">
+                            <th className="pr-4 font-medium">Feature</th>
+                            <th className="pr-4 font-medium">Value</th>
+                            <th className="pr-4 font-medium">Benchmark</th>
+                            <th className="font-medium">Dev %</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {p.stats_table.map((row) => (
+                            <tr key={row.feature}>
+                              <td className="pr-4 py-0.5 text-muted-foreground">{row.feature}</td>
+                              <td className="pr-4 py-0.5">{row.value}</td>
+                              <td className="pr-4 py-0.5 text-muted-foreground">{row.benchmark}</td>
+                              <td className="py-0.5">
+                                {typeof row.dev_pct === "number"
+                                  ? `${row.dev_pct > 0 ? "+" : ""}${row.dev_pct}%`
+                                  : "—"}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
               </CardContent>
             </Card>
           ))}
