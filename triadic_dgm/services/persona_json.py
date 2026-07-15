@@ -10,10 +10,91 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import re
 
 _PERSONA_JSON_RE = re.compile(r"\[JSON_START_PERSONA\]\s*(.*?)\s*\[JSON_END_PERSONA\]", re.DOTALL)
 _NHOM_SUFFIX_RE = re.compile(r" - Nhóm (\d+)$")
+
+# Metadata for the convergence loop's fixed dataset (workspace/convergence/index.json ->
+# data_processed_t4.csv) — repo-root file, read-only reference, never modified. Used only to
+# translate raw column names (cl_recent_only, fee_trend, ...) into Vietnamese business labels
+# for display, so a non-technical reader (e.g. ban giám đốc) doesn't have to guess what a
+# column name means.
+_FEATURE_METADATA_PATH = os.path.join(
+    os.path.dirname(__file__), "..", "..", "data_processed_t4_metadata.json"
+)
+
+
+def _load_feature_labels() -> dict[str, str]:
+    try:
+        with open(_FEATURE_METADATA_PATH, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        return {
+            c["column"]: c["description"]
+            for c in data.get("columns", [])
+            if c.get("column") and c.get("description")
+        }
+    except (OSError, json.JSONDecodeError, KeyError, TypeError):
+        return {}
+
+
+FEATURE_LABELS: dict[str, str] = _load_feature_labels()
+
+
+def get_feature_label(feature: str) -> str:
+    """Human-readable Vietnamese description of a raw feature/column name, sourced from
+    data_processed_t4_metadata.json. Falls back to the raw name itself if the column isn't
+    in the metadata (e.g. a derived/renamed column the pipeline computed on the fly)."""
+    return FEATURE_LABELS.get(feature, feature)
+
+
+# profile_attributes (report_generator.py's _build_profile_context / prompts.py's
+# compute_profile_attributes) are pipeline-DERIVED keys, not raw dataset columns — so they
+# aren't in data_processed_t4_metadata.json and need their own label map.
+PROFILE_ATTR_LABELS: dict[str, str] = {
+    "avg_fee": "ARPU trung bình (cước phí trung bình/tháng)",
+    "high_spender_pct": "Tỷ lệ khách hàng chi tiêu cao",
+    "loyalty_rank_avg": "Hạng loyalty trung bình",
+    "tier_upgrade_rate": "Tỷ lệ nâng hạng phân khúc",
+    "tier_downgrade_rate": "Tỷ lệ tụt hạng phân khúc",
+    "usage_decline_strong_pct": "Tỷ lệ giảm sử dụng mạnh",
+    "usage_decline_mild_pct": "Tỷ lệ giảm sử dụng nhẹ",
+    "usage_unstable_pct": "Tỷ lệ sử dụng dao động",
+    "status_worsening_pct": "Tỷ lệ trạng thái thuê bao xấu đi",
+    "csat_avg": "CSAT trung bình",
+    "ces_avg": "CES trung bình",
+}
+
+
+def get_profile_attr_label(key: str) -> str:
+    return PROFILE_ATTR_LABELS.get(key, key)
+
+
+# LOYALTY_RANK is a CATEGORICAL tier code (confirmed against the real dataset: only values
+# 0-4 ever occur), not a continuous metric — showing its cluster average as a bare float like
+# "1.03" is meaningless to a reader. Map to the actual business tier names.
+LOYALTY_RANK_TIER_LABELS = {
+    0: "Không có hạng",
+    1: "Bạc",
+    2: "Vàng",
+    3: "Bạch kim",
+    4: "Kim cương",
+}
+
+
+def format_loyalty_rank_avg(val: float) -> str:
+    """Cluster-average loyalty rank -> 'value (~nearest tier)'. Values outside the valid 0-4
+    range are a known intermittent pipeline bug (compute_profile_attributes in prompts.py is
+    regenerated fresh by the LLM each run and occasionally grabs LOYALTY_POINT/LOYALTY_COIN by
+    mistake instead of LOYALTY_RANK — confirmed on live data: real LOYALTY_RANK never exceeds
+    4, but some runs recorded 940+) — flag those instead of pretending they map to a real tier."""
+    if not isinstance(val, (int, float)):
+        return str(val)
+    if val < -0.5 or val > 4.5:
+        return f"{val:.2f} (bất thường — ngoài khoảng hợp lệ 0-4, có thể do lỗi chọn nhầm cột)"
+    nearest = max(0, min(4, round(val)))
+    return f"{val:.2f} (~{LOYALTY_RANK_TIER_LABELS[nearest]})"
 
 # Mirrors report_generator.py's EXCLUDED_TECHNICAL_FEATURES — kept as its own small copy
 # rather than imported, same rationale as the rest of this module (dependency-free, no

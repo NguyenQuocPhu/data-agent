@@ -142,6 +142,17 @@ class Programmer:
                 time.sleep(2 * (attempt + 1))  # 2s, rồi 4s trước lần thử tiếp theo
 
     def clear(self):
+        # IMPORTANT — do NOT .format() PROGRAMMER_PROMPT here (tried it, reverted). The prompt's
+        # embedded reference pipeline uses {{double-brace}} escapes so LAMBDA.py's one-time
+        # .format(working_path=...) at init produces valid Python. But that one-time formatted
+        # copy is immediately overwritten: clear() runs on every new chat (chat.py) and every
+        # convergence-loop iteration, and the system has been tuned against the RAW (doubled-
+        # brace) prompt ever since — the LLM can't copy the malformed reference code verbatim,
+        # so it IMPROVISES working clustering code. Confirmed live: 358 convergence runs on
+        # 07-14 with this raw prompt were 100% healthy; switching clear() to .format() (valid
+        # braces → LLM copies the canonical pipeline verbatim, incl. its fragile Stage-2 gates)
+        # made 100% of runs hard-stop to "Clustering Failed". The doubled-brace state is the
+        # battle-tested one — keep it.
         self.messages = [
             {
                 "role": "system",

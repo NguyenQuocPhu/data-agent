@@ -288,8 +288,14 @@ def classify_churn_driver(grp, domain_sig=None):
             'Tần suất liên hệ CSKH cao đi kèm sự cố kỹ thuật và khiếu nại đều tăng mạnh cùng lúc — cho thấy vấn đề kỹ thuật lặp lại nhiều lần mà không được giải quyết dứt điểm qua các lần liên hệ.',
             'MEDIUM')
 
-    # 3. Bất mãn thuần tuý do trải nghiệm dịch vụ (complaint cao, KHÔNG đi kèm liên hệ CSKH nhiều)
-    if s_complaint >= 4 and s_call <= 2 and s_missed <= 2:
+    # 3. Bất mãn thuần tuý do trải nghiệm dịch vụ (complaint là domain NỔI BẬT NHẤT)
+    # ĐIỀU KIỆN GỐC là `s_call <= 2 and s_missed <= 2` (ngưỡng TUYỆT ĐỐI) — ĐÃ XẢY RA TRÊN DỮ LIỆU
+    # THẬT: complaint 5⭐ (dev +3800%, áp đảo hoàn toàn) nhưng call chỉ cần đạt 3⭐ (dev vừa phải,
+    # +97%) là ĐỦ để rule này KHÔNG khớp — rơi xuống rule 4 và bị gán nhãn "Tăng liên hệ CSKH" dù
+    # complaint mới là tín hiệu áp đảo thật sự. Đổi sang so sánh TƯƠNG ĐỐI (complaint phải CAO HƠN
+    # call VÀ missed, không cần chúng thấp tuyệt đối) để complaint luôn thắng khi nó thực sự là
+    # domain nổi bật nhất, bất kể call/missed có đồng thời tăng nhẹ hay không.
+    if s_complaint >= 4 and s_complaint > s_call and s_complaint > s_missed:
         had_early_problem = comp_t['old'] > 0.3 or cl_t['old'] > 0.3
         faded_out = (comp_t['recent'] < comp_t['old'] * 0.5 or cl_t['recent'] < cl_t['old'] * 0.5) and \
                     (comp_t['trend'] == 'giảm mạnh' or cl_t['trend'] == 'giảm mạnh')
@@ -307,7 +313,11 @@ def classify_churn_driver(grp, domain_sig=None):
     # — TÊN VÀ EVIDENCE CHỈ MÔ TẢ QUAN SÁT (số lần liên hệ/cuộc gọi nhỡ), KHÔNG suy ra kết luận nhân
     # quả "nhu cầu không được đáp ứng" — dữ liệu chỉ có TẦN SUẤT liên hệ, không có thông tin liên hệ
     # đó có được xử lý/giải quyết hay không, nên không đủ căn cứ để khẳng định "chưa đáp ứng".
-    if s_call >= 3 or s_missed >= 3:
+    # GUARD BỔ SUNG (cùng gốc bug với rule 3 phía trên): chỉ khớp nếu call/missed thực sự là domain
+    # NỔI BẬT NHẤT (>= complaint và >= technical), không khớp chỉ vì call/missed vượt ngưỡng tuyệt
+    # đối 3⭐ trong khi 1 domain khác đang cao hơn hẳn (vd technical 4⭐ nhưng call cũng đạt 3⭐ —
+    # không nên gán nhãn theo call khi technical mới là tín hiệu nổi bật hơn).
+    if (s_call >= 3 or s_missed >= 3) and max(s_call, s_missed) >= s_complaint and max(s_call, s_missed) >= s_technical:
         return result(
             'Tăng liên hệ CSKH/cuộc gọi nhỡ trước khi rời mạng',
             'Tần suất liên hệ CSKH/cuộc gọi nhỡ tăng cao gần thời điểm rời mạng — dữ liệu chỉ phản ánh SỐ LẦN liên hệ, không xác định được các lần liên hệ này đã được xử lý thoả đáng hay chưa.',

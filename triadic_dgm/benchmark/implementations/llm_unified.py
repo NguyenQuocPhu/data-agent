@@ -8,6 +8,7 @@ Supports: Anthropic, OpenAI (GPT/o1/o3), Amazon Bedrock, Vertex AI,
 import json
 import os
 import re
+import time
 from typing import Any, Dict, List, Optional, Tuple
 
 import backoff
@@ -230,21 +231,47 @@ def get_response_from_llm(
     else:
         # Fallback: OpenAI-compatible API (hosted_vllm, Groq, etc.)
         new_msg_history = msg_history + [{"role": "user", "content": msg}]
-        response = client.chat.completions.create(
-            model=model,
-            messages=[
-                {"role": "system", "content": system_message},
-                *new_msg_history,
-            ],
-            temperature=temperature,
-            max_tokens=MAX_OUTPUT_TOKENS,
-            n=1,
-            stream=True
-        )
+        # The hosted qwen model behind proxy.onebot.meobeo.ai is a "thinking" model: with thinking
+        # ON, generated tokens stream into delta.reasoning_content (the model's internal reasoning)
+        # instead of delta.content, so the accumulator below gets 0 chars and returns "" even on a
+        # 200 OK — which upstream (proposer_agent.py) then MISREPORTS as "No JSON object found".
+        # programmer.py already disables thinking for this exact proxy/model via the same
+        # chat_template_kwargs flag; the Proposer path (this branch) was simply missing it.
+        _extra_body = {"chat_template_kwargs": {"enable_thinking": False}}
         content = ""
-        for chunk in response:
-            if chunk.choices and chunk.choices[0].delta.content:
-                content += chunk.choices[0].delta.content
+        # Transport-level retry on EMPTY output (an empty stream isn't a raised error, so nothing
+        # retried it before — all 3 of the Proposer's own retries reissued the same call in a
+        # tight loop and tended to fail together). An empty stream here is a flaky-endpoint symptom
+        # (rate-limit/overload/keepalive-only chunks) a fresh attempt usually clears. Still returns
+        # a string either way, so callers' contract is unchanged.
+        for _attempt in range(3):
+            try:
+                _kwargs = dict(
+                    model=model,
+                    messages=[{"role": "system", "content": system_message}, *new_msg_history],
+                    temperature=temperature,
+                    max_tokens=MAX_OUTPUT_TOKENS,
+                    n=1,
+                    stream=True,
+                )
+                if _extra_body is not None:
+                    _kwargs["extra_body"] = _extra_body
+                response = client.chat.completions.create(**_kwargs)
+                content = ""
+                for chunk in response:
+                    if chunk.choices and chunk.choices[0].delta.content:
+                        content += chunk.choices[0].delta.content
+            except Exception as _e:
+                # A proxy that rejects the enable_thinking flag raises here — drop it and retry
+                # without it (keeps this generic branch working for Groq/other backends too). Any
+                # other transient error also just falls through to another attempt.
+                print(f"[llm_unified] streaming call error (attempt {_attempt + 1}/3): {_e}")
+                _extra_body = None
+                content = ""
+            if content.strip():
+                break
+            if _attempt < 2:
+                time.sleep(1.5 * (_attempt + 1))  # 1.5s, 3s backoff before re-attempting
         new_msg_history = new_msg_history + [{"role": "assistant", "content": content}]
 
     if print_debug:

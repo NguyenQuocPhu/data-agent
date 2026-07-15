@@ -9,6 +9,7 @@ import { API_URLS } from "@/lib/config";
 
 interface FeatureComparisonRow {
   feature: string;
+  label: string;
   prior_value: number;
   current_value: number;
   delta: number;
@@ -29,13 +30,29 @@ interface HistoryRun {
   support_pct: number | null;
   persona_name: string;
   values: Record<string, number | null>;
+  display_values: Record<string, string>;
   narrative: string;
 }
 
 interface HistoryInfo {
-  features: string[];
+  cluster_features: string[];
+  profile_features: string[];
+  feature_labels: Record<string, string>;
   runs: HistoryRun[];
   narratives_identical: boolean;
+  cluster_stable: boolean;
+  profile_stable: boolean;
+}
+
+interface StatsRow {
+  feature: string;
+  label: string;
+  value: number;
+  value_display?: string;
+  benchmark: number;
+  benchmark_display?: string;
+  dev_pct: number | null;
+  is_profile_attr: boolean;
 }
 
 interface PersonaFeedItem {
@@ -50,11 +67,12 @@ interface PersonaFeedItem {
   severity: string | null;
   priority_score: number | null;
   description: string;
-  stats_table: { feature: string; value: number; benchmark: number; dev_pct: number | null }[];
+  stats_table: StatsRow[];
   comparison: ComparisonInfo | null;
   history: HistoryInfo | null;
   total_occurrences: number | null;
   first_seen_at: number | null;
+  profile_backfilled_from: { run_id: string; created_at: number } | null;
 }
 
 interface LoopStatus {
@@ -75,6 +93,90 @@ function formatTime(ts: number | null): string {
 function formatPct(pct: number | null): string {
   if (pct === null || pct === undefined) return "—";
   return `${(pct * 100).toFixed(1)}%`;
+}
+
+function featureLabel(feature: string, label?: string | null): string {
+  return label && label !== feature ? `${feature} (${label})` : feature;
+}
+
+function renderCompactStatsTable(stats: StatsRow[], features: string[], title: string, note?: string) {
+  const rows = features
+    .map((f) => stats.find((s) => s.feature === f))
+    .filter((s): s is StatsRow => !!s);
+  if (rows.length === 0) return null;
+  return (
+    <div className="overflow-x-auto pt-2">
+      <p className="pb-1 text-xs font-medium text-foreground/70">
+        {title}
+        {note && <span className="font-normal text-muted-foreground"> — {note}</span>}
+      </p>
+      <table className="w-full text-xs">
+        <thead>
+          <tr className="text-left text-muted-foreground">
+            <th className="pr-4 font-medium">Feature</th>
+            <th className="pr-4 font-medium">Trung bình trong cụm</th>
+            <th className="pr-4 font-medium">Trung bình trên toàn bộ data</th>
+            <th className="font-medium">Chênh lệch</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row) => (
+            <tr key={row.feature}>
+              <td className="pr-4 py-0.5 text-muted-foreground">{featureLabel(row.feature, row.label)}</td>
+              <td className="pr-4 py-0.5">{row.value_display ?? row.value}</td>
+              <td className="pr-4 py-0.5 text-muted-foreground">{row.benchmark_display ?? row.benchmark}</td>
+              <td className="py-0.5">
+                {typeof row.dev_pct === "number" ? `${row.dev_pct > 0 ? "+" : ""}${row.dev_pct}%` : "—"}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function renderFeatureHistoryTable(history: HistoryInfo, features: string[], title: string) {
+  if (features.length === 0) return null;
+  return (
+    <div className="overflow-x-auto pt-2">
+      <p className="pb-1 text-xs font-medium text-foreground/70">{title}</p>
+      <table className="w-full text-xs">
+        <thead>
+          <tr className="text-left text-muted-foreground">
+            <th className="pr-4 font-medium">Feature</th>
+            {history.runs.map((r) => (
+              <th key={r.run_id} className="pr-4 font-medium whitespace-nowrap">
+                {formatTime(r.created_at)}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td className="pr-4 py-0.5 font-medium">support_pct</td>
+            {history.runs.map((r) => (
+              <td key={r.run_id} className="pr-4 py-0.5">
+                {formatPct(r.support_pct)}
+              </td>
+            ))}
+          </tr>
+          {features.map((f) => (
+            <tr key={f}>
+              <td className="pr-4 py-0.5 text-muted-foreground">
+                {featureLabel(f, history.feature_labels[f])}
+              </td>
+              {history.runs.map((r) => (
+                <td key={r.run_id} className="pr-4 py-0.5">
+                  {r.display_values[f] ?? (r.values[f] ?? "—")}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
 }
 
 export default function ConvergencePage() {
@@ -225,45 +327,44 @@ export default function ConvergencePage() {
                   {p.risk && <span>Risk: {p.risk}</span>}
                   {p.severity && <span>Severity: {p.severity}</span>}
                 </div>
+                {p.profile_backfilled_from && (
+                  <p className="text-xs text-amber-600 dark:text-amber-500">
+                    ⓘ Lần chạy mới nhất không tính được nhóm chỉ số phụ (ARPU/loyalty/churn driver) —
+                    đang hiển thị bản đầy đủ gần nhất của cùng cụm này (lượt{" "}
+                    {formatTime(p.profile_backfilled_from.created_at)}). Support % vẫn của lần chạy mới nhất.
+                  </p>
+                )}
 
                 {p.history && p.history.runs.length > 1 ? (
-                  <div className="overflow-x-auto pt-1">
+                  <div className="pt-1">
                     <p className="pb-1 text-xs text-muted-foreground">
                       So sánh chỉ số qua {p.history.runs.length} lần chạy gần nhất — persona này được nhận diện
                       là CÙNG 1 cụm (theo dấu vân tay thống kê) ở mọi cột dưới đây
                     </p>
-                    <table className="w-full text-xs">
-                      <thead>
-                        <tr className="text-left text-muted-foreground">
-                          <th className="pr-4 font-medium">Feature</th>
-                          {p.history.runs.map((r) => (
-                            <th key={r.run_id} className="pr-4 font-medium whitespace-nowrap">
-                              {formatTime(r.created_at)}
-                            </th>
-                          ))}
-                        </tr>
-                      </thead>
-                      <tbody>
-                        <tr>
-                          <td className="pr-4 py-0.5 font-medium">support_pct</td>
-                          {p.history.runs.map((r) => (
-                            <td key={r.run_id} className="pr-4 py-0.5">
-                              {formatPct(r.support_pct)}
-                            </td>
-                          ))}
-                        </tr>
-                        {p.history!.features.map((f) => (
-                          <tr key={f}>
-                            <td className="pr-4 py-0.5 text-muted-foreground">{f}</td>
-                            {p.history!.runs.map((r) => (
-                              <td key={r.run_id} className="pr-4 py-0.5">
-                                {r.values[f] ?? "—"}
-                              </td>
-                            ))}
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                    {p.history.cluster_stable
+                      ? renderCompactStatsTable(
+                          p.stats_table,
+                          p.history.cluster_features,
+                          "Feature đóng góp phân cụm (dùng để train KMeans)",
+                          `giống hệt nhau ở cả ${p.history.runs.length} lần chạy — không lặp lại từng cột`
+                        )
+                      : renderFeatureHistoryTable(
+                          p.history,
+                          p.history.cluster_features,
+                          "Feature đóng góp phân cụm (dùng để train KMeans)"
+                        )}
+                    {p.history.profile_stable
+                      ? renderCompactStatsTable(
+                          p.stats_table,
+                          p.history.profile_features,
+                          "Feature đóng góp phân tích persona (ARPU/loyalty/tier — KHÔNG dùng để phân cụm)",
+                          `giống hệt nhau ở cả ${p.history.runs.length} lần chạy — không lặp lại từng cột`
+                        )
+                      : renderFeatureHistoryTable(
+                          p.history,
+                          p.history.profile_features,
+                          "Feature đóng góp phân tích persona (ARPU/loyalty/tier — KHÔNG dùng để phân cụm)"
+                        )}
                   </div>
                 ) : null}
 
@@ -300,36 +401,20 @@ export default function ConvergencePage() {
                   );
                 })()}
 
-                {!p.history &&
-                  p.stats_table &&
-                  p.stats_table.length > 0 && (
-                    <div className="overflow-x-auto pt-1">
-                      <table className="w-full text-xs">
-                        <thead>
-                          <tr className="text-left text-muted-foreground">
-                            <th className="pr-4 font-medium">Feature</th>
-                            <th className="pr-4 font-medium">Value</th>
-                            <th className="pr-4 font-medium">Benchmark</th>
-                            <th className="font-medium">Dev %</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {p.stats_table.map((row) => (
-                            <tr key={row.feature}>
-                              <td className="pr-4 py-0.5 text-muted-foreground">{row.feature}</td>
-                              <td className="pr-4 py-0.5">{row.value}</td>
-                              <td className="pr-4 py-0.5 text-muted-foreground">{row.benchmark}</td>
-                              <td className="py-0.5">
-                                {typeof row.dev_pct === "number"
-                                  ? `${row.dev_pct > 0 ? "+" : ""}${row.dev_pct}%`
-                                  : "—"}
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  )}
+                {!p.history && p.stats_table && p.stats_table.length > 0 && (
+                  <>
+                    {renderCompactStatsTable(
+                      p.stats_table,
+                      p.stats_table.filter((s) => !s.is_profile_attr).map((s) => s.feature),
+                      "Feature đóng góp phân cụm (dùng để train KMeans)"
+                    )}
+                    {renderCompactStatsTable(
+                      p.stats_table,
+                      p.stats_table.filter((s) => s.is_profile_attr).map((s) => s.feature),
+                      "Feature đóng góp phân tích persona (ARPU/loyalty/tier — KHÔNG dùng để phân cụm)"
+                    )}
+                  </>
+                )}
               </CardContent>
             </Card>
           ))}

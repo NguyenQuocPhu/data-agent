@@ -8,6 +8,7 @@ generator itself.
 
 from __future__ import annotations
 
+import re
 import time
 import traceback
 import uuid
@@ -16,7 +17,13 @@ from typing import TYPE_CHECKING
 
 from triadic_dgm.engine import TriadicAgent
 
-from .persona_json import describe_persona, extract_persona_list
+from .persona_json import (
+    describe_persona,
+    extract_persona_list,
+    format_loyalty_rank_avg,
+    get_feature_label,
+    get_profile_attr_label,
+)
 
 if TYPE_CHECKING:
     from .report_generator import ReportGenerator
@@ -39,6 +46,217 @@ FIXED_BEHAVIORAL_FEATURES = [
     "missed_total_6m", "missed_avg_6m", "missed_ratio_6m",
     "spending_decline", "spending_growth", "high_spender",
 ]
+
+# ─────────────────────────────────────────────────────────────────────────────────────────
+# DETERMINISTIC churn_driver / domain_signature — computed at enrich time from the (fixed)
+# feature_means, NOT trusted from the LLM's per-run improvised code. Confirmed on live data:
+# in "improvise" mode the sandbox LLM does NOT faithfully run prompts.py's classify_churn_driver
+# / compute_domain_signature — it stores a malformed domain_signature ({'stars': 1}) and/or
+# invents free-text labels ("No clear driver (Demo)", "No clear driver (Synthetic Data)") even
+# when complaint deviates +3809% or call/missed +1975%. That made the churn_driver field
+# contradict the very feature table shown next to it. Since the convergence loop's feature set
+# is FIXED, re-deriving these deterministically here gives a stable, self-consistent label that
+# always matches the displayed deviations. Mirrors the in-prompt logic in prompts.py (which
+# lives inside a {{double-brace}} template string and can't be imported as a real dict).
+_DOMAIN_KEYWORD_GROUPS = {
+    "complaint": ["complaint_total", "complaint_avg", "complaint_recent", "complaint_trend", "complaint_std", "active_complaint_months", "old_complaint", "no_complaint"],
+    "call": ["call_total", "call_avg", "call_std", "call_trend", "old_call", "recent_call", "call_cv", "active_call_months", "no_call"],
+    "missed": ["missed_total", "missed_avg", "missed_std", "missed_trend", "old_missed", "recent_missed", "active_missed_months", "no_missed"],
+    "technical": ["cl_total", "cl_avg", "cl_std", "cl_trend", "old_cl", "recent_cl", "active_cl_months", "no_cl"],
+    "usage": ["spending_decline", "spending_growth", "usage_decline", "usage_unstable", "segment_downgrade", "segment_upgrade", "cnt_dao_dong", "cnt_giam", "status_worsening"],
+    "value": ["high_spender", "fee_total", "fee_avg", "loyalty_rank", "loyalty_point", "segment_avg"],
+}
+
+# Star thresholds mirror prompts.py compute_domain_signature: max_dev is the max SIGNED relative
+# deviation (v-g)/|g| across a domain's columns, floored at 0 — so a domain that is only BELOW
+# average (e.g. complaint -100%) scores 1 star, never counts as "nổi bật". CÀNG CAO càng xấu for
+# complaint/call/missed/technical, so only positive deviation is a risk signal.
+def _stars_from_max_dev(max_dev: float) -> int:
+    return 5 if max_dev >= 5.0 else 4 if max_dev >= 2.0 else 3 if max_dev >= 0.75 else 2 if max_dev >= 0.25 else 1
+
+
+def _compute_domain_stars(means: dict, global_means: dict) -> dict:
+    """Per-domain star rating from cluster-vs-global feature deviations — the deterministic
+    replacement for the LLM's unreliable domain_signature. Returns {domain: {'stars': n}}."""
+    signature: dict = {}
+    for dom, keywords in _DOMAIN_KEYWORD_GROUPS.items():
+        max_dev = 0.0
+        for f, v in means.items():
+            if not isinstance(v, (int, float)):
+                continue
+            fl = str(f).lower()
+            if not any(kw in fl for kw in keywords):
+                continue
+            g = global_means.get(f, 0)
+            dev = (v - g) / abs(g) if g else 0.0
+            if dev > max_dev:
+                max_dev = dev
+        signature[dom] = {"stars": _stars_from_max_dev(max_dev)}
+    return signature
+
+
+# Evidence texts copied verbatim from prompts.py's classify_churn_driver so the deterministic
+# label reads identically to the canonical rule engine (minus the temporal sub-branching, which
+# needs raw per-customer rows the convergence store doesn't keep).
+_CHURN_DRIVER_RULES_EVIDENCE = {
+    "Khách hàng giá trị cao nhưng trải nghiệm suy giảm": 'Nhóm chi tiêu cao với hành vi sử dụng dịch vụ suy giảm rõ rệt, nhưng KHÔNG phát sinh khiếu nại hay liên hệ CSKH trước khi rời mạng — dấu hiệu "rời mạng trong im lặng" ở nhóm giá trị cao, nhiều khả năng đã chuyển sang đối thủ thay vì phản ánh vấn đề.',
+    "Khách hàng gặp sự cố kỹ thuật không được xử lý triệt để": "Tần suất liên hệ CSKH cao đi kèm sự cố kỹ thuật và khiếu nại đều tăng mạnh cùng lúc — cho thấy vấn đề kỹ thuật lặp lại nhiều lần mà không được giải quyết dứt điểm qua các lần liên hệ.",
+    "Sự cố/khiếu nại cấp tính ngay trước khi rời mạng": "Khiếu nại/sự cố tăng mạnh ở giai đoạn gần rời mạng so với mặt bằng chung — dấu hiệu bất mãn về trải nghiệm dịch vụ là nguyên nhân nổi bật nhất dẫn tới rời mạng.",
+    "Tăng liên hệ CSKH/cuộc gọi nhỡ trước khi rời mạng": "Tần suất liên hệ CSKH/cuộc gọi nhỡ tăng cao gần thời điểm rời mạng — dữ liệu chỉ phản ánh SỐ LẦN liên hệ, không xác định được các lần liên hệ này đã được xử lý thoả đáng hay chưa.",
+    "Khách hàng giá trị cao, chủ động rời mạng": "Nhóm chi tiêu cao, hành vi sử dụng dịch vụ vẫn ổn định và không phát sinh khiếu nại/sự cố — nguyên nhân rời mạng nhiều khả năng đến từ yếu tố NGOÀI trải nghiệm dịch vụ (giá cước, ưu đãi đối thủ cạnh tranh...).",
+    "Khách hàng âm thầm rời mạng": "Không phát sinh khiếu nại hay liên hệ CSKH đáng kể, nhưng hành vi sử dụng dịch vụ suy giảm dần trước khi rời mạng — dấu hiệu \"rời mạng trong im lặng\" thay vì phản ánh qua kênh CSKH trước.",
+    "Không rõ nguyên nhân hành vi (có thể do giá cước/cạnh tranh/khác)": "Không phát hiện dấu hiệu khiếu nại hoặc sự cố đáng kể trong lịch sử tương tác — nguyên nhân rời mạng nhiều khả năng đến từ yếu tố NGOÀI hành vi tương tác (giá cước, đối thủ cạnh tranh, chuyển vùng...), không đủ dữ liệu hành vi để kết luận thêm.",
+}
+
+
+def _classify_churn_driver_from_stars(stars: dict) -> tuple[str, str, str]:
+    """Star-based rule ladder mirroring prompts.py classify_churn_driver (rules ordered
+    most-specific first, so a broad rule never swallows a special combination). Returns
+    (driver, evidence, confidence). Skips the temporal sub-branch of rule 3 (needs raw rows),
+    defaulting to the acute-onset evidence — the DRIVER label itself depends only on stars."""
+    def sc(dom: str) -> int:
+        info = stars.get(dom)
+        return info.get("stars", 1) if isinstance(info, dict) else 1
+
+    s_complaint, s_call, s_missed = sc("complaint"), sc("call"), sc("missed")
+    s_technical, s_usage, s_value = sc("technical"), sc("usage"), sc("value")
+
+    def out(driver: str, confidence: str = "MEDIUM") -> tuple[str, str, str]:
+        return driver, _CHURN_DRIVER_RULES_EVIDENCE.get(driver, ""), confidence
+
+    # 1. Silent premium churn: giá trị cao + usage suy giảm, hoàn toàn không complaint/call/missed
+    if s_value >= 4 and s_usage >= 3 and s_complaint <= 2 and s_call <= 2 and s_missed <= 2:
+        return out("Khách hàng giá trị cao nhưng trải nghiệm suy giảm")
+    # 2. Support failure: gọi nhiều + phàn nàn + sự cố kỹ thuật cùng lúc
+    if s_call >= 4 and s_complaint >= 3 and s_technical >= 3:
+        return out("Khách hàng gặp sự cố kỹ thuật không được xử lý triệt để")
+    # 3. Bất mãn thuần tuý (complaint là domain nổi bật nhất)
+    if s_complaint >= 4 and s_complaint > s_call and s_complaint > s_missed:
+        return out("Sự cố/khiếu nại cấp tính ngay trước khi rời mạng")
+    # 4. Liên hệ CSKH/cuộc gọi nhỡ tăng cao (call/missed nổi bật nhất)
+    if (s_call >= 3 or s_missed >= 3) and max(s_call, s_missed) >= s_complaint and max(s_call, s_missed) >= s_technical:
+        return out("Tăng liên hệ CSKH/cuộc gọi nhỡ trước khi rời mạng")
+    # 5. Giá trị cao, chủ động rời mạng (mọi domain khác thấp)
+    if s_value >= 4 and s_complaint <= 2 and s_call <= 2 and s_usage <= 2:
+        return out("Khách hàng giá trị cao, chủ động rời mạng")
+    # 6. Âm thầm rời mạng (usage suy giảm, giá trị không cao, không phàn nàn)
+    if s_usage >= 3 and s_value <= 2 and s_complaint <= 2 and s_call <= 2:
+        return out("Khách hàng âm thầm rời mạng")
+    return out("Không rõ nguyên nhân hành vi (có thể do giá cước/cạnh tranh/khác)", "LOW")
+
+
+# Statistical-aggregation suffixes/prefixes that turn ONE underlying signal into several
+# near-collinear columns (call_total_6m / call_avg_6m / call_std / call_trend / call_cv /
+# active_call_months are all just "call volume" — avg = total/months, std scales with the mean,
+# so their relative deviations come out nearly identical). Collapsing to a root lets the feature
+# table show 5 DISTINCT signals instead of 5 restatements of the strongest domain (user:
+# "chênh lệch % các feature đều giống nhau").
+def _feature_root(feature: str) -> str:
+    r = str(feature).lower()
+    r = re.sub(r"_(total|avg|std|trend|cv|ratio)(_6m)?$", "", r)
+    r = re.sub(r"^(active|old|recent|no)_", "", r)
+    r = re.sub(r"_months$", "", r)
+    r = re.sub(r"_6m$", "", r)
+    return r or str(feature).lower()
+
+
+# Vietnamese majority quantifiers the narrative LLM sometimes attaches to a sub-50% proportion
+# ("phần lớn thuộc nhóm chi tiêu cao (tỷ lệ 42%)" — 42% is not a majority). Softened to a neutral
+# "một tỷ lệ đáng kể" only when a <50% figure sits in the same clause, so a genuine majority
+# claim (>=50%) is left untouched.
+_MAJORITY_QUANTIFIER_RE = re.compile(r"(phần lớn|đa số|hầu hết|phần đông|chủ yếu)", re.IGNORECASE)
+_PERCENT_RE = re.compile(r"(\d+(?:[.,]\d+)?)\s*%")
+
+
+def _soften_overstated_majority(text: str) -> str:
+    """If a majority quantifier and a <50% percentage occur in the same clause, replace the
+    quantifier with 'một tỷ lệ đáng kể'. Conservative: leaves the sentence untouched when the
+    nearby percentage is >=50% (a real majority) or when no percentage is near the quantifier."""
+    if not text or not _MAJORITY_QUANTIFIER_RE.search(text):
+        return text
+
+    def _fix_clause(clause: str) -> str:
+        if not _MAJORITY_QUANTIFIER_RE.search(clause):
+            return clause
+        pcts = [float(m.group(1).replace(",", ".")) for m in _PERCENT_RE.finditer(clause)]
+        # Only soften when EVERY percentage cited in this clause is a minority (<50). If the
+        # clause has no percentage, we can't verify the claim — leave it alone.
+        if pcts and all(p < 50 for p in pcts):
+            return _MAJORITY_QUANTIFIER_RE.sub("một tỷ lệ đáng kể", clause)
+        return clause
+
+    # Split on clause-ish boundaries (sentence + comma) so a fix stays local to the claim.
+    parts = re.split(r"([.,;]\s*)", text)
+    return "".join(_fix_clause(p) if i % 2 == 0 else p for i, p in enumerate(parts))
+
+
+# Theme keywords for detecting when an LLM-generated persona_name CONTRADICTS the deterministic
+# churn_driver (user chose: keep the LLM's diverse names, override ONLY on contradiction). The
+# name's claimed theme is checked against the actual domain STARS (reliable), not against the
+# driver text — so a name like "Khách hàng âm thầm rời mạng" (claims silent/no-contact) is only
+# flagged when a risk domain is actually strong (call/missed 5⭐ here), and stays valid for a
+# genuinely usage-driven silent-churn cluster. Order matters: most-specific themes first.
+_NAME_THEME_KEYWORDS = [
+    ("silent", ["âm thầm", "im lặng", "lặng lẽ"]),
+    ("stable", ["ổn định", "trung thành", "hài lòng", "bình thường"]),
+    ("unknown", ["không rõ", "chưa rõ", "no clear", "chưa xác định", "đặc trưng", "đa dạng"]),
+    ("complaint", ["khiếu nại", "phàn nàn", "bất mãn", "than phiền", "complaint"]),
+    ("technical", ["sự cố", "kỹ thuật", "technical"]),
+    ("premium", ["giá trị cao", "chi tiêu cao", "cao cấp", "vip", "premium"]),
+    ("usage", ["giảm sử dụng", "suy giảm sử dụng", "ngừng sử dụng", "giảm chi tiêu"]),
+    ("contact", ["cskh", "cuộc gọi", "tổng đài", "liên hệ", "call", "gọi nhỡ"]),
+]
+
+
+def _persona_name_theme(name: str) -> str | None:
+    nl = (name or "").lower()
+    for theme, kws in _NAME_THEME_KEYWORDS:
+        if any(kw in nl for kw in kws):
+            return theme
+    return None
+
+
+def _name_contradicts_stars(name: str, stars: dict) -> bool:
+    """True when the LLM persona_name asserts a story the domain stars refute. Uses stars (the
+    same reliable signal behind the deterministic churn_driver), so multi-domain drivers aren't
+    over-flagged: a domain-specific name is only 'wrong' when that domain is actually weak, and a
+    calm/vague name is only 'wrong' when a real risk signal is present."""
+    theme = _persona_name_theme(name)
+    if theme is None:
+        return False  # generic name (e.g. "Nhóm 2") — not a contradiction, keep it
+
+    def st(dom: str) -> int:
+        info = stars.get(dom)
+        return info.get("stars", 1) if isinstance(info, dict) else 1
+
+    strong_risk = max(st("complaint"), st("call"), st("missed"), st("technical")) >= 4
+    if theme in ("silent", "stable", "unknown"):
+        # Name claims calm/no-clear-signal, but a strong risk domain exists → contradiction.
+        return strong_risk
+    domain_for_theme = {
+        "contact": max(st("call"), st("missed")),
+        "complaint": st("complaint"),
+        "technical": st("technical"),
+        "premium": st("value"),
+        "usage": st("usage"),
+    }
+    # Name names a specific driver domain, but that domain is weak (< 3⭐) → contradiction.
+    return domain_for_theme.get(theme, 3) < 3
+
+
+_NHOM_SUFFIX_TAIL_RE = re.compile(r"\s*[-–]\s*(Nhóm\s*\d+|\d+)\s*$", re.IGNORECASE)
+
+
+def _align_name_with_driver(original_name: str, churn_driver: str) -> str:
+    """Replace a contradictory name with the deterministic churn_driver, preserving any trailing
+    '- Nhóm N' disambiguation suffix the pipeline added so two clusters sharing a driver stay
+    distinguishable."""
+    if not churn_driver:
+        return original_name
+    m = _NHOM_SUFFIX_TAIL_RE.search(original_name or "")
+    suffix = f" - {m.group(1)}" if m else ""
+    return f"{churn_driver}{suffix}"
+
 
 DEFAULT_TASK_PROMPT = (
     "Hãy phân tích persona khách hàng churn dựa trên dữ liệu hiện có: thực hiện phân cụm "
@@ -72,6 +290,28 @@ def _compute_global_means(personas: list[dict], report_gen: "ReportGenerator") -
     for f in all_features:
         total_val = sum(report_gen._get_means(p).get(f, 0) * p.get('support', 0) for p in personas)
         global_means[f] = total_val / total_customers if total_customers > 0 else 0
+    return global_means
+
+
+def _compute_global_profile_means(personas: list[dict]) -> dict:
+    """Same weighted-average idea as _compute_global_means, but over profile_attributes
+    (ARPU/loyalty/tier — computed by the pipeline's compute_profile_attributes, deliberately
+    OUTSIDE feature_means since LOYALTY_*/fee_* are excluded from clustering). Without this,
+    ARPU/loyalty had no benchmark to compare against, so they could only be shown as bare
+    numbers in a separate box instead of a proper 'cluster vs whole dataset' row like every
+    other feature — which is exactly what made them look unverifiable/made-up next to the
+    real stats_table."""
+    total_customers = sum(p.get('support', 0) for p in personas)
+    if total_customers <= 0:
+        return {}
+    keys: set = set()
+    for p in personas:
+        attrs = p.get('profile_attributes') or {}
+        keys.update(k for k, v in attrs.items() if isinstance(v, (int, float)))
+    global_means = {}
+    for k in keys:
+        total_val = sum((p.get('profile_attributes') or {}).get(k, 0) * p.get('support', 0) for p in personas if isinstance((p.get('profile_attributes') or {}).get(k), (int, float)))
+        global_means[k] = total_val / total_customers
     return global_means
 
 
@@ -118,6 +358,36 @@ def enrich_personas(personas: list[dict], report_gen: "ReportGenerator | None") 
         global_means = _compute_global_means(personas, report_gen)
     except Exception:
         global_means = {}
+    try:
+        global_profile_means = _compute_global_profile_means(personas)
+    except Exception:
+        global_profile_means = {}
+
+    # DETERMINISTIC churn_driver / domain_signature — overwrite whatever the sandbox LLM
+    # produced (often malformed/generic, see _DOMAIN_KEYWORD_GROUPS note) with a label derived
+    # straight from the fixed feature deviations, BEFORE narrative generation so the narrative
+    # (and _build_persona_story fallback) sees the corrected driver.
+    for p in personas:
+        try:
+            means = report_gen._get_means(p)
+            if not means:
+                continue
+            stars = _compute_domain_stars(means, global_means)
+            driver, evidence, confidence = _classify_churn_driver_from_stars(stars)
+            p["domain_signature"] = stars
+            p["churn_driver"] = driver
+            p["churn_driver_evidence"] = evidence
+            p["churn_driver_confidence"] = confidence
+            # Only override the LLM's persona_name when it CONTRADICTS the data (user chose to
+            # keep diverse valid names, fix contradictions only) — e.g. "Khách hàng âm thầm rời
+            # mạng" on a call/missed 5⭐ cluster. Compatible/generic names are left as the LLM set.
+            original_name = p.get("persona_name", "")
+            if _name_contradicts_stars(original_name, stars):
+                p["persona_name"] = _align_name_with_driver(original_name, driver)
+        except Exception:
+            # Leave the persona's original churn_driver/domain_signature untouched on any error
+            # — never let this best-effort enrichment drop a persona from the run.
+            continue
 
     llm_narrative_by_cluster: dict = {}
     try:
@@ -141,19 +411,68 @@ def enrich_personas(personas: list[dict], report_gen: "ReportGenerator | None") 
             except Exception:
                 p['narrative'] = describe_persona(p)
             p['narrative_source'] = 'deterministic'
+        # Soften any "phần lớn/đa số ... <50%" overstatement the LLM narrative may contain
+        # (user: a 42% high_spender_pct was described as "phần lớn thuộc nhóm chi tiêu cao").
+        # No-op when the claim is a genuine >=50% majority or has no nearby percentage.
         try:
+            p['narrative'] = _soften_overstated_majority(p.get('narrative', ''))
+        except Exception:
+            pass
+        try:
+            stats_table = []
+            # profile_attributes (ARPU/loyalty/tier) FIRST — same {value, benchmark, dev_pct}
+            # shape as the behavioral features below, in ONE table, instead of a separate
+            # unverifiable-looking box: user explicitly asked "sao k đưa xuống chung bảng
+            # luôn" after seeing ARPU/loyalty floating above the feature table with no
+            # benchmark to compare against.
+            profile = p.get('profile_attributes') or {}
+            for k, val in profile.items():
+                if not isinstance(val, (int, float)) or k not in global_profile_means:
+                    continue
+                g_val = global_profile_means[k]
+                delta_pct = ((val - g_val) / abs(g_val)) * 100 if g_val != 0 else (100 if val > 0 else 0)
+                row = {
+                    "feature": k,
+                    "label": get_profile_attr_label(k),
+                    "value": round(float(val), 4),
+                    "benchmark": round(float(g_val), 4),
+                    "dev_pct": round(float(delta_pct), 1),
+                    "is_profile_attr": True,
+                }
+                if k == "loyalty_rank_avg":
+                    # Categorical tier code, not a continuous metric — a bare float average
+                    # ("1.03") is meaningless without mapping to the actual tier name.
+                    row["value_display"] = format_loyalty_rank_avg(val)
+                    row["benchmark_display"] = format_loyalty_rank_avg(g_val)
+                stats_table.append(row)
+
             means = report_gen._get_means(p)
             deviations = report_gen._ranked_deviations(means, global_means) if means else []
-            stats_table = []
-            for f, val, g_val, _dev in deviations[:5]:
+            # Dedupe near-collinear restatements of the same signal (call_total/call_avg/call_std
+            # all share root "call" with near-identical dev%) — keep only the strongest per root,
+            # so the top-5 shown are 5 DISTINCT signals across domains instead of one domain
+            # repeated 5×. deviations is already ranked by |dev|, so the first per root is strongest.
+            seen_roots: set = set()
+            deduped_deviations = []
+            for tup in deviations:
+                root = _feature_root(tup[0])
+                if root in seen_roots:
+                    continue
+                seen_roots.add(root)
+                deduped_deviations.append(tup)
+                if len(deduped_deviations) >= 5:
+                    break
+            for f, val, g_val, _dev in deduped_deviations:
                 # Same Dev % formula as report_generator.py's "Cluster Feature Statistics"
                 # appendix table (render_markdown), so the two surfaces agree.
                 delta_pct = ((val - g_val) / abs(g_val)) * 100 if g_val != 0 else (100 if val > 0 else 0)
                 stats_table.append({
                     "feature": f,
+                    "label": get_feature_label(f),
                     "value": round(float(val), 4),
                     "benchmark": round(float(g_val), 4),
                     "dev_pct": round(float(delta_pct), 1),
+                    "is_profile_attr": False,
                 })
             p['stats_table'] = stats_table
         except Exception:

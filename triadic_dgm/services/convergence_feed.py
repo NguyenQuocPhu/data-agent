@@ -12,7 +12,14 @@ from .convergence_store import (
     get_persona_occurrences_by_fingerprint,
     get_previous_persona_by_fingerprint,
 )
-from .persona_json import clean_display_persona_name, describe_persona
+from .persona_json import (
+    PROFILE_ATTR_LABELS,
+    clean_display_persona_name,
+    describe_persona,
+    format_loyalty_rank_avg,
+    get_feature_label,
+    get_profile_attr_label,
+)
 
 CONVERGENCE_THRESHOLD_PCT_POINTS = 5.0
 
@@ -63,6 +70,7 @@ def _build_comparison(db_path: str, row: dict, current_stats_table: list[dict]) 
         feature_comparison.append(
             {
                 "feature": s["feature"],
+                "label": get_feature_label(s["feature"]),
                 "prior_value": round(float(prior_val), 4),
                 "current_value": cur_val,
                 "delta": round(float(cur_val) - float(prior_val), 4),
@@ -91,7 +99,14 @@ def _build_history(db_path: str, row: dict, current_stats_table: list[dict], lim
     if len(occurrences) < 2:
         return None
 
-    top_features = [s["feature"] for s in current_stats_table]
+    all_features = [s["feature"] for s in current_stats_table]
+    # Split into 2 groups instead of 1 flat list — profile_attributes (ARPU/loyalty/tier) are
+    # explicitly NOT part of clustering (LOYALTY_*/fee_* excluded from FIXED_BEHAVIORAL_FEATURES),
+    # they only feed the narrative as supporting context. Mixing them into 1 table implied they
+    # carry equal weight in forming the cluster, which they don't.
+    cluster_features = [f for f in all_features if f not in PROFILE_ATTR_LABELS]
+    profile_features = [f for f in all_features if f in PROFILE_ATTR_LABELS]
+
     runs = []
     for occ in occurrences:
         try:
@@ -99,10 +114,19 @@ def _build_history(db_path: str, row: dict, current_stats_table: list[dict], lim
         except (json.JSONDecodeError, TypeError):
             full = {}
         means = full.get("feature_means") or full.get("evidence") or {}
-        values = {}
-        for f in top_features:
+        profile = full.get("profile_attributes") or {}
+        values: dict = {}
+        display_values: dict = {}
+        for f in cluster_features:
             v = means.get(f)
             values[f] = round(float(v), 4) if isinstance(v, (int, float)) else None
+        for f in profile_features:
+            v = profile.get(f)
+            values[f] = round(float(v), 4) if isinstance(v, (int, float)) else None
+            if f == "loyalty_rank_avg" and isinstance(v, (int, float)):
+                # Categorical tier code, not continuous — same mapping as the single-run
+                # stats_table (convergence_runner.enrich_personas' value_display/benchmark_display).
+                display_values[f] = format_loyalty_rank_avg(float(v))
         runs.append(
             {
                 "run_id": occ["run_id"],
@@ -110,6 +134,7 @@ def _build_history(db_path: str, row: dict, current_stats_table: list[dict], lim
                 "support_pct": occ["support_pct"],
                 "persona_name": clean_display_persona_name(occ["persona_name"]),
                 "values": values,
+                "display_values": display_values,
                 # Narrative is now LLM-generated per run (convergence_runner.enrich_personas) —
                 # unlike feature_means (deterministic Python), the LLM call could in principle
                 # reword this differently each time even when the underlying stats are frozen.
@@ -119,7 +144,68 @@ def _build_history(db_path: str, row: dict, current_stats_table: list[dict], lim
             }
         )
     all_narratives_identical = len({r["narrative"] for r in runs}) <= 1
-    return {"features": top_features, "runs": runs, "narratives_identical": all_narratives_identical}
+    feature_labels = {f: get_feature_label(f) for f in cluster_features}
+    feature_labels.update({f: get_profile_attr_label(f) for f in profile_features})
+
+    def _group_stable(features: list[str]) -> bool:
+        # True if every feature in this group has the SAME value across every run returned —
+        # if so, repeating it N times (once per run column) is pure noise; a single compact
+        # {value, benchmark, dev_pct} row (like the first-appearance stats_table) says the same
+        # thing with 1/Nth the clutter. Only genuinely diverging features earn the wide table.
+        return all(len({r["values"].get(f) for r in runs}) <= 1 for f in features)
+
+    return {
+        "cluster_features": cluster_features,
+        "profile_features": profile_features,
+        "feature_labels": feature_labels,
+        "runs": runs,
+        "narratives_identical": all_narratives_identical,
+        "cluster_stable": _group_stable(cluster_features),
+        "profile_stable": _group_stable(profile_features),
+    }
+
+
+def _persona_has_profile_block(full: dict) -> bool:
+    """A persona is 'complete' for display when its post-hoc profiling block is present.
+    profile_attributes (ARPU/loyalty/tier + domain_signature-derived stats) is the part that
+    the pipeline INTERMITTENTLY fails to populate — the LLM regenerates the whole clustering
+    script each run and some runs simply never compute/attach it (confirmed: on 07-14, a run
+    with 3 healthy clusters had profile_attributes on all 3, the very next run had it on none;
+    neither correlates with any code change). feature_means/support_pct are always present, so
+    they don't gate completeness."""
+    return bool(full.get("profile_attributes"))
+
+
+def _backfill_incomplete_persona(db_path: str, row: dict, full: dict) -> dict | None:
+    """If this persona's LATEST occurrence is missing its profile block, display the most
+    recent occurrence of the SAME cluster (matched by fingerprint) that DOES have one, merged
+    into `full` in place. Legitimate, not fabrication: an identical fingerprint means the same
+    support_pct + feature_means statistics, i.e. the same underlying cluster — so its ARPU/
+    loyalty/domain profile is a stable property that an empty run just failed to recompute, not
+    a real change. Keeps the current run's live support_pct/feature_means; only fills the
+    profile-side fields. Returns {run_id, created_at} of the source occurrence for a UI note,
+    or None if nothing was back-filled."""
+    if _persona_has_profile_block(full):
+        return None
+    occurrences = get_persona_occurrences_by_fingerprint(db_path, row["persona_fingerprint"], limit=20)
+    for occ in reversed(occurrences):  # newest first
+        if occ["run_id"] == row["run_id"]:
+            continue
+        try:
+            complete = json.loads(occ["persona_json"])
+        except (json.JSONDecodeError, TypeError):
+            continue
+        if not _persona_has_profile_block(complete):
+            continue
+        for k in ("profile_attributes", "domain_signature", "stats_table"):
+            if complete.get(k):
+                full[k] = complete[k]
+        if not full.get("churn_driver") and complete.get("churn_driver"):
+            full["churn_driver"] = complete["churn_driver"]
+        if not full.get("narrative") and complete.get("narrative"):
+            full["narrative"] = complete["narrative"]
+        return {"run_id": occ["run_id"], "created_at": occ["created_at"]}
+    return None
 
 
 def build_feed_items(db_path: str, limit: int = 20) -> list[dict]:
@@ -134,6 +220,12 @@ def build_feed_items(db_path: str, limit: int = 20) -> list[dict]:
             full = json.loads(row["persona_json"])
         except (json.JSONDecodeError, TypeError):
             full = {}
+        # The profiling block (profile_attributes/domain_signature/churn_driver) is populated
+        # INTERMITTENTLY by the pipeline — if the latest run dropped it, show the last complete
+        # snapshot of this same cluster instead of a stripped-down card (per user request:
+        # "feed giữ bản đầy đủ gần nhất"). Mutates `full` in place before it feeds stats_table/
+        # description/history/comparison below, so every downstream view stays consistent.
+        backfilled_from = _backfill_incomplete_persona(db_path, row, full)
         stats_table = full.get("stats_table", [])
         items.append(
             {
@@ -143,17 +235,27 @@ def build_feed_items(db_path: str, limit: int = 20) -> list[dict]:
                 "persona_name": clean_display_persona_name(row["persona_name"]),
                 "support": row["support"],
                 "support_pct": row["support_pct"],
-                "churn_driver": row["churn_driver"],
+                # Prefer the (possibly back-filled) persona_json churn_driver over the DB column,
+                # which reflects only the latest — possibly incomplete — occurrence.
+                "churn_driver": full.get("churn_driver") or row["churn_driver"],
                 "risk": row["risk"],
                 "severity": row["severity"],
                 "priority_score": row["priority_score"],
                 "total_occurrences": row["total_occurrences"],
                 "first_seen_at": row["first_seen"],
+                # Transparency: non-null when the profile block shown came from an earlier run
+                # because this run's was empty. UI/markdown surface it so the number isn't
+                # silently presented as belonging to the latest run.
+                "profile_backfilled_from": backfilled_from,
                 # narrative/stats_table were pre-computed once at run time (convergence_runner.
                 # enrich_personas, reusing ReportGenerator's deterministic composer methods) and
                 # persisted inside persona_json — describe_persona is only a last-resort fallback
                 # for rows saved before that enrichment existed.
                 "description": full.get("narrative") or describe_persona(full),
+                # stats_table now includes BOTH the top-5 behavioral-feature deviations AND any
+                # profile_attributes (ARPU/loyalty/tier) in one unified {value, benchmark, dev_pct}
+                # table (convergence_runner.enrich_personas) — so a narrative claim referencing
+                # ARPU/loyalty always has a visible, comparable row instead of a separate box.
                 "stats_table": stats_table,
                 "persona": full,
                 "comparison": _build_comparison(db_path, row, stats_table),
@@ -224,17 +326,77 @@ def render_markdown(items: list[dict], status: dict | None = None) -> str:
             runs = hist["runs"]
             lines.append(f"### {item['persona_name']} ({len(runs)} lần chạy gần nhất)")
             lines.append("")
-            header_cols = " | ".join(_format_time(r["created_at"]) for r in runs)
-            lines.append(f"| Feature | {header_cols} |")
-            lines.append("|---|" + "---|" * len(runs))
-            support_cols = " | ".join(_format_pct(r["support_pct"]) for r in runs)
-            lines.append(f"| **support_pct** | {support_cols} |")
-            for f in hist["features"]:
-                value_cols = " | ".join(
-                    (str(r["values"][f]) if r["values"].get(f) is not None else "—") for r in runs
+            bf = item.get("profile_backfilled_from")
+            if bf:
+                lines.append(
+                    f"_ⓘ Lần chạy mới nhất không tính được nhóm chỉ số phụ (ARPU/loyalty/churn driver) — "
+                    f"đang hiển thị bản đầy đủ gần nhất của cùng cụm này (lượt {_format_time(bf.get('created_at'))}). "
+                    f"Support % vẫn của lần chạy mới nhất._"
                 )
-                lines.append(f"| {f} | {value_cols} |")
-            lines.append("")
+                lines.append("")
+            header_cols = " | ".join(_format_time(r["created_at"]) for r in runs)
+            stats_by_feature = {s["feature"]: s for s in item.get("stats_table", [])}
+
+            def _render_compact(title: str, features: list[str]) -> None:
+                # Every value identical across all N runs — repeating it N times is pure noise.
+                # Show the SAME compact {value, benchmark, dev_pct} shape as a first-appearance
+                # card instead, plus a 1-line note that it's been constant across N runs.
+                if not features:
+                    return
+                lines.append(f"**{title}** _(giống hệt nhau ở cả {len(runs)} lần chạy — không lặp lại từng cột)_")
+                lines.append("")
+                lines.append("| Feature | Trung bình trong cụm | Trung bình trên toàn bộ data | Chênh lệch |")
+                lines.append("|---|---|---|---|")
+                for f in features:
+                    s = stats_by_feature.get(f)
+                    if not s:
+                        continue
+                    label = hist["feature_labels"].get(f)
+                    row_name = f"{f} ({label})" if label and label != f else f
+                    val = s.get("value_display", s["value"])
+                    bench = s.get("benchmark_display", s["benchmark"])
+                    dev = s.get("dev_pct")
+                    dev_str = f"{dev:+.1f}%" if isinstance(dev, (int, float)) else "—"
+                    lines.append(f"| {row_name} | {val} | {bench} | {dev_str} |")
+                lines.append("")
+
+            def _render_wide(title: str, features: list[str]) -> None:
+                if not features:
+                    return
+                lines.append(f"**{title}**")
+                lines.append("")
+                lines.append(f"| Feature | {header_cols} |")
+                lines.append("|---|" + "---|" * len(runs))
+                lines.append(
+                    "| **support_pct** | " + " | ".join(_format_pct(r["support_pct"]) for r in runs) + " |"
+                )
+                for f in features:
+                    value_cols = " | ".join(
+                        (
+                            r["display_values"].get(f)
+                            or (str(r["values"][f]) if r["values"].get(f) is not None else "—")
+                        )
+                        for r in runs
+                    )
+                    label = hist["feature_labels"].get(f)
+                    row_name = f"{f} ({label})" if label and label != f else f
+                    lines.append(f"| {row_name} | {value_cols} |")
+                lines.append("")
+
+            if hist.get("cluster_stable"):
+                _render_compact("Feature đóng góp phân cụm (dùng để train KMeans)", hist["cluster_features"])
+            else:
+                _render_wide("Feature đóng góp phân cụm (dùng để train KMeans)", hist["cluster_features"])
+            if hist.get("profile_stable"):
+                _render_compact(
+                    "Feature đóng góp phân tích persona (ARPU/loyalty/tier — KHÔNG dùng để phân cụm)",
+                    hist["profile_features"],
+                )
+            else:
+                _render_wide(
+                    "Feature đóng góp phân tích persona (ARPU/loyalty/tier — KHÔNG dùng để phân cụm)",
+                    hist["profile_features"],
+                )
 
             if hist.get("narratives_identical"):
                 lines.append(f"_Mô tả (narrative) GIỐNG HỆT NHAU ở cả {len(runs)} lần chạy trên:_")
