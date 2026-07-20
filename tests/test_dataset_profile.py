@@ -80,3 +80,38 @@ def test_cache_freezes_features_across_calls(tmp_path):
     assert p1.behavioral_features == p2.behavioral_features
     import os
     assert os.path.exists(os.path.join(cache_dir, f"{p1.fingerprint}.json"))
+
+
+def test_cache_is_actually_read_from_disk(tmp_path):
+    """Prove load_or_build_cached reads the frozen file, not just recomputes:
+    tamper the cached feature list on disk and confirm the tampered value is returned."""
+    import json
+    import os
+
+    df = _telco_like_df()
+    cache_dir = str(tmp_path / "profiles")
+    p1 = load_or_build_cached(df, cache_dir, dataset_name="telco")
+    cache_file = os.path.join(cache_dir, f"{p1.fingerprint}.json")
+    data = json.load(open(cache_file, encoding="utf-8"))
+    data["behavioral_features"] = ["TAMPERED"]
+    with open(cache_file, "w", encoding="utf-8") as f:
+        json.dump(data, f)
+    p2 = load_or_build_cached(df, cache_dir, dataset_name="telco")
+    assert p2.behavioral_features == ["TAMPERED"]
+
+
+def test_corrupt_cache_is_rebuilt(tmp_path):
+    """A cache file containing invalid JSON must be caught and rebuilt, not raised."""
+    import json
+    import os
+
+    df = _telco_like_df()
+    cache_dir = str(tmp_path / "profiles")
+    os.makedirs(cache_dir, exist_ok=True)
+    fp = load_or_build_cached(df, cache_dir, dataset_name="telco").fingerprint
+    cache_file = os.path.join(cache_dir, f"{fp}.json")
+    with open(cache_file, "w", encoding="utf-8") as f:
+        f.write("{ this is not valid json ")
+    rebuilt = load_or_build_cached(df, cache_dir, dataset_name="telco")
+    assert rebuilt.behavioral_features  # rebuilt, non-empty
+    json.load(open(cache_file, encoding="utf-8"))  # file is valid JSON again
