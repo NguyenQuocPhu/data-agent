@@ -156,3 +156,42 @@ def characterize_personas(
             p["distinguishing_signal"] = distinguishing_signal(means, global_means, domains, labels)
         except Exception:
             continue
+
+
+def compose_signal_narrative(persona: dict) -> str:
+    """Generic, deterministic persona narrative derived from its distinguishing_signal.
+
+    Dataset-agnostic — no churn/telco vocabulary. States group size and the
+    standout evidence already computed (with embedded labels). Best-effort:
+    returns "" when no usable signal is present, never raises.
+
+    Args:
+        persona: A persona dict expected to carry a "distinguishing_signal".
+
+    Returns:
+        A short Vietnamese description, or "" if the signal is missing/empty.
+    """
+    try:
+        sig = persona.get("distinguishing_signal")
+        if not isinstance(sig, dict) or not sig:
+            return ""
+        parts: list[str] = []
+        support = persona.get("support")
+        pct = persona.get("support_pct")
+        pct_str = f"{pct * 100:.1f}%" if isinstance(pct, (int, float)) else None
+        size_bits = [
+            b
+            for b in (
+                pct_str and f"khoảng {pct_str} tổng thể",
+                support and f"~{support:,} bản ghi".replace(",", "."),
+            )
+            if b
+        ]
+        if size_bits:
+            parts.append(f"Nhóm này chiếm {' — '.join(size_bits)}.")
+        evidence = str(sig.get("evidence") or "").strip()
+        if evidence:
+            parts.append(evidence)
+        return " ".join(parts)
+    except Exception:
+        return ""

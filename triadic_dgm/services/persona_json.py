@@ -143,13 +143,15 @@ def describe_persona(p: dict) -> str:
     support_pct = p.get("support_pct")
     support = p.get("support")
     pct_str = f"{support_pct * 100:.1f}%" if isinstance(support_pct, (int, float)) else None
-    size_bits = [b for b in (pct_str and f"khoảng {pct_str} tổng số khách hàng", support and f"~{support:,} KH".replace(",", ".")) if b]
+    size_bits = [b for b in (pct_str and f"khoảng {pct_str} tổng thể", support and f"~{support:,} bản ghi".replace(",", ".")) if b]
     if size_bits:
         parts.append(f"Nhóm này chiếm {' — '.join(size_bits)}.")
 
-    churn_driver = str(p.get("churn_driver") or "").strip()
-    if churn_driver.lower() not in _GENERIC_CHURN_DRIVER_VALUES:
-        parts.append(f"Nguyên nhân rời mạng chính được ghi nhận: {churn_driver}.")
+    sig = p.get("distinguishing_signal")
+    if isinstance(sig, dict):
+        evidence = str(sig.get("evidence") or "").strip()
+        if evidence:
+            parts.append(evidence)
 
     risk, severity = p.get("risk"), p.get("severity")
     if risk or severity:
