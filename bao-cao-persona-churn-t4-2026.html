@@ -1,0 +1,424 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Phân tích persona nhóm KH rời mạng tháng 4/2026</title>
+<style>
+  :root{
+    --bg:#F4F6F8; --surface:#FFFFFF; --surface-2:#EDF1F4;
+    --ink:#15202B; --ink-soft:#4C5D6B; --ink-faint:#7E8E9B;
+    --line:#DBE2E8; --line-soft:#E8EDF1;
+    --accent:#0B6E86; --accent-ink:#075263; --accent-soft:#E1F0F3;
+    --stable:#3C7A5E; --stable-soft:#E4F0EA;
+    --warn:#A96300; --warn-soft:#F7ECDA;
+    --crit:#B03024; --crit-soft:#F8E4E1;
+    --shadow:0 1px 2px rgba(21,32,43,.04),0 8px 28px rgba(21,32,43,.06);
+    --mono:ui-monospace,"SF Mono","Cascadia Mono","JetBrains Mono",Menlo,Consolas,monospace;
+    --sans:"Segoe UI",system-ui,-apple-system,"Helvetica Neue",Arial,sans-serif;
+  }
+  @media (prefers-color-scheme:dark){
+    :root{
+      --bg:#0D141B; --surface:#141D26; --surface-2:#1A2530;
+      --ink:#E6EDF3; --ink-soft:#A6B6C3; --ink-faint:#6F8291;
+      --line:#25323E; --line-soft:#1F2B36;
+      --accent:#40B2CB; --accent-ink:#9FE0EC; --accent-soft:#0F2E36;
+      --stable:#5FB088; --stable-soft:#12261D;
+      --warn:#D6A24B; --warn-soft:#2C2211;
+      --crit:#E67667; --crit-soft:#2E1512;
+      --shadow:0 1px 2px rgba(0,0,0,.3),0 10px 30px rgba(0,0,0,.35);
+    }
+  }
+  :root[data-theme="light"]{
+    --bg:#F4F6F8; --surface:#FFFFFF; --surface-2:#EDF1F4;
+    --ink:#15202B; --ink-soft:#4C5D6B; --ink-faint:#7E8E9B;
+    --line:#DBE2E8; --line-soft:#E8EDF1;
+    --accent:#0B6E86; --accent-ink:#075263; --accent-soft:#E1F0F3;
+    --stable:#3C7A5E; --stable-soft:#E4F0EA;
+    --warn:#A96300; --warn-soft:#F7ECDA;
+    --crit:#B03024; --crit-soft:#F8E4E1;
+    --shadow:0 1px 2px rgba(21,32,43,.04),0 8px 28px rgba(21,32,43,.06);
+  }
+  :root[data-theme="dark"]{
+    --bg:#0D141B; --surface:#141D26; --surface-2:#1A2530;
+    --ink:#E6EDF3; --ink-soft:#A6B6C3; --ink-faint:#6F8291;
+    --line:#25323E; --line-soft:#1F2B36;
+    --accent:#40B2CB; --accent-ink:#9FE0EC; --accent-soft:#0F2E36;
+    --stable:#5FB088; --stable-soft:#12261D;
+    --warn:#D6A24B; --warn-soft:#2C2211;
+    --crit:#E67667; --crit-soft:#2E1512;
+    --shadow:0 1px 2px rgba(0,0,0,.3),0 10px 30px rgba(0,0,0,.35);
+  }
+
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);
+    line-height:1.6;-webkit-font-smoothing:antialiased;}
+  .wrap{max-width:900px;margin:0 auto;padding:clamp(24px,5vw,64px) clamp(18px,4vw,40px);}
+  .eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--accent);font-weight:600;}
+  h1{font-size:clamp(28px,4.5vw,40px);line-height:1.12;letter-spacing:-.02em;margin:.5rem 0 .6rem;
+    text-wrap:balance;font-weight:800;}
+  h2{font-size:clamp(19px,2.6vw,23px);letter-spacing:-.01em;margin:0;font-weight:750;text-wrap:balance;}
+  .lede{font-size:clamp(16px,2vw,18px);color:var(--ink-soft);max-width:64ch;margin:.2rem 0 0;}
+  p{margin:.6rem 0;}
+  .muted{color:var(--ink-soft);}
+  .faint{color:var(--ink-faint);}
+
+  header.head{border-bottom:1px solid var(--line);padding-bottom:26px;margin-bottom:34px;}
+  .runmeta{font-family:var(--mono);font-size:12.5px;color:var(--ink-faint);margin-top:14px;
+    font-variant-numeric:tabular-nums;}
+  .runmeta b{color:var(--ink-soft);font-weight:600;}
+
+  .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1px;
+    background:var(--line);border:1px solid var(--line);border-radius:14px;overflow:hidden;margin-top:24px;}
+  .stat{background:var(--surface);padding:16px 18px;}
+  .stat .n{font-family:var(--mono);font-size:clamp(22px,3vw,27px);font-weight:700;letter-spacing:-.02em;
+    font-variant-numeric:tabular-nums;color:var(--ink);}
+  .stat .l{font-size:12.5px;color:var(--ink-soft);margin-top:2px;}
+
+  section{margin:40px 0;}
+  .sec-head{display:flex;align-items:baseline;gap:12px;margin-bottom:6px;}
+  .sec-head .idx{font-family:var(--mono);font-size:13px;color:var(--accent);font-weight:600;
+    border:1px solid var(--accent);border-radius:6px;padding:1px 7px;flex:none;}
+  .sec-sub{color:var(--ink-soft);max-width:66ch;margin:.35rem 0 1.2rem;}
+
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:16px;
+    padding:clamp(18px,3vw,26px);box-shadow:var(--shadow);}
+  .card + .card{margin-top:14px;}
+
+  /* domain bars */
+  .dbar{display:grid;grid-template-columns:minmax(140px,190px) 1fr auto;align-items:center;
+    gap:14px;padding:9px 0;border-top:1px solid var(--line-soft);}
+  .dbar:first-child{border-top:0;}
+  .dbar .name{font-weight:650;font-size:14.5px;}
+  .dbar .ex{display:block;font-size:12px;color:var(--ink-faint);font-family:var(--mono);
+    font-weight:400;margin-top:1px;}
+  .track{height:10px;background:var(--surface-2);border-radius:99px;overflow:hidden;}
+  .fill{height:100%;background:var(--accent);border-radius:99px;}
+  .dbar .c{font-family:var(--mono);font-variant-numeric:tabular-nums;font-weight:700;font-size:15px;
+    min-width:46px;text-align:right;}
+
+  /* method steps */
+  .steps{display:grid;gap:12px;}
+  .step{display:grid;grid-template-columns:auto 1fr;gap:14px;align-items:start;}
+  .step .k{font-family:var(--mono);font-size:12.5px;font-weight:700;color:var(--accent);
+    background:var(--accent-soft);border-radius:8px;padding:6px 9px;white-space:nowrap;margin-top:2px;}
+  .step .t{font-size:14.5px;color:var(--ink-soft);}
+  .step .t b{color:var(--ink);font-weight:700;}
+
+  /* proportion bar */
+  .prop{display:flex;height:46px;border-radius:12px;overflow:hidden;border:1px solid var(--line);
+    margin:6px 0 12px;gap:2px;background:var(--line);}
+  .prop span{display:flex;align-items:center;justify-content:center;font-family:var(--mono);
+    font-weight:700;font-size:13px;color:#fff;font-variant-numeric:tabular-nums;min-width:0;}
+  .seg-stable{background:var(--stable);}
+  .seg-warn{background:var(--warn);}
+  .seg-crit{background:var(--crit);}
+  .legend{display:flex;flex-wrap:wrap;gap:8px 18px;font-size:13px;color:var(--ink-soft);margin-bottom:6px;}
+  .legend i{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:6px;vertical-align:middle;}
+
+  /* persona cards */
+  .pcard{border-left:4px solid var(--edge,var(--line));}
+  .pcard.stable{--edge:var(--stable);}
+  .pcard.warn{--edge:var(--warn);}
+  .pcard.crit{--edge:var(--crit);}
+  .prow{display:flex;flex-wrap:wrap;align-items:baseline;gap:8px 14px;}
+  .pname{font-size:18px;font-weight:750;letter-spacing:-.01em;}
+  .psize{font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:14px;color:var(--ink-soft);
+    margin-left:auto;font-weight:600;white-space:nowrap;}
+  .psize b{color:var(--ink);font-size:16px;}
+  .chiprow{display:flex;flex-wrap:wrap;gap:7px;margin-top:9px;}
+  .chip{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-family:var(--mono);
+    font-weight:600;padding:3px 9px;border-radius:99px;border:1px solid var(--line);white-space:nowrap;}
+  .chip.tag-stable{color:var(--stable);background:var(--stable-soft);border-color:transparent;}
+  .chip.tag-warn{color:var(--warn);background:var(--warn-soft);border-color:transparent;}
+  .chip.tag-crit{color:var(--crit);background:var(--crit-soft);border-color:transparent;}
+  .chip.rep{color:var(--ink-soft);background:var(--surface-2);border-color:var(--line-soft);}
+  .driver{font-size:14.5px;margin:12px 0 12px;color:var(--ink);}
+  .driver b{color:var(--edge,var(--accent));}
+  .dlabel{font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;
+    color:var(--ink-faint);font-weight:600;margin:14px 0 8px;}
+  .signals{display:flex;flex-wrap:wrap;gap:8px;}
+  .sig{font-family:var(--mono);font-size:12.5px;font-variant-numeric:tabular-nums;
+    background:var(--surface-2);border:1px solid var(--line-soft);border-radius:8px;padding:5px 10px;}
+  .sig .up{color:var(--crit);font-weight:700;}
+  .sig .dn{color:var(--stable);font-weight:700;}
+  .sig .lbl{color:var(--ink-soft);}
+
+  /* occurrence table */
+  .ftable-wrap{overflow-x:auto;}
+  .ftable{width:100%;border-collapse:collapse;font-size:14px;min-width:440px;}
+  .ftable th{text-align:left;font-size:11px;letter-spacing:.06em;text-transform:uppercase;
+    color:var(--ink-faint);font-weight:600;padding:0 12px 9px;border-bottom:1px solid var(--line);}
+  .ftable th.r{text-align:right;}
+  .ftable td{padding:11px 12px;border-bottom:1px solid var(--line-soft);vertical-align:middle;}
+  .ftable tr:last-child td{border-bottom:0;}
+  .ftable td.fam{border-left:3px solid var(--edge,var(--line));font-weight:650;color:var(--ink);}
+  .ftable tr.stable td.fam{--edge:var(--stable);}
+  .ftable tr.warn td.fam{--edge:var(--warn);}
+  .ftable tr.crit td.fam{--edge:var(--crit);}
+  .ftable .sz{font-family:var(--mono);font-variant-numeric:tabular-nums;color:var(--ink-soft);
+    white-space:nowrap;font-size:13px;}
+  .ftable .cbar{display:flex;align-items:center;gap:9px;justify-content:flex-end;}
+  .ftable .cbar .n{font-family:var(--mono);font-variant-numeric:tabular-nums;font-weight:700;
+    min-width:30px;text-align:right;}
+  .ftable .cbar .bar{height:7px;border-radius:99px;background:var(--accent);opacity:.55;flex:none;}
+  .fnote{font-size:13px;color:var(--ink-soft);margin-top:14px;line-height:1.6;}
+  .fnote b{color:var(--ink);font-weight:700;}
+
+  /* takeaway */
+  .take{background:var(--accent-soft);border:1px solid transparent;border-radius:16px;
+    padding:clamp(20px,3vw,28px);}
+  .take h2{margin-bottom:4px;}
+  .take ul{margin:.6rem 0 0;padding-left:0;list-style:none;display:grid;gap:12px;}
+  .take li{display:grid;grid-template-columns:auto 1fr;gap:12px;font-size:15px;color:var(--ink);}
+  .take li .b{color:var(--accent);font-weight:800;font-family:var(--mono);}
+  .take li b{font-weight:750;}
+  .take p{font-size:15px;color:var(--ink);margin:.85rem 0;max-width:70ch;}
+  .take p.lead{font-size:16.5px;font-weight:650;margin-top:.7rem;}
+  .take p b{font-weight:750;}
+
+  footer{margin-top:44px;padding-top:18px;border-top:1px solid var(--line);
+    font-size:12.5px;color:var(--ink-faint);font-family:var(--mono);line-height:1.7;}
+
+  @media (max-width:560px){
+    .dbar{grid-template-columns:1fr auto;}
+    .dbar .track{grid-column:1/-1;order:3;}
+    .psize{margin-left:0;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="head">
+    <div class="eyebrow">Báo cáo phân tích · Nội bộ · Ban giám đốc</div>
+    <h1>Phân tích persona nhóm KH rời mạng tháng 4/2026</h1>
+    <p class="lede">Phân tích trên toàn bộ hơn 54 nghìn khách hàng <b>đã rời mạng trong tháng 4/2026</b>:
+      hệ thống tự động tách thành các nhóm (persona) theo hành vi và chỉ ra <b>nguyên nhân rời mạng nổi bật
+      của mỗi nhóm</b> — làm cơ sở cho win-back và ngăn lặp lại ở nhóm khách tương tự.</p>
+    <div class="runmeta">Dữ liệu: khách rời mạng tháng 4/2026 · phân tích chạy 16/07/2026 · tổng hợp qua 163 lần chạy lặp lại</div>
+
+    <div class="stats">
+      <div class="stat"><div class="n">54.262</div><div class="l">khách hàng đã rời mạng</div></div>
+      <div class="stat"><div class="n">94</div><div class="l">cột dữ liệu hành vi</div></div>
+      <div class="stat"><div class="n">~92,8%</div><div class="l">rời đi không để lại tín hiệu</div></div>
+      <div class="stat"><div class="n">~7%</div><div class="l">rời vì nguyên nhân nội bộ (CSKH + kỹ thuật) — xử lý được</div></div>
+    </div>
+  </header>
+
+  <section>
+    <div class="sec-head"><span class="idx">01</span><h2>Bài toán đang giải</h2></div>
+    <p class="sec-sub">Không phải mọi khách hàng rời mạng vì cùng một lý do. Nhìn cả tập như một khối
+      chung chung thì không thể hành động. Mục tiêu là <b>tách khách hàng thành các nhóm có hành vi
+      giống nhau</b>, rồi với mỗi nhóm xác định <b>nguyên nhân rời mạng nổi bật nhất</b> — để mỗi nhóm
+      rủi ro có một kịch bản giữ chân riêng, đúng nguyên nhân và đúng đối tượng.</p>
+    <p class="sec-sub" style="margin-top:-.6rem">Câu hỏi trọng tâm cho BGĐ: <b>hơn 54 nghìn khách đã rời
+      mạng tháng 4 — họ ra đi vì đâu, và nhóm nào ta xử lý được để win-back cũng như ngăn lặp lại ở khách
+      hiện hữu tương tự?</b></p>
+  </section>
+
+  <section>
+    <div class="sec-head"><span class="idx">02</span><h2>Dữ liệu đầu vào</h2></div>
+    <p class="sec-sub">Mỗi khách hàng được mô tả bằng 94 cột, tổng hợp hành vi trong 6 tháng.
+      (6 tháng trước thời điểm rời mạng). Các cột chia thành 6 nhóm hành vi chính (số trong ngoặc là số cột thuộc nhóm):</p>
+    <div class="card">
+      <div class="dbar"><div><span class="name">Phân khúc &amp; loyalty</span><span class="ex">segment_upgrade_count · segment_downgrade_count · LOYALTY_RANK</span></div><div class="track"><div class="fill" style="width:100%"></div></div><div class="c">18</div></div>
+      <div class="dbar"><div><span class="name">Mức độ sử dụng &amp; suy giảm</span><span class="ex">spending_decline · cnt_Giam_manh · status_worsening</span></div><div class="track"><div class="fill" style="width:72%"></div></div><div class="c">13</div></div>
+      <div class="dbar"><div><span class="name">Cuộc gọi CSKH</span><span class="ex">call_total_6m · call_trend · frequent_caller</span></div><div class="track"><div class="fill" style="width:72%"></div></div><div class="c">13</div></div>
+      <div class="dbar"><div><span class="name">Yêu cầu hỗ trợ kỹ thuật</span><span class="ex">cl_total_6m · cl_trend · escalating_cl</span></div><div class="track"><div class="fill" style="width:72%"></div></div><div class="c">13</div></div>
+      <div class="dbar"><div><span class="name">Khiếu nại</span><span class="ex">complaint_total_6m · complaint_trend · escalating_complaint</span></div><div class="track"><div class="fill" style="width:61%"></div></div><div class="c">11</div></div>
+      <div class="dbar"><div><span class="name">Cuộc gọi nhỡ</span><span class="ex">missed_total_6m · missed_ratio_6m · high_missed_ratio</span></div><div class="track"><div class="fill" style="width:61%"></div></div><div class="c">11</div></div>
+      <div class="dbar"><div><span class="name">Cước phí / giá trị</span><span class="ex">fee_avg · fee_trend · high_spender</span></div><div class="track"><div class="fill" style="width:56%"></div></div><div class="c">10</div></div>
+      <div class="dbar"><div><span class="name">Khác (tiếp xúc, định danh)</span><span class="ex">escalating_contact · CUSTOMER_TYPE · VIP_TYPE</span></div><div class="track"><div class="fill" style="width:28%"></div></div><div class="c">5</div></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head"><span class="idx">03</span><h2>Kết quả: các nhóm khách hàng &amp; dữ liệu đặc trưng</h2></div>
+    <p class="sec-sub">Đại đa số khách rời mạng <b>không để lại tín hiệu hành vi</b> — nguyên nhân nằm
+      ngoài dữ liệu (giá cước, đối thủ). Phần còn lại là các nhóm rủi ro có dấu hiệu rõ, chia làm 2 loại
+      ta can thiệp được: <b>quá tải CSKH</b> và <b>sự cố kỹ thuật</b>. Mỗi nhóm dưới đây kèm dữ liệu đặc
+      trưng (mức lệch so với mặt bằng chung toàn tập).</p>
+
+    <div class="prop" role="img" aria-label="Nhóm nền không tín hiệu ~89%, vùng xám kỹ thuật 7,5%, nhóm rủi ro rõ ~3,6%">
+      <span class="seg-stable" style="flex:0 0 72.5%">72,5%</span>
+      <span class="seg-stable" style="flex:0 0 16.8%">16,8%</span>
+      <span class="seg-warn" style="flex:0 0 7.5%">7,5%</span>
+      <span class="seg-crit" style="flex:0 0 3.2%">rủi ro</span>
+    </div>
+    <div class="legend">
+      <span><i style="background:var(--stable)"></i>Nhóm nền — không tín hiệu (~89%)</span>
+      <span><i style="background:var(--warn)"></i>Vùng xám — sự cố kỹ thuật, không liên hệ (7,5%)</span>
+      <span><i style="background:var(--crit)"></i>Rủi ro rõ — CSKH / kỹ thuật (~3–8%)</span>
+    </div>
+
+    <!-- G1 -->
+    <div class="card pcard stable">
+      <div class="prow"><span class="pname">Nhóm nền — rời mạng không tín hiệu</span>
+        <span class="psize"><b>~50.373</b> KH · 92,8%</span></div>
+      <div class="chiprow"><span class="chip tag-stable">Rủi ro THẤP</span><span class="chip rep">Lặp lại 58 lần</span></div>
+      <p class="driver">Nguyên nhân: <b>Không rõ từ hành vi</b> — nhiều khả năng do yếu tố ngoài dữ liệu
+        (giá cước, cạnh tranh, chuyển vùng). Không nổi bật ở bất kỳ chỉ số cảnh báo nào.</p>
+      <div class="dlabel">Dữ liệu đặc trưng</div>
+      <div class="signals">
+        <span class="sig"><span class="lbl">Khiếu nại / gọi CSKH / nhỡ</span> <span class="dn">≈ 0 (không phát sinh)</span></span>
+        <span class="sig"><span class="lbl">Chi tiêu, sử dụng</span> <span class="lbl">≈ mặt bằng chung</span></span>
+        <span class="sig"><span class="lbl">76%</span> <span class="lbl">giá trị thấp – trung bình · ARPU ~205K</span></span>
+      </div>
+      <p class="faint" style="font-size:13px;margin-top:12px">Đây là mặt bằng chung để so sánh, không đồng
+        nghĩa “chắc chắn không rời mạng”. Ở một số lần chạy nhóm này tách thành 72,5% + 16,8%.</p>
+    </div>
+
+    <!-- G2 -->
+    <div class="card pcard crit">
+      <div class="prow"><span class="pname">Quá tải liên hệ CSKH / cuộc gọi nhỡ</span>
+        <span class="psize"><b>2.521</b> KH · 4,6%</span></div>
+      <div class="chiprow"><span class="chip tag-crit">Rủi ro CAO</span><span class="chip rep">Lặp lại 67 lần — nhiều nhất</span></div>
+      <p class="driver">Nguyên nhân: <b>Tăng liên hệ CSKH / cuộc gọi nhỡ ngay trước khi rời mạng.</b>
+        Khách cố tìm hỗ trợ, gọi tổng đài dồn dập và bị nhỡ nhiều — nhu cầu chưa được đáp ứng, rời đi trước
+        cả khi kịp khiếu nại chính thức.</p>
+      <div class="dlabel">Dữ liệu đặc trưng</div>
+      <div class="signals">
+        <span class="sig"><span class="lbl">Cuộc gọi CSKH</span> <span class="up">gấp ~21×</span></span>
+        <span class="sig"><span class="lbl">Cuộc gọi nhỡ</span> <span class="up">gấp ~21×</span></span>
+        <span class="sig"><span class="lbl">Tụt hạng phân khúc</span> <span class="up">+76%</span></span>
+        <span class="sig"><span class="lbl">Giảm sử dụng mạnh</span> <span class="up">+52%</span></span>
+      </div>
+    </div>
+
+    <!-- G3 -->
+    <div class="card pcard crit">
+      <div class="prow"><span class="pname">Sự cố kỹ thuật chưa xử lý dứt điểm</span>
+        <span class="psize"><b>1.338</b> KH · 2,5%</span></div>
+      <div class="chiprow"><span class="chip tag-crit">Rủi ro CAO</span><span class="chip rep">Lặp lại 30 lần</span></div>
+      <p class="driver">Nguyên nhân: <b>Sự cố kỹ thuật lặp lại không được xử lý triệt để.</b> Gọi CSKH,
+        cuộc gọi nhỡ và khiếu nại tăng vọt cùng lúc — cùng một vấn đề kéo dài qua nhiều lần liên hệ, dẫn
+        tới bất mãn leo thang.</p>
+      <div class="dlabel">Dữ liệu đặc trưng</div>
+      <div class="signals">
+        <span class="sig"><span class="lbl">Cuộc gọi CSKH</span> <span class="up">tăng vọt</span></span>
+        <span class="sig"><span class="lbl">Cuộc gọi nhỡ</span> <span class="up">gấp ~21×</span></span>
+        <span class="sig"><span class="lbl">Xu hướng khiếu nại</span> <span class="up">gấp ~3,6×</span></span>
+        <span class="sig"><span class="lbl">Tụt hạng phân khúc</span> <span class="up">+106%</span></span>
+      </div>
+    </div>
+
+    <!-- G4 -->
+    <div class="card pcard crit">
+      <div class="prow"><span class="pname">Vi nhóm sự cố kỹ thuật cấp tính</span>
+        <span class="psize"><b>352</b> KH · 0,6%</span></div>
+      <div class="chiprow"><span class="chip tag-crit">Rủi ro CAO</span><span class="chip rep">Lặp lại 30 lần</span></div>
+      <p class="driver">Nguyên nhân: <b>Sự cố kỹ thuật + khiếu nại cấp tính ngay trước khi rời mạng.</b>
+        Quy mô nhỏ hơn nhưng tín hiệu rất sắc — cuộc gọi nhỡ và khiếu nại bùng lên sát thời điểm rời đi.</p>
+      <div class="dlabel">Dữ liệu đặc trưng</div>
+      <div class="signals">
+        <span class="sig"><span class="lbl">Cuộc gọi nhỡ</span> <span class="up">gấp ~34×</span></span>
+        <span class="sig"><span class="lbl">Khiếu nại</span> <span class="up">gấp ~2,5×</span></span>
+        <span class="sig"><span class="lbl">Chi tiêu giảm</span> <span class="up">rõ rệt</span></span>
+      </div>
+    </div>
+
+    <!-- G5 -->
+    <div class="card pcard warn">
+      <div class="prow"><span class="pname">Vùng xám — sự cố kỹ thuật nhưng KHÔNG liên hệ</span>
+        <span class="psize"><b>4.071</b> KH · 7,5%</span></div>
+      <div class="chiprow"><span class="chip tag-stable">Rủi ro THẤP</span><span class="chip tag-warn">Nghiêm trọng: Cao</span><span class="chip rep">Lặp lại 30 lần</span></div>
+      <p class="driver">Nguyên nhân: <b>Không rõ từ hành vi.</b> Nghịch lý đáng chú ý: sự cố kỹ thuật tăng
+        rất mạnh nhưng khách <b>không hề gọi CSKH</b> — họ không kêu ca mà rời thẳng. Quyết định có vẻ đến
+        từ yếu tố ngoài trải nghiệm dịch vụ, nhưng chất lượng kỹ thuật vẫn là điểm cần soát lại.</p>
+      <div class="dlabel">Dữ liệu đặc trưng</div>
+      <div class="signals">
+        <span class="sig"><span class="lbl">Xu hướng sự cố kỹ thuật</span> <span class="up">tăng rất mạnh</span></span>
+        <span class="sig"><span class="lbl">Khiếu nại</span> <span class="up">gấp ~2,4×</span></span>
+        <span class="sig"><span class="lbl">Cuộc gọi CSKH</span> <span class="dn">−100% (không gọi)</span></span>
+      </div>
+    </div>
+
+    <!-- G6 -->
+    <div class="card pcard crit">
+      <div class="prow"><span class="pname">Cảnh báo cực đoan — CSKH / nhỡ bùng nổ</span>
+        <span class="psize"><b>18</b> KH · 0,0%</span></div>
+      <div class="chiprow"><span class="chip tag-crit">Rủi ro CỰC CAO</span><span class="chip rep">Lặp lại 30 lần</span></div>
+      <p class="driver">Nguyên nhân: <b>Tần suất liên hệ CSKH / cuộc gọi nhỡ tăng cực mạnh.</b> Vi nhóm rất
+        nhỏ nhưng tín hiệu mạnh nhất toàn tập — nhu cầu hỗ trợ khẩn nhưng chưa thành khiếu nại chính thức.
+        <span class="faint">Quy mô nhỏ, theo dõi sát chứ chưa cần chiến dịch lớn.</span></p>
+      <div class="dlabel">Dữ liệu đặc trưng</div>
+      <div class="signals">
+        <span class="sig"><span class="lbl">Cuộc gọi CSKH</span> <span class="up">gấp ~375×</span></span>
+        <span class="sig"><span class="lbl">Cuộc gọi nhỡ</span> <span class="up">gấp ~81×</span></span>
+        <span class="sig"><span class="lbl">Tụt hạng phân khúc</span> <span class="up">+207%</span></span>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head"><span class="idx">04</span><h2>Các nhóm này lặp lại bao nhiêu lần?</h2></div>
+    <p class="sec-sub">Hệ thống chạy lại phép phân cụm <b>163 lần</b> trên cùng dữ liệu. Mỗi cụm được đếm
+      số lần tái xuất hiện theo <b>đặc trưng thống kê</b> (không theo tên) — lặp càng nhiều thì càng ổn định,
+      càng đáng tin. Đây là bằng chứng kết quả không ngẫu nhiên.</p>
+
+    <div class="stats" style="margin-top:0;margin-bottom:18px">
+      <div class="stat"><div class="n">163</div><div class="l">lần chạy giám sát</div></div>
+      <div class="stat"><div class="n">67</div><div class="l">số lần lặp cao nhất (nhóm CSKH)</div></div>
+      <div class="stat"><div class="n">3–6</div><div class="l">số nhóm mỗi lần chạy</div></div>
+      <div class="stat"><div class="n">135</div><div class="l">hình dạng chỉ xuất hiện 1 lần (nhiễu)</div></div>
+    </div>
+
+    <div class="card">
+      <div class="ftable-wrap">
+        <table class="ftable">
+          <thead><tr><th>Nhóm khách hàng</th><th>Quy mô</th><th class="r">Số lần lặp lại</th></tr></thead>
+          <tbody>
+            <tr class="crit"><td class="fam">Quá tải CSKH / cuộc gọi nhỡ</td><td class="sz">2.521 KH · 4,6%</td><td><div class="cbar"><span class="n">67</span><span class="bar" style="width:100px"></span></div></td></tr>
+            <tr class="stable"><td class="fam">Nhóm nền — không tín hiệu</td><td class="sz">50.373 KH · 92,8%</td><td><div class="cbar"><span class="n">58</span><span class="bar" style="width:87px"></span></div></td></tr>
+            <tr class="stable"><td class="fam">Nhóm nền — không tín hiệu (tách)</td><td class="sz">39.345 KH · 72,5%</td><td><div class="cbar"><span class="n">31</span><span class="bar" style="width:46px"></span></div></td></tr>
+            <tr class="stable"><td class="fam">Nhóm nền — không tín hiệu (tách)</td><td class="sz">9.138 KH · 16,8%</td><td><div class="cbar"><span class="n">30</span><span class="bar" style="width:45px"></span></div></td></tr>
+            <tr class="warn"><td class="fam">Vùng xám — sự cố KT, không liên hệ</td><td class="sz">4.071 KH · 7,5%</td><td><div class="cbar"><span class="n">30</span><span class="bar" style="width:45px"></span></div></td></tr>
+            <tr class="crit"><td class="fam">Sự cố kỹ thuật chưa xử lý</td><td class="sz">1.338 KH · 2,5%</td><td><div class="cbar"><span class="n">30</span><span class="bar" style="width:45px"></span></div></td></tr>
+            <tr class="crit"><td class="fam">Vi nhóm sự cố kỹ thuật cấp tính</td><td class="sz">352 KH · 0,6%</td><td><div class="cbar"><span class="n">30</span><span class="bar" style="width:45px"></span></div></td></tr>
+            <tr class="crit"><td class="fam">Cảnh báo cực đoan CSKH / nhỡ</td><td class="sz">18 KH · 0,0%</td><td><div class="cbar"><span class="n">30</span><span class="bar" style="width:45px"></span></div></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="fnote"><b>Vì sao lúc 3 nhóm, lúc 6 nhóm?</b> « Nhóm nền » (khách rời mạng không tín hiệu) đôi
+        khi gộp thành một khối 92,8%, đôi khi tách nhỏ (72,5% + 16,8% + 7,5%) — nên số nhóm mỗi lần dao động
+        <b>3–6</b>. Ngược lại, <b>các nhóm rủi ro (CSKH, sự cố kỹ thuật) lặp lại gần như cố định</b> — đó là
+        phần đáng tin và cần hành động nhất.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="take">
+      <div class="sec-head" style="margin-bottom:2px"><span class="idx">05</span><h2>Kết luận</h2></div>
+      <p class="lead">Phần lớn khách hàng rời mạng tháng 4/2026 ra đi trong im lặng — khoảng 93% không để
+        lại bất kỳ tín hiệu hành vi nào trước khi ngừng dịch vụ.</p>
+      <p>Nhóm này chịu chi phối bởi các yếu tố thị trường nằm ngoài dữ liệu nội bộ, chủ yếu là <b>giá cước
+        và sức ép cạnh tranh</b>. Với họ, phân tích hành vi đã chạm giới hạn: để thực sự hiểu và giữ chân,
+        doanh nghiệp cần bổ sung tiếng nói khách hàng qua khảo sát rời mạng và nghiên cứu thị trường, thay
+        vì kỳ vọng dữ liệu vận hành trả lời thay.</p>
+      <p>Dư địa hành động thực chất nằm ở khoảng <b>7% khách còn lại</b> — nơi nguyên nhân rời mạng đến từ
+        chất lượng dịch vụ và hoàn toàn trong tầm kiểm soát của FTEL. Hai điểm nghẽn cần ưu tiên: <b>quá tải
+        chăm sóc khách hàng</b> (nhóm rủi ro lớn và ổn định nhất — nâng năng lực tiếp cận tổng đài, giảm tỷ
+        lệ cuộc gọi nhỡ) và <b>sự cố kỹ thuật lặp lại chưa xử lý dứt điểm</b> (rút ngắn thời gian khắc phục,
+        theo dõi đến khi đóng vấn đề). Đây là những cải thiện chi phí thấp nhưng tác động trực tiếp tới trải
+        nghiệm và khả năng giữ chân.</p>
+      <p>Song song, cần lưu ý một <b>“vùng xám” khoảng 4.000 khách</b> gặp sự cố kỹ thuật nhưng không hề phản
+        ánh qua tổng đài trước khi rời đi. Đây là rủi ro ẩn mà kênh phản hồi hiện tại không nắm bắt được,
+        gợi ý nhu cầu về <b>hệ thống cảnh báo sớm dựa trên tín hiệu kỹ thuật</b> thay vì chờ khách chủ động
+        khiếu nại.</p>
+      <p>Cuối cùng, kết quả phân nhóm đủ vững để làm cơ sở ra quyết định: các nhóm rủi ro tái lập ổn định
+        qua 163 lần phân tích độc lập trên cùng dữ liệu, không phải hiện tượng ngẫu nhiên của một lần chạy.</p>
+    </div>
+  </section>
+
+  <footer>
+    Nguồn: tập dữ liệu data_processed_t4 (54.262 KH · 94 cột) · phương pháp K-Means trên bộ biến hành vi
+    + giám sát hội tụ.<br>
+    Dữ liệu: khách hàng đã rời mạng tháng 4/2026; phân tích chạy ngày 16/07/2026, tổng hợp qua 163 lần chạy lặp lại. Mức lệch “gấp ×”
+    và “%” so với mặt bằng chung toàn bộ dữ liệu. Số nhóm mỗi lần chạy dao động 3–6; các nhóm rủi ro ổn định.
+  </footer>
+
+</div>
+</body>
+</html>

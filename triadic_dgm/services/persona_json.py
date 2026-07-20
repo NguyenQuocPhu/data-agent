@@ -174,6 +174,14 @@ def clean_display_persona_name(raw_name: str) -> str:
     came out identical to the base name. Collapses back to the base name. Does NOT touch
     persona_name_normalized/fingerprint matching — this is purely a display cleanup."""
     name = (raw_name or "").strip()
+    # Strip unrendered Python template literals that leak into a persona_name when the pipeline's
+    # LLM-generated naming code builds a name with an f-string but forgets the `f` prefix (or the
+    # variable is undefined) — observed live: "... - Mức thấp - {tier_counts[tier]}". The raw
+    # "{...}" fragment is never legitimate Vietnamese name text, so drop it and any dangling
+    # separator it leaves behind.
+    if "{" in name:
+        name = re.sub(r"\s*[-–]?\s*\{[^}]*\}", "", name)
+        name = re.sub(r"[\s\-–]+$", "", name).strip()
     m = _DUPLICATE_NAME_SUFFIX_RE.match(name)
     return m.group(1).strip() if m else name
 
