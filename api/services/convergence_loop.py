@@ -249,9 +249,9 @@ class ConvergenceLoop:
                     else None
                 )
                 if task_prompt is not None:
-                    result = run_once(self._agent, task_prompt=task_prompt, report_gen=self._report_gen, setup_code=self._tool_layer_code)
+                    result = run_once(self._agent, task_prompt=task_prompt, report_gen=self._report_gen, setup_code=self._tool_layer_code, profile=self._profile)
                 else:
-                    result = run_once(self._agent, report_gen=self._report_gen, setup_code=self._tool_layer_code)
+                    result = run_once(self._agent, report_gen=self._report_gen, setup_code=self._tool_layer_code, profile=self._profile)
                 try:
                     save_run(self.db_path, result)
                 except Exception as save_err:

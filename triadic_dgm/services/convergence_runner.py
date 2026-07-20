@@ -16,6 +16,7 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
 from triadic_dgm.engine import TriadicAgent
+from triadic_dgm.persona.characterization import characterize_personas
 
 from .persona_json import (
     describe_persona,
@@ -360,7 +361,7 @@ def _compose_rich_fallback_narrative(p: dict, global_means: dict, report_gen: "R
     return " ".join(s for s in (opening, value_sentence, evidence_sentence) if s)
 
 
-def enrich_personas(personas: list[dict], report_gen: "ReportGenerator | None") -> None:
+def enrich_personas(personas: list[dict], report_gen: "ReportGenerator | None", profile=None) -> None:
     """Attach a rich narrative + top-5 feature-deviation stats table to each persona,
     mutating the dicts in place. Narrative is generated via ReportGenerator.generate_llm_narrative
     (the SAME LLM call the full report uses, batched batch_size=3) — the user explicitly asked
@@ -369,7 +370,18 @@ def enrich_personas(personas: list[dict], report_gen: "ReportGenerator | None") 
     LLM"). If the LLM call fails entirely (timeout/gateway error — this loop runs every few
     minutes, so it WILL happen occasionally), falls back to the deterministic composer
     (_build_persona_story / _compose_rich_fallback_narrative / describe_persona) so one bad
-    LLM call never blocks a whole run's feed update. Never raises."""
+    LLM call never blocks a whole run's feed update. Never raises.
+
+    Args:
+        personas: Persona dicts to mutate in place.
+        report_gen: ReportGenerator used for narrative generation and mean lookups;
+            a falsy value is a no-op.
+        profile: Optional active DatasetProfile. When given, additionally attaches a
+            generic, dataset-agnostic ``distinguishing_signal`` field to each persona
+            (Phase 2) alongside the legacy telco ``churn_driver``/``domain_signature``
+            fields above, which remain untouched. Defaults to ``None`` (no-op, existing
+            behavior unchanged).
+    """
     if not report_gen or not personas:
         return
     try:
@@ -406,6 +418,15 @@ def enrich_personas(personas: list[dict], report_gen: "ReportGenerator | None") 
             # Leave the persona's original churn_driver/domain_signature untouched on any error
             # — never let this best-effort enrichment drop a persona from the run.
             continue
+
+    # ADDITIVE (Phase 2): generic, dataset-agnostic distinguishing_signal alongside the
+    # legacy telco churn_driver/domain_signature (untouched). Uses report_gen._get_means so
+    # it reads the same means the telco path used. Best-effort — never blocks a run.
+    if profile is not None:
+        try:
+            characterize_personas(personas, global_means, profile, means_getter=report_gen._get_means)
+        except Exception as e:
+            print(f"[convergence] characterize_personas failed (non-fatal): {e}")
 
     llm_narrative_by_cluster: dict = {}
     try:
@@ -502,6 +523,7 @@ def run_once(
     task_prompt: str = DEFAULT_TASK_PROMPT,
     report_gen: "ReportGenerator | None" = None,
     setup_code: str | None = None,
+    profile=None,
 ) -> RunResult:
     """Reset the agent, run one full pipeline turn against whatever dataset its workspace
     auto-selects, and extract the resulting persona list. Never raises — a bad run (LLM
@@ -512,7 +534,17 @@ def run_once(
     PROCESS from scratch, which wipes out any function (e.g. load_dataset()) injected before
     this call. Without re-injecting it every time, the pipeline's generated code silently
     falls back to whatever tiny improvised data it can cobble together instead of failing
-    loudly, which looked like a "successful" run with nonsense results."""
+    loudly, which looked like a "successful" run with nonsense results.
+
+    Args:
+        agent: The TriadicAgent instance to reset and drive for this run.
+        task_prompt: The chat turn's user prompt (defaults to the fixed telco prompt).
+        report_gen: Passed through to enrich_personas for narrative/means generation.
+        setup_code: Optional code re-injected after agent.clear() (e.g. load_dataset()).
+        profile: Optional active DatasetProfile, passed through to enrich_personas so it
+            can additionally attach a generic distinguishing_signal (Phase 2). Defaults to
+            ``None`` (existing behavior unchanged).
+    """
     run_id = uuid.uuid4().hex
     started_at = time.time()
     try:
@@ -527,7 +559,7 @@ def run_once(
 
         transcript = gradio_history[-1]["content"] if gradio_history else ""
         personas = extract_persona_list(transcript)
-        enrich_personas(personas, report_gen)
+        enrich_personas(personas, report_gen, profile=profile)
         return RunResult(
             run_id=run_id,
             started_at=started_at,
