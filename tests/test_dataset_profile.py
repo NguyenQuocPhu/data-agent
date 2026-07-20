@@ -115,3 +115,14 @@ def test_corrupt_cache_is_rebuilt(tmp_path):
     rebuilt = load_or_build_cached(df, cache_dir, dataset_name="telco")
     assert rebuilt.behavioral_features  # rebuilt, non-empty
     json.load(open(cache_file, encoding="utf-8"))  # file is valid JSON again
+
+
+def test_build_task_prompt_embeds_given_features():
+    from triadic_dgm.services.convergence_runner import build_task_prompt
+
+    prompt = build_task_prompt(["visits_total", "revenue_sum"])
+    assert "visits_total" in prompt and "revenue_sum" in prompt
+    # generic call must NOT force the telco fixed list
+    assert "cl_total_6m" not in prompt
+    # keeps the business-task trigger words the verifier relies on
+    assert "phân cụm" in prompt and "persona" in prompt

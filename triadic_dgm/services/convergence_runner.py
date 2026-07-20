@@ -258,16 +258,34 @@ def _align_name_with_driver(original_name: str, churn_driver: str) -> str:
     return f"{churn_driver}{suffix}"
 
 
-DEFAULT_TASK_PROMPT = (
-    "Hãy phân tích persona khách hàng churn dựa trên dữ liệu hiện có: thực hiện phân cụm "
-    "khách hàng (clustering) và tạo ra các persona mô tả từng nhóm, kèm churn driver, "
-    "support/support_pct và các chỉ số nghiệp vụ liên quan.\n\n"
-    "BẮT BUỘC: dùng CHÍNH XÁC danh sách behavioral_features sau để train KMeans (KHÔNG thêm, "
-    "KHÔNG bớt, KHÔNG tự chọn cột khác thay thế), theo đúng thứ tự này:\n"
-    + ", ".join(FIXED_BEHAVIORAL_FEATURES)
-    + "\nĐây là yêu cầu bắt buộc để đảm bảo kết quả phân cụm ổn định, có thể so sánh được giữa các lần chạy."
-)  # Chứa các từ khoá "phân cụm"/"persona"/"churn" để SemanticVerifier.is_business_task()
-   # (triadic_dgm/agent/verifier.py) nhận diện đúng như 1 câu hỏi thật của user.
+def build_task_prompt(features: list[str]) -> str:
+    """Build the convergence task prompt for a GIVEN behavioral feature set.
+
+    Feature list is dataset-derived (DatasetProfile.behavioral_features), not the
+    hardcoded telco constant — so the same loop works on any dataset. Keeps the
+    'phân cụm'/'persona'/'churn' trigger words so SemanticVerifier.is_business_task()
+    (triadic_dgm/agent/verifier.py) recognises it as a genuine user request.
+
+    Args:
+        features: Ordered list of behavioral feature column names to force KMeans
+            to train on, typically ``DatasetProfile.behavioral_features``.
+
+    Returns:
+        The fully-assembled Vietnamese task prompt string embedding ``features``.
+    """
+    return (
+        "Hãy phân tích persona khách hàng churn dựa trên dữ liệu hiện có: thực hiện phân cụm "
+        "khách hàng (clustering) và tạo ra các persona mô tả từng nhóm, kèm churn driver, "
+        "support/support_pct và các chỉ số nghiệp vụ liên quan.\n\n"
+        "BẮT BUỘC: dùng CHÍNH XÁC danh sách behavioral_features sau để train KMeans (KHÔNG thêm, "
+        "KHÔNG bớt, KHÔNG tự chọn cột khác thay thế), theo đúng thứ tự này:\n"
+        + ", ".join(features)
+        + "\nĐây là yêu cầu bắt buộc để đảm bảo kết quả phân cụm ổn định, có thể so sánh được giữa các lần chạy."
+    )
+
+
+# Fallback prompt when no DatasetProfile is supplied (keeps existing behavior).
+DEFAULT_TASK_PROMPT = build_task_prompt(FIXED_BEHAVIORAL_FEATURES)
 
 
 @dataclass
