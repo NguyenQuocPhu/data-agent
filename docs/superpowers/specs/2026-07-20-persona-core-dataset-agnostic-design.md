@@ -118,9 +118,11 @@ Thay `_classify_churn_driver_from_stars` + `_CHURN_DRIVER_RULES`:
 |-------|----------|--------|
 | 0 | Dọn rác: tag/branch `archive/poc`, xoá dead code + artifact khỏi `main`, cập nhật `.gitignore` | Thấp |
 | 1 | `DatasetProfile` (auto-infer + freeze/cache); wire `persona_json` + `convergence_runner`; bỏ `FIXED_BEHAVIORAL_FEATURES` & metadata-path hardcode | Trung bình |
-| 2 | `distinguishing_signal` thay `churn_driver`; migration DB cột `signature` | Trung bình |
-| 3 | Narrative/report generic; tách god-file thành package `triadic_dgm/persona/` | Cao (nhiều dòng) |
+| 2 | **(ĐIỀU CHỈNH — additive)** Thêm `characterization.py` tính `distinguishing_signal` generic từ `profile.domains`, gắn field MỚI `distinguishing_signal`; GIỮ path telco `churn_driver`/`domain_signature` chạy song song. Không đổi DB/report/feed. | Thấp |
+| 3 | **(MỞ RỘNG)** Cutover report/feed/UI sang `distinguishing_signal`; đổi tên DB cột `signature` + migration; xoá path telco; tách god-file thành package `triadic_dgm/persona/` | Cao (nhiều dòng) |
 | 4 | Prompt độc lập dataset | Cao |
+
+**Lý do điều chỉnh (phát hiện khi trace code cho Phase 2):** `churn_driver`/`domain_signature` không khu trú trong `convergence_runner` mà ăn sâu vào `report_generator.py` (~15 chỗ: naming, narrative, evidence, summary), `convergence_feed.py`→API→UI (contract hiển thị), và DB. Domain taxonomy dùng chung giữa phần tính signal (P2) và narrative (P3). Nên P2 làm **cộng thêm** (không đụng downstream), P3 mới cutover — mỗi phase vẫn ship được.
 
 Mỗi phase độc lập chạy được và có test; có thể dừng giữa chừng mà hệ thống vẫn hoạt động.
 
