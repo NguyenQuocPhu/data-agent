@@ -53,7 +53,7 @@ nạp file; cái còn khóa cứng là *ngữ nghĩa* (feature/domain/nhãn/driv
 | Onboard dataset mới | Auto-infer hoàn toàn từ CSV + metadata tự sinh; không config per-dataset |
 | Reproducibility convergence | Suy feature 1 lần rồi **freeze/cache theo dataset fingerprint** |
 | Khái niệm outcome/target | Bỏ hẳn — pipeline thuần unsupervised; `churn_driver` → `distinguishing_signal` generic |
-| Dead code archive | `triadic_dgm/benchmark/`, `Understand-Anything/`, `LAMBDA.py` (giữ dgm_agent_v2, evolution_dgm, langgraph_agent) |
+| Dead code archive | `Understand-Anything/` + artifact root (đã xóa). **CẬP NHẬT (Task 0):** `triadic_dgm/benchmark/` và `LAMBDA.py` hóa ra vẫn được code sống import (`engine.py` → `benchmark.core.proposer_agent`/`implementations.llm_unified`; `api/dependencies.py`+`ui/app.py` → `LAMBDA`), nên GIỮ LẠI. Muốn bỏ hẳn phải decouple trước (scope riêng). Giữ dgm_agent_v2, evolution_dgm, langgraph_agent. |
 | Cách dọn | Tạo git tag/branch `archive/poc` rồi xoá khỏi `main` + gitignore artifact |
 
 ## 4. Kiến trúc đích
