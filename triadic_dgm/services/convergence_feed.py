@@ -20,6 +20,7 @@ from .persona_json import (
     get_feature_label,
     get_profile_attr_label,
 )
+from triadic_dgm.persona.characterization import compose_signal_narrative
 
 CONVERGENCE_THRESHOLD_PCT_POINTS = 5.0
 
@@ -197,7 +198,7 @@ def _backfill_incomplete_persona(db_path: str, row: dict, full: dict) -> dict | 
             continue
         if not _persona_has_profile_block(complete):
             continue
-        for k in ("profile_attributes", "domain_signature", "stats_table"):
+        for k in ("profile_attributes", "domain_signature", "stats_table", "distinguishing_signal"):
             if complete.get(k):
                 full[k] = complete[k]
         if not full.get("churn_driver") and complete.get("churn_driver"):
@@ -252,6 +253,11 @@ def build_feed_items(db_path: str, limit: int = 20) -> list[dict]:
                 # persisted inside persona_json — describe_persona is only a last-resort fallback
                 # for rows saved before that enrichment existed.
                 "description": full.get("narrative") or describe_persona(full),
+                # Generic, dataset-agnostic signal (Phase 3a) — surfaced ALONGSIDE the legacy
+                # telco churn_driver/narrative so any dataset (not just telco) has a meaningful,
+                # non-churn description available to the API/UI.
+                "distinguishing_signal": full.get("distinguishing_signal"),
+                "signal_narrative": compose_signal_narrative(full),
                 # stats_table now includes BOTH the top-5 behavioral-feature deviations AND any
                 # profile_attributes (ARPU/loyalty/tier) in one unified {value, benchmark, dev_pct}
                 # table (convergence_runner.enrich_personas) — so a narrative claim referencing
@@ -326,6 +332,10 @@ def render_markdown(items: list[dict], status: dict | None = None) -> str:
             runs = hist["runs"]
             lines.append(f"### {item['persona_name']} ({len(runs)} lần chạy gần nhất)")
             lines.append("")
+            sig_text = item.get("signal_narrative") or ""
+            if sig_text:
+                lines.append(f"_Tín hiệu nổi bật (generic): {sig_text}_")
+                lines.append("")
             bf = item.get("profile_backfilled_from")
             if bf:
                 lines.append(
