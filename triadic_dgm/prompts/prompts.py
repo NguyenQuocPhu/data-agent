@@ -585,7 +585,7 @@ has_arpu = "arpu" in global_mean and global_mean["arpu"] > 0
 has_fee = any("fee" in str(c).lower() for c in global_mean.keys())
 has_churn_target = "rmdt" in [str(c).lower() for c in data.columns]
 
-has_churn_signal = has_churn_target or any(
+has_churn_signal = any(
     str(c).lower().startswith("old_") for c in data.columns
 ) and any(str(c).lower().startswith("recent_") for c in data.columns)
 
@@ -597,7 +597,7 @@ else:
     dataset_mode = "GENERIC"
 ```
 QUAN TRỌNG — GHI ĐÈ 2 CHIỀU:
-- Nếu người dùng đã nêu rõ trong yêu cầu/hội thoại rằng dữ liệu này là khách hàng ĐÃ RỜI MẠNG/ĐÃ CHURN: GIỮ NGUYÊN `dataset_mode = "POST_CHURN"` (đã là default, không cần làm gì thêm).
+- Nếu người dùng đã nêu rõ trong yêu cầu/hội thoại rằng dữ liệu này là khách hàng ĐÃ RỜI MẠNG/ĐÃ CHURN: CHỦ ĐỘNG ĐẶT `dataset_mode = "POST_CHURN"` (ghi đè default GENERIC).
 - CHỈ ghi đè sang `dataset_mode = "ACTIVE"` hoặc `"BEHAVIOR_PLUS_FEE"` khi người dùng đã NÊU RÕ TƯỜNG MINH trong yêu cầu/hội thoại rằng đây là KHÁCH HÀNG ĐANG HOẠT ĐỘNG (chưa rời mạng, cần đánh giá nguy cơ rời mạng trong TƯƠNG LAI) — dùng `has_fee`/`has_arpu` CHỈ để chọn giữa 2 mode này khi đã xác nhận là ACTIVE (`has_fee` và không `has_arpu` → `"BEHAVIOR_PLUS_FEE"`; có cả 2 → `"ACTIVE"`). NẾU KHÔNG có tín hiệu tường minh nào về việc KH đang hoạt động, TUYỆT ĐỐI KHÔNG tự suy luận sang ACTIVE/BEHAVIOR_PLUS_FEE chỉ vì có cột fee/arpu — GIỮ NGUYÊN POST_CHURN.
 
 SAU KHI TÍNH cluster_stats, dataset_mode, profile_attributes VÀ domain_signature Ở TRÊN (mục 4b), GỌI HÀM NHƯ SAU (BẮT BUỘC, KHÔNG THAY ĐỔI). `churn_drivers` dùng `domain_signature` (đã tính ở mục 4b), KHÔNG tính lại từ `cluster_stats`/`row.to_dict()`:
