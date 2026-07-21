@@ -13,6 +13,7 @@ import hashlib
 import json
 import os
 import re
+from collections.abc import Iterable
 from dataclasses import dataclass
 
 import pandas as pd
@@ -238,7 +239,7 @@ def load_or_build_cached(
 _CHURN_TARGET_TOKENS = ("rmdt", "churn")
 
 
-def has_churn_columns(columns) -> bool:
+def has_churn_columns(columns: Iterable[str]) -> bool:
     """Detect whether a dataset carries a telco-churn / target signal.
 
     Used to decide (deterministically, in Python) whether the persona pipeline
