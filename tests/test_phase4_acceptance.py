@@ -1,21 +1,15 @@
 """Phase 4 acceptance: the deterministic Python path renders a non-telco dataset generically.
 
-NOTE: data_demo_golden.csv is itself telco-shaped (paired old_*/recent_* columns), so it is
-NOT a valid non-telco fixture — has_churn_columns correctly returns True for it. This test
-therefore builds an in-memory, genuinely non-telco DataFrame and exercises the full
+This test builds an in-memory, genuinely non-telco DataFrame and exercises the full
 deterministic Phase 1->4 chain (build_profile -> has_churn_columns -> enrich_personas) on it,
-with NO LLM call. A second test locks in that the demo CSV routes to the telco path.
+with NO LLM call. A second test locks in that a telco-shaped dataset (paired old_*/recent_*
+columns) routes to the telco path, using an in-memory fixture so it always runs in CI.
 """
-import os
-
 import numpy as np
 import pandas as pd
-import pytest
 
 from triadic_dgm.persona.dataset_profile import build_profile, has_churn_columns
 from triadic_dgm.services import convergence_runner
-
-_CSV = os.path.join(os.path.dirname(__file__), "..", "data_demo_golden.csv")
 
 
 class _FakeReportGen:
@@ -68,10 +62,25 @@ def test_non_telco_dataset_is_generic_and_produces_clean_personas():
         assert name and "rời mạng" not in name.lower() and "churn" not in name.lower()
 
 
-@pytest.mark.skipif(not os.path.exists(_CSV), reason="data_demo_golden.csv fixture not present")
-def test_demo_golden_csv_routes_to_telco_path():
-    # Regression guard for the Task 7 finding: the demo CSV is telco-shaped
-    # (paired old_*/recent_* columns), so it must be detected as a churn dataset.
-    df = pd.read_csv(_CSV)
+def _telco_shaped_frame():
+    rng = np.random.default_rng(7)
+    n = 200
+    return pd.DataFrame(
+        {
+            "old_complaint": rng.poisson(1.0, n),
+            "recent_complaint": rng.poisson(3.0, n),
+            "old_call": rng.poisson(2.0, n),
+            "recent_call": rng.poisson(5.0, n),
+            "arpu": rng.normal(100.0, 20.0, n),
+        }
+    )
+
+
+def test_telco_shaped_dataset_routes_to_telco_path():
+    # Regression guard for the Task 7 finding: a dataset with paired old_*/recent_*
+    # temporal columns (the telco churn-trajectory signature) must be detected as
+    # a churn dataset, proving build_profile retains those columns in profile.labels
+    # for has_churn_columns to see.
+    df = _telco_shaped_frame()
     profile = build_profile(df)
     assert has_churn_columns(profile.labels.keys()) is True

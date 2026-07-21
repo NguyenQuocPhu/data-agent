@@ -13,6 +13,8 @@ from __future__ import annotations
 
 from typing import Callable
 
+from triadic_dgm.persona.dataset_profile import DatasetProfile
+
 
 def stars_from_max_dev(max_dev: float) -> int:
     """Map a domain's max signed relative deviation to a 1-5 star rating.
@@ -231,7 +233,7 @@ def generic_persona_name(sig: dict | None) -> str:
         return fallback
 
 
-def enforce_generic_persona(personas: list[dict], profile) -> None:
+def enforce_generic_persona(personas: list[dict], profile: DatasetProfile | None) -> None:
     """Force personas onto the generic, dataset-agnostic path, in place.
 
     Applied by the enrichment layer ONLY for non-churn datasets
