@@ -10,13 +10,17 @@ live user conversation (they mutate shared in-place state: messages, kernel, wor
 from __future__ import annotations
 
 import copy
+import json
 import os
 import threading
 import time
 
+import pandas as pd
+
 from triadic_dgm.engine import TriadicAgent
+from triadic_dgm.persona.dataset_profile import load_or_build_cached
 from triadic_dgm.services.convergence_feed import build_feed_items, render_markdown
-from triadic_dgm.services.convergence_runner import run_once
+from triadic_dgm.services.convergence_runner import build_task_prompt, run_once
 from triadic_dgm.services.convergence_store import init_db, save_run
 from triadic_dgm.services.report_generator import ReportGenerator
 
@@ -26,6 +30,7 @@ CONVERGENCE_SESSION_ID = "convergence"
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 DEFAULT_DB_PATH = os.path.join(REPO_ROOT, "cache", "convergence", "convergence.db")
 DEFAULT_SESSION_CACHE_PATH = os.path.join(REPO_ROOT, "cache", "convergence", "kernel_cache")
+DEFAULT_PROFILES_DIR = os.path.join(REPO_ROOT, "cache", "convergence", "profiles")
 
 # Idle-loop responsiveness for stop() — NOT a run cadence delay. The next run starts
 # immediately after the previous one finishes (per the "continuous loop" requirement);
@@ -107,6 +112,49 @@ def list_datasets():
 """
 
 
+def _load_convergence_dataframe(workspace_root: str) -> "pd.DataFrame | None":
+    """Read the convergence workspace's auto-selected tabular dataset into a DataFrame.
+
+    Runs outside the sandbox (unlike the injected ``load_dataset()``) so a
+    ``DatasetProfile`` can be built from the data before any agent run. Mirrors the
+    file-selection logic in ``_build_tool_layer_code``'s injected ``load_dataset()``.
+
+    Args:
+        workspace_root: Absolute path to the convergence session's workspace directory
+            (must contain an ``index.json`` produced by the upload/index step).
+
+    Returns:
+        The loaded DataFrame, or None if no usable tabular dataset is found or it
+        fails to load.
+    """
+    index_path = os.path.join(workspace_root, "index.json")
+    if not os.path.exists(index_path):
+        return None
+    with open(index_path, "r", encoding="utf-8") as f:
+        index_data = json.load(f)
+    if not index_data:
+        return None
+    tabular_exts = {".csv", ".tsv", ".xlsx", ".xls", ".parquet"}
+    entries = [
+        (fid, info) for fid, info in index_data.items()
+        if os.path.splitext(info.get("filename", info.get("path", "")))[1].lower() in tabular_exts
+    ]
+    if not entries:
+        return None
+    entries.sort(key=lambda x: x[1].get("created_at", ""), reverse=True)
+    info = entries[0][1]
+    file_path = os.path.join(workspace_root, info["path"])
+    ext = os.path.splitext(file_path)[1].lower()
+    try:
+        if ext in (".csv", ".tsv"):
+            return pd.read_csv(file_path, sep="\t" if ext == ".tsv" else ",")
+        if ext in (".xlsx", ".xls"):
+            return pd.read_excel(file_path)
+    except Exception:
+        return None
+    return None
+
+
 class ConvergenceLoop:
     def __init__(self, base_config: dict, db_path: str = DEFAULT_DB_PATH, session_cache_path: str = DEFAULT_SESSION_CACHE_PATH):
         self._base_config = base_config
@@ -115,6 +163,7 @@ class ConvergenceLoop:
         self._agent: TriadicAgent | None = None
         self._report_gen: ReportGenerator | None = None
         self._tool_layer_code: str | None = None
+        self._profile = None
         self._thread: threading.Thread | None = None
         self._stop_event = threading.Event()
         self._running = False
@@ -156,6 +205,17 @@ class ConvergenceLoop:
         self._tool_layer_code = _build_tool_layer_code(str(workspace_root))
         self._agent.run_code(self._tool_layer_code)
 
+        # Build & freeze a DatasetProfile for whatever dataset the workspace holds,
+        # so the loop's clustering features are dataset-derived, not hardcoded telco.
+        try:
+            df = _load_convergence_dataframe(str(workspace_root))
+            if df is not None:
+                self._profile = load_or_build_cached(df, DEFAULT_PROFILES_DIR)
+                print(f"[convergence] DatasetProfile: {len(self._profile.behavioral_features)} features, fp={self._profile.fingerprint}")
+        except Exception as e:
+            print(f"[convergence] DatasetProfile build failed, using fallback prompt: {e}")
+            self._profile = None
+
         # Isolate this agent's RIMRULE archive from the live chat product's — both would
         # otherwise default to the same relative path (dgm_agent_v2/rimrule_archive.json)
         # in this process/cwd and silently clobber each other's learned-rules file.
@@ -183,7 +243,15 @@ class ConvergenceLoop:
     def _loop(self) -> None:
         while not self._stop_event.is_set():
             try:
-                result = run_once(self._agent, report_gen=self._report_gen, setup_code=self._tool_layer_code)
+                task_prompt = (
+                    build_task_prompt(self._profile.behavioral_features)
+                    if self._profile and self._profile.behavioral_features
+                    else None
+                )
+                if task_prompt is not None:
+                    result = run_once(self._agent, task_prompt=task_prompt, report_gen=self._report_gen, setup_code=self._tool_layer_code, profile=self._profile)
+                else:
+                    result = run_once(self._agent, report_gen=self._report_gen, setup_code=self._tool_layer_code, profile=self._profile)
                 try:
                     save_run(self.db_path, result)
                 except Exception as save_err:

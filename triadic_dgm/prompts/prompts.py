@@ -579,19 +579,25 @@ def try_substage_cluster(data, dominant_cid, cluster_col='cluster'):
 ```
 LƯU Ý: `compute_profile_attributes` CHỈ được gọi SAU KHI đã thử Stage-2 sub-clustering (xem mục 6b bên dưới) — KHÔNG gọi ngay sau khi vừa có `data['cluster']` từ Stage-1, nếu không các sub-cluster mới tách ra sẽ có `profile_attributes` giống hệt cụm gốc (mất hết ý nghĩa của Stage-2).
 
-XÁC ĐỊNH DATASET_MODE (BẮT BUỘC TÍNH Ở ĐÂY — DUY NHẤT MỘT LẦN, KHÔNG tính lại ở bước xuất JSON cuối cùng): `dataset_mode` PHẢI có giá trị TRƯỚC KHI gọi `apply_business_rules` bên dưới, vì persona cho dữ liệu KHÁCH HÀNG ĐÃ RỜI MẠNG cần logic khác hẳn (xem `apply_business_rules`/`classify_churn_driver` ở mục 4). MẶC ĐỊNH LÀ POST_CHURN (trừ khi có `has_churn_target` → PRE_CHURN) — has_fee/has_arpu KHÔNG được dùng để suy ra ACTIVE/BEHAVIOR_PLUS_FEE nữa, vì cước phí LỊCH SỬ vẫn tồn tại bình thường trong 1 tập khách hàng đã rời mạng (LỖI ĐÃ XẢY RA: dataset có fee_total/fee_avg lịch sử bị phân loại nhầm thành "BEHAVIOR_PLUS_FEE"/"ACTIVE" dù toàn bộ mẫu thực ra ĐÃ RỜI MẠNG, khiến "Risk" (nguy cơ rời mạng TRONG TƯƠNG LAI) bị tính cho người ĐÃ RỜI MẠNG RỒI — vô nghĩa, ra kết quả kiểu ">90% khách hàng risk thấp" ngay trên chính tập KH đã rời mạng). Phần lớn dataset trong dự án này là KH đã rời mạng nên POST_CHURN là default an toàn hơn:
+XÁC ĐỊNH DATASET_MODE (BẮT BUỘC TÍNH Ở ĐÂY — DUY NHẤT MỘT LẦN, KHÔNG tính lại ở bước xuất JSON cuối cùng): `dataset_mode` PHẢI có giá trị TRƯỚC KHI gọi `apply_business_rules` bên dưới, vì persona cho dữ liệu KHÁCH HÀNG ĐÃ RỜI MẠNG cần logic khác hẳn (xem `apply_business_rules`/`classify_churn_driver` ở mục 4). MẶC ĐỊNH LÀ GENERIC (dataset không có tín hiệu churn/target) — POST_CHURN CHỈ được kích hoạt khi phát hiện tín hiệu churn/target rõ ràng (`has_churn_target`, hoặc có cặp cột `old_*`/`recent_*` cho thấy so sánh trước/sau rời mạng) hoặc người dùng NÊU RÕ TƯỜNG MINH rằng dữ liệu này là khách hàng đã churn; `has_churn_target` → PRE_CHURN — has_fee/has_arpu KHÔNG được dùng để suy ra ACTIVE/BEHAVIOR_PLUS_FEE nữa, vì cước phí LỊCH SỬ vẫn tồn tại bình thường trong 1 tập khách hàng đã rời mạng (LỖI ĐÃ XẢY RA: dataset có fee_total/fee_avg lịch sử bị phân loại nhầm thành "BEHAVIOR_PLUS_FEE"/"ACTIVE" dù toàn bộ mẫu thực ra ĐÃ RỜI MẠNG, khiến "Risk" (nguy cơ rời mạng TRONG TƯƠNG LAI) bị tính cho người ĐÃ RỜI MẠNG RỒI — vô nghĩa, ra kết quả kiểu ">90% khách hàng risk thấp" ngay trên chính tập KH đã rời mạng). Nếu KHÔNG có tín hiệu churn/target nào, GENERIC là default an toàn hơn:
 ```python
 has_arpu = "arpu" in global_mean and global_mean["arpu"] > 0
 has_fee = any("fee" in str(c).lower() for c in global_mean.keys())
 has_churn_target = "rmdt" in [str(c).lower() for c in data.columns]
 
+has_churn_signal = any(
+    str(c).lower().startswith("old_") for c in data.columns
+) and any(str(c).lower().startswith("recent_") for c in data.columns)
+
 if has_churn_target:
     dataset_mode = "PRE_CHURN"
-else:
+elif has_churn_signal:
     dataset_mode = "POST_CHURN"
+else:
+    dataset_mode = "GENERIC"
 ```
 QUAN TRỌNG — GHI ĐÈ 2 CHIỀU:
-- Nếu người dùng đã nêu rõ trong yêu cầu/hội thoại rằng dữ liệu này là khách hàng ĐÃ RỜI MẠNG/ĐÃ CHURN: GIỮ NGUYÊN `dataset_mode = "POST_CHURN"` (đã là default, không cần làm gì thêm).
+- Nếu người dùng đã nêu rõ trong yêu cầu/hội thoại rằng dữ liệu này là khách hàng ĐÃ RỜI MẠNG/ĐÃ CHURN: CHỦ ĐỘNG ĐẶT `dataset_mode = "POST_CHURN"` (ghi đè default GENERIC).
 - CHỈ ghi đè sang `dataset_mode = "ACTIVE"` hoặc `"BEHAVIOR_PLUS_FEE"` khi người dùng đã NÊU RÕ TƯỜNG MINH trong yêu cầu/hội thoại rằng đây là KHÁCH HÀNG ĐANG HOẠT ĐỘNG (chưa rời mạng, cần đánh giá nguy cơ rời mạng trong TƯƠNG LAI) — dùng `has_fee`/`has_arpu` CHỈ để chọn giữa 2 mode này khi đã xác nhận là ACTIVE (`has_fee` và không `has_arpu` → `"BEHAVIOR_PLUS_FEE"`; có cả 2 → `"ACTIVE"`). NẾU KHÔNG có tín hiệu tường minh nào về việc KH đang hoạt động, TUYỆT ĐỐI KHÔNG tự suy luận sang ACTIVE/BEHAVIOR_PLUS_FEE chỉ vì có cột fee/arpu — GIỮ NGUYÊN POST_CHURN.
 
 SAU KHI TÍNH cluster_stats, dataset_mode, profile_attributes VÀ domain_signature Ở TRÊN (mục 4b), GỌI HÀM NHƯ SAU (BẮT BUỘC, KHÔNG THAY ĐỔI). `churn_drivers` dùng `domain_signature` (đã tính ở mục 4b), KHÔNG tính lại từ `cluster_stats`/`row.to_dict()`:
@@ -738,6 +744,11 @@ def generate_actions(dataset_mode, persona_name, severity, risk, profile=None):
             actions.extend(["Theo dõi usage giảm và cảnh báo sớm (Early Warning System)", "Chạy chiến dịch Win-back Campaign nếu khách hàng tiềm năng"])
         else:
             actions.extend(["Thực hiện khảo sát nguyên nhân rời mạng (Exit Survey)", "Kiểm tra lịch sử tương tác trước khi rời mạng (Root Cause Investigation)", "Chạy chiến dịch Win-back Campaign nếu khách hàng tiềm năng"])
+    elif dataset_mode == "GENERIC":
+        actions.extend([
+            "Phân tích sâu các đặc điểm nổi bật của nhóm để hiểu hành vi đặc trưng",
+            "Xây dựng chiến lược tiếp cận phù hợp với đặc trưng của nhóm",
+        ])
     else:
         if risk in ["HIGH", "EXTREME"] or "bất mãn" in persona_name.lower():
             actions.append("Outbound CSKH chủ động để xoa dịu khách hàng")

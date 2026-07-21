@@ -102,3 +102,19 @@ dist/
 .npm/
 .pnp.*
 out.log
+
+# --- POC cleanup: ignore generated artifacts ---
+*.png
+*.pkl
+*.joblib
+*.log
+*.pdf
+cache/
+workspace/
+# data files (whitelist the small golden fixture used by tests)
+data_*.csv
+!data_demo_golden.csv
+data_processed_t4_metadata.json
+# temp reports
+bao-cao-*.html
+pipeline_flow.html
