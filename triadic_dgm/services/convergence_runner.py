@@ -265,8 +265,10 @@ def build_task_prompt(features: list[str]) -> str:
 
     Feature list is dataset-derived (DatasetProfile.behavioral_features), not the
     hardcoded telco constant — so the same loop works on any dataset. Keeps the
-    'phân cụm'/'persona'/'churn' trigger words so SemanticVerifier.is_business_task()
+    'phân cụm'/'persona' trigger words so SemanticVerifier.is_business_task()
     (triadic_dgm/agent/verifier.py) recognises it as a genuine user request.
+    Dataset-agnostic wording (no churn framing); telco churn analysis is now an
+    auto-detected specialization, not the default (Phase 4).
 
     Args:
         features: Ordered list of behavioral feature column names to force KMeans
@@ -276,9 +278,9 @@ def build_task_prompt(features: list[str]) -> str:
         The fully-assembled Vietnamese task prompt string embedding ``features``.
     """
     return (
-        "Hãy phân tích persona khách hàng churn dựa trên dữ liệu hiện có: thực hiện phân cụm "
-        "khách hàng (clustering) và tạo ra các persona mô tả từng nhóm, kèm churn driver, "
-        "support/support_pct và các chỉ số nghiệp vụ liên quan.\n\n"
+        "Hãy phân tích persona/phân khúc khách hàng dựa trên dữ liệu hiện có: thực hiện phân cụm "
+        "(clustering) và tạo ra các persona mô tả từng nhóm, kèm đặc điểm nổi bật của từng nhóm, "
+        "support/support_pct và các chỉ số liên quan.\n\n"
         "BẮT BUỘC: dùng CHÍNH XÁC danh sách behavioral_features sau để train KMeans (KHÔNG thêm, "
         "KHÔNG bớt, KHÔNG tự chọn cột khác thay thế), theo đúng thứ tự này:\n"
         + ", ".join(features)
