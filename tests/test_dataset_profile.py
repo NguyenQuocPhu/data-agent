@@ -126,3 +126,28 @@ def test_build_task_prompt_embeds_given_features():
     assert "cl_total_6m" not in prompt
     # keeps the business-task trigger words the verifier relies on
     assert "phân cụm" in prompt and "persona" in prompt
+
+
+def test_has_churn_columns_true_on_churn_target():
+    from triadic_dgm.persona.dataset_profile import has_churn_columns
+
+    assert has_churn_columns(["age", "arpu", "RMDT"]) is True
+
+
+def test_has_churn_columns_true_on_temporal_pairs():
+    from triadic_dgm.persona.dataset_profile import has_churn_columns
+
+    assert has_churn_columns(["old_complaint", "recent_complaint", "usage"]) is True
+
+
+def test_has_churn_columns_false_on_neutral_dataset():
+    from triadic_dgm.persona.dataset_profile import has_churn_columns
+
+    assert has_churn_columns(["sepal_length", "sepal_width", "petal_length"]) is False
+
+
+def test_has_churn_columns_false_on_recent_only():
+    from triadic_dgm.persona.dataset_profile import has_churn_columns
+
+    # A lone recent_* without a matching old_* is not a churn trajectory signal.
+    assert has_churn_columns(["recent_visits", "spend"]) is False

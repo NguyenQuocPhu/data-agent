@@ -233,3 +233,31 @@ def load_or_build_cached(
     with open(path, "w", encoding="utf-8") as f:
         json.dump(_to_dict(profile), f, ensure_ascii=False, indent=2)
     return profile
+
+
+_CHURN_TARGET_TOKENS = ("rmdt", "churn")
+
+
+def has_churn_columns(columns) -> bool:
+    """Detect whether a dataset carries a telco-churn / target signal.
+
+    Used to decide (deterministically, in Python) whether the persona pipeline
+    should keep the legacy telco churn path for this dataset or enforce the
+    generic, dataset-agnostic path. This is the enforcement predicate for
+    Phase 4 — the prompt's own mode guess is only soft steering.
+
+    Args:
+        columns: Iterable of raw column names (any case).
+
+    Returns:
+        True if a churn/target column is present (name contains ``rmdt`` or
+        ``churn``) OR the dataset has paired temporal ``old_*`` and ``recent_*``
+        behavioral columns (the churn-trajectory signature the telco path needs);
+        False otherwise (treat as a generic dataset).
+    """
+    cols = [str(c).lower() for c in columns]
+    if any(tok in c for c in cols for tok in _CHURN_TARGET_TOKENS):
+        return True
+    has_old = any(c.startswith("old_") or "_old" in c for c in cols)
+    has_recent = any(c.startswith("recent_") or "_recent" in c for c in cols)
+    return has_old and has_recent
