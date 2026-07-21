@@ -119,8 +119,11 @@ Thay `_classify_churn_driver_from_stars` + `_CHURN_DRIVER_RULES`:
 | 0 | Dọn rác: tag/branch `archive/poc`, xoá dead code + artifact khỏi `main`, cập nhật `.gitignore` | Thấp |
 | 1 | `DatasetProfile` (auto-infer + freeze/cache); wire `persona_json` + `convergence_runner`; bỏ `FIXED_BEHAVIORAL_FEATURES` & metadata-path hardcode | Trung bình |
 | 2 | **(ĐIỀU CHỈNH — additive)** Thêm `characterization.py` tính `distinguishing_signal` generic từ `profile.domains`, gắn field MỚI `distinguishing_signal`; GIỮ path telco `churn_driver`/`domain_signature` chạy song song. Không đổi DB/report/feed. | Thấp |
-| 3 | **(MỞ RỘNG)** Cutover report/feed/UI sang `distinguishing_signal`; đổi tên DB cột `signature` + migration; xoá path telco; tách god-file thành package `triadic_dgm/persona/` | Cao (nhiều dòng) |
-| 4 | Prompt độc lập dataset | Cao |
+| 3a | **(ĐÃ XONG)** Feed surface `distinguishing_signal` + `signal_narrative` (additive) trong JSON API + markdown | Thấp |
+| 3b | **(ĐÃ XONG)** Narrative deterministic generic từ `distinguishing_signal`; de-churn `describe_persona` | Thấp |
+| ~~3c~~ | ~~Đổi tên DB cột `signature` + migration; xoá path telco~~ **BỎ** (quyết định 2026-07-21): năng lực đa-dataset đã đạt ở P1–3ab; 3c chỉ dọn nội bộ, không thêm chức năng, còn tạo migration risk cho DB. Path telco giữ chạy song song vô hại. | — |
+| ~~3d~~ | ~~Tách god-file `report_generator.py` thành package~~ **HOÃN** (làm cùng lúc nếu/khi thật sự refactor storage) | — |
+| 4 | Prompt độc lập dataset (đòn bẩy cao nhất còn lại: prompt + UI vẫn churn-flavored) | Cao |
 
 **Lý do điều chỉnh (phát hiện khi trace code cho Phase 2):** `churn_driver`/`domain_signature` không khu trú trong `convergence_runner` mà ăn sâu vào `report_generator.py` (~15 chỗ: naming, narrative, evidence, summary), `convergence_feed.py`→API→UI (contract hiển thị), và DB. Domain taxonomy dùng chung giữa phần tính signal (P2) và narrative (P3). Nên P2 làm **cộng thêm** (không đụng downstream), P3 mới cutover — mỗi phase vẫn ship được.
 
