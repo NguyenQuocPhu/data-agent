@@ -47,7 +47,34 @@ surfaced in the feed). Phase 4 makes the **generation prompt** stop assuming chu
   `persona`, `phân cụm`, `cluster`, `segment` (not only `churn`), so de-churning the task prompt
   does not break task recognition.
 
+## 3b. Critical discovery (2026-07-21, during plan-writing) — prompt is soft guidance, not executed code
+
+`triadic_dgm/agent/programmer.py:144-160` (`clear()`) documents a battle-tested invariant:
+`PROGRAMMER_PROMPT` is sent to the LLM **RAW, with doubled braces `{{`/`}}`**, and is
+**deliberately NOT `.format()`-ed**. The embedded reference functions (`apply_business_rules`,
+`classify_churn_driver`, `generate_actions`, the mode-detection snippet) are therefore
+**syntactically malformed** in what the LLM receives (`profile = profile or {{}}`), so the LLM
+**cannot copy them verbatim and improvises its own clustering code**. Confirmed live: 358 healthy
+convergence runs on the raw (doubled-brace) prompt on 07-14; switching to `.format()` (valid braces
+→ LLM copies the canonical pipeline verbatim incl. fragile Stage-2 gates) made 100% of runs
+hard-stop to "Clustering Failed".
+
+**Consequences — two spec assumptions are now void:**
+- The embedded functions do NOT run deterministically in production. Unit-testing them by
+  extract-and-`exec` (former §5) tests something the system never executes → dropped.
+- Editing the prompt's default `dataset_mode` is **soft steering** of an improvising LLM, NOT a
+  deterministic guarantee. It cannot by itself guarantee a non-telco dataset emits no `churn_driver`.
+
+**Design pivot (user-approved 2026-07-21): "prompt steering + Python enforcement".**
+Prompt edits remain (best-effort steering, keeping the doubled-brace convention intact), but the
+**deterministic guarantees move to the Python enrichment layer** (`characterization.py` +
+`convergence_runner.enrich_personas`), which we control and can unit-test. This also reinforces the
+locked decision "characterization stays in Python, not duplicated into the prompt".
+
 ## 4. Design
+
+> Superseded-in-part by §3b: the prompt-side items below (4.1, 4.2's naming) are now **best-effort
+> steering**; the **deterministic** behavior is enforced in Python (see §4.5 Python enforcement).
 
 ### 4.1 New GENERIC mode (the new default)
 
@@ -87,39 +114,83 @@ persona / phân khúc khách hàng", "mô tả từng nhóm", drop "churn driver
 injection (Phase 1) and the trigger words `persona`/`phân cụm` so `is_business_task()` still
 recognises it.
 
-### 4.4 Verifier — keep telco safety nets, don't block generic
+### 4.4 Verifier — no code change needed
 
-The RMDT / khu_vuc leakage rules stay (they only fire on telco column names, inert elsewhere).
-Optionally guard them behind an explicit "telco columns present" condition for clarity, but no
-behavioral change for non-telco datasets is required. Trigger keywords remain a superset that
-includes generic words (`persona`, `cluster`, `phân cụm`, `segment`); `churn` stays harmlessly.
+`is_business_task()` trigger keywords already include `persona`, `cluster`, `phân cụm`, `segment`
+(`verifier.py:20-21`), so the de-churned task prompt is still recognised. The RMDT / khu_vuc
+leakage rules are column-name-gated (fire only when those telco names appear in generated code),
+so they are inert on non-telco datasets and need no change. Phase 4 adds only a **regression test**
+asserting the new task prompt is still recognised — no verifier code edit.
+
+### 4.5 Python enforcement (the deterministic layer — where guarantees live)
+
+This is the core of the pivot (§3b). All items are in the Python enrichment path we control and are
+unit-testable.
+
+- **Churn-signal predicate** — `has_churn_columns(columns) -> bool` in `dataset_profile.py`: True
+  when the dataset carries a recognisable churn/target signal (a `rmdt`/`churn`-like target column,
+  or paired temporal `old_*`/`recent_*` behavioral columns). Telco data → True; a neutral dataset
+  (iris/demo-golden) → False.
+- **Generic namer** — `generic_persona_name(sig: dict) -> str` in `characterization.py`: a
+  deterministic, dataset-neutral name from a persona's `distinguishing_signal` (top deviating
+  feature label + direction when the dominant domain is distinctive; a neutral
+  "Nhóm chưa phân hoá rõ" fallback otherwise). No churn/telco vocabulary.
+- **Generic-mode enforcement** — `enforce_generic_persona(personas, profile) -> None` in
+  `characterization.py`: applied ONLY when `has_churn_columns(...)` is False. For each persona it
+  (a) sets `persona_name = generic_persona_name(persona["distinguishing_signal"])`, and
+  (b) neutralises any churn fields the LLM may have improvised (`churn_driver`,
+  `churn_driver_evidence`, `churn_driver_confidence`, `temporal_trajectory`, and `narrative` →
+  set to None/empty) so downstream (`report_generator` `is_post_churn`, feed) renders generic.
+  Never raises; best-effort per persona.
+- **Wiring** — `convergence_runner.enrich_personas`: after the existing `characterize_personas(...)`
+  call, if `not has_churn_columns(profile...)` call `enforce_generic_persona(personas, profile)`.
+  Telco path (churn dataset) is untouched — dual-path preserved (Phase 3c dropped).
+
+### 4.6 Prompt steering (best-effort — keep doubled-brace convention)
+
+Soft nudges only; MUST preserve the `{{`/`}}` doubling (do NOT single-brace — that is the
+battle-tested invariant, §3b):
+- Mode-detection block (~lines 582-592): make `GENERIC` the documented default; POST_CHURN/PRE_CHURN
+  described as activating on a detected churn/target signal.
+- `generate_actions` (~line 714): add a `GENERIC` reference branch with neutral, dataset-agnostic
+  actions and no churn vocabulary.
+- `build_task_prompt` (`convergence_runner.py:262`): de-churn the instruction (§4.3), keep the
+  `persona`/`phân cụm` trigger words and the feature-list injection.
 
 ## 5. Testing
 
-- **Unit (primary lever):** extract the pure embedded functions (`apply_business_rules`,
-  `generate_actions`, and the mode-detection snippet) and `exec`/import them in a test.
-  Assert: a non-churn/no-target column set → `GENERIC`; churn/target columns → `POST_CHURN`;
-  the GENERIC branch of `generate_actions`/`apply_business_rules` contains no churn vocabulary and
-  emits no `churn_driver` key.
-- **Prompt-parse smoke:** the embedded function bodies still parse/exec cleanly after the edit
-  (guards against breaking the giant `.format()` string).
-- **Acceptance (main):** run the pipeline on `data_demo_golden.csv` (non-telco) → personas with
-  generic names + `distinguishing_signal`, no `churn_driver`, no crash / no missing-telco-column
-  error.
-- **Regression:** a telco dataset still resolves to `POST_CHURN`, `churn_driver` present; existing
-  convergence/feed/characterization tests stay green. Byte-compare the POST_CHURN branch output to
-  confirm telco path unchanged.
+- **Unit (primary lever — deterministic Python):**
+  - `has_churn_columns`: True on telco-ish columns (`rmdt`, `old_*`/`recent_*` pairs), False on a
+    neutral column set.
+  - `generic_persona_name`: distinctive signal → dataset-neutral name containing no churn/telco
+    words and no "Khách hàng"; weak/empty signal → the neutral fallback.
+  - `enforce_generic_persona`: on a generic dataset, a persona carrying an LLM-improvised
+    `churn_driver` gets it neutralised and `persona_name` replaced from its signal; on a churn
+    dataset the function is not applied and telco fields stay intact.
+  - Verifier recognition: `is_business_task(build_task_prompt([...]))` is True after de-churning.
+- **Prompt-invariant smoke:** `PROGRAMMER_PROMPT_V2` still has balanced doubled braces
+  (`count('{{') == count('}}')`) after the edit — guards the raw-prompt invariant (§3b).
+- **Acceptance (behavioral, documented run — not a fast unit test):** run the pipeline on
+  `data_demo_golden.csv` (non-telco) → personas with generic names + `distinguishing_signal`, no
+  `churn_driver`, no crash / no missing-telco-column error.
+- **Regression:** existing convergence/feed/characterization/dataset_profile tests stay green; on a
+  telco dataset `enforce_generic_persona` is NOT applied so `churn_driver` and telco naming remain.
 
 ## 6. Risks & mitigation
 
-- **Prompt is an un-compiled `.format()` string the LLM executes.** Mitigate with surgical edits
-  (add branches + flip default; no restructuring), the prompt-parse smoke test, and telco
-  byte-comparison.
-- **`{`/`}` escaping in the prompt string:** any new dict/set literal added to the embedded code
-  must be doubled (`{{`/`}}`) to survive `.format()`. Covered by the parse smoke test.
-- **Duplication with `report_generator.py`:** the embedded functions partly mirror
-  report_generator logic. Phase 4 does NOT dedupe this (that is Phase 3d / report_generator scope,
-  explicitly out of scope); it only adds the GENERIC branch in-prompt.
+- **Prompt is raw guidance the LLM improvises from, NOT executed code (§3b).** So prompt edits are
+  best-effort; the guarantees live in the Python enforcement layer (§4.5). Mitigate LLM
+  non-determinism by making Python the enforcement point (neutralise churn fields regardless of
+  what the LLM emits).
+- **Doubled-brace invariant (§3b):** the prompt MUST keep `{{`/`}}` doubled — do NOT "fix" braces.
+  Any new dict/set literal added to the embedded reference code must also be doubled. Guarded by the
+  prompt-invariant smoke test (`count('{{') == count('}}')`).
+- **Telco regression via Python enforcement:** `enforce_generic_persona` must run ONLY when
+  `has_churn_columns` is False, so telco personas are never renamed/neutralised. Guarded by the
+  churn-dataset regression test.
+- **Duplication with `report_generator.py`:** the embedded reference functions partly mirror
+  report_generator logic. Phase 4 does NOT dedupe this (Phase 3d / report_generator scope, out of
+  scope).
 
 ## 7. Out of scope (future)
 
