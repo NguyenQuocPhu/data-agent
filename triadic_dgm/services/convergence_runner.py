@@ -16,7 +16,8 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
 from triadic_dgm.engine import TriadicAgent
-from triadic_dgm.persona.characterization import characterize_personas
+from triadic_dgm.persona.characterization import characterize_personas, enforce_generic_persona
+from triadic_dgm.persona.dataset_profile import has_churn_columns
 
 from .persona_json import (
     describe_persona,
@@ -427,6 +428,17 @@ def enrich_personas(personas: list[dict], report_gen: "ReportGenerator | None", 
             characterize_personas(personas, global_means, profile, means_getter=report_gen._get_means)
         except Exception as e:
             print(f"[convergence] characterize_personas failed (non-fatal): {e}")
+
+    # Phase 4 (deterministic guarantee): for a NON-churn dataset, force personas onto the
+    # generic path — name them from distinguishing_signal and null the telco churn fields the
+    # deterministic block above (and/or the improvising LLM) may have set. Runs BEFORE narrative
+    # generation so the fallback composer sees churn_driver=None and stays generic. Telco
+    # datasets (has_churn_columns True) are untouched — dual-path preserved (Phase 3c dropped).
+    if profile is not None and not has_churn_columns(getattr(profile, "labels", {}).keys()):
+        try:
+            enforce_generic_persona(personas, profile)
+        except Exception as e:
+            print(f"[convergence] enforce_generic_persona failed (non-fatal): {e}")
 
     llm_narrative_by_cluster: dict = {}
     try:
