@@ -119,3 +119,43 @@ def test_generic_persona_name_weak_signal_falls_back():
 
 def test_generic_persona_name_none_is_safe():
     assert generic_persona_name(None) == "Nhóm chưa phân hoá rõ"
+
+
+from triadic_dgm.persona.characterization import enforce_generic_persona
+
+
+def test_enforce_generic_persona_neutralises_churn_and_renames():
+    p = {
+        "persona_name": "Khách hàng âm thầm rời mạng",
+        "churn_driver": "Silent Premium Churn",
+        "churn_driver_evidence": "…",
+        "churn_driver_confidence": "MEDIUM",
+        "temporal_trajectory": [1, 2, 3],
+        "domain_signature": {"value": {"stars": 5}},
+        "distinguishing_signal": {
+            "dominant_domain": "usage",
+            "stars": {"usage": {"stars": 4, "max_dev": 2.1}},
+            "top_features": [{"feature": "usage_avg", "label": "Mức sử dụng", "deviation": 2.1}],
+            "evidence": "…",
+        },
+    }
+    enforce_generic_persona([p], profile=object())
+    assert p["churn_driver"] is None
+    assert p["churn_driver_evidence"] is None
+    assert p["churn_driver_confidence"] is None
+    assert p["temporal_trajectory"] == []
+    assert p["domain_signature"] == {}
+    assert "rời mạng" not in p["persona_name"].lower()
+    assert "Mức sử dụng" in p["persona_name"]
+
+
+def test_enforce_generic_persona_is_best_effort():
+    # A degenerate persona (no signal) must not raise and must still null churn.
+    p = {"persona_name": "x", "churn_driver": "Y"}
+    enforce_generic_persona([p], profile=object())
+    assert p["churn_driver"] is None
+    assert p["persona_name"] == "Nhóm chưa phân hoá rõ"
+
+
+def test_enforce_generic_persona_empty_list_is_noop():
+    enforce_generic_persona([], profile=object())  # must not raise

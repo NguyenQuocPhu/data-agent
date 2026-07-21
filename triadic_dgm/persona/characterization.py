@@ -229,3 +229,32 @@ def generic_persona_name(sig: dict | None) -> str:
         return fallback
     except Exception:
         return fallback
+
+
+def enforce_generic_persona(personas: list[dict], profile) -> None:
+    """Force personas onto the generic, dataset-agnostic path, in place.
+
+    Applied by the enrichment layer ONLY for non-churn datasets
+    (see :func:`triadic_dgm.persona.dataset_profile.has_churn_columns`). For
+    each persona it sets a generic ``persona_name`` from the persona's
+    ``distinguishing_signal`` and neutralises every telco churn field so
+    downstream (report_generator ``is_post_churn`` detection, feed, UI) renders
+    generically regardless of what the improvising LLM emitted. This is the
+    deterministic guarantee behind Phase 4. Best-effort per persona; never raises.
+
+    Args:
+        personas: Persona dicts to mutate in place.
+        profile: Active DatasetProfile (accepted for symmetry / future use).
+    """
+    if not personas:
+        return
+    for p in personas:
+        try:
+            p["persona_name"] = generic_persona_name(p.get("distinguishing_signal"))
+            p["churn_driver"] = None
+            p["churn_driver_evidence"] = None
+            p["churn_driver_confidence"] = None
+            p["temporal_trajectory"] = []
+            p["domain_signature"] = {}
+        except Exception:
+            continue
