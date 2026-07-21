@@ -82,3 +82,40 @@ def test_characterize_never_raises_on_bad_persona():
     ]
     characterize_personas(personas, {"x": 1.0}, profile)  # must not raise
     assert "distinguishing_signal" in personas[1]
+
+
+from triadic_dgm.persona.characterization import generic_persona_name
+
+
+def _strong_sig():
+    return {
+        "dominant_domain": "usage",
+        "stars": {"usage": {"stars": 4, "max_dev": 2.1}},
+        "top_features": [{"feature": "usage_avg", "label": "Mức sử dụng", "deviation": 2.1}],
+        "evidence": "…",
+    }
+
+
+def test_generic_persona_name_from_strong_signal():
+    name = generic_persona_name(_strong_sig())
+    assert "Mức sử dụng" in name
+    assert "cao" in name
+    # dataset-neutral: no telco/churn vocabulary
+    assert "churn" not in name.lower()
+    assert "rời mạng" not in name.lower()
+    assert "Khách hàng" not in name
+
+
+def test_generic_persona_name_negative_direction():
+    sig = _strong_sig()
+    sig["top_features"][0]["deviation"] = -1.5
+    assert "thấp" in generic_persona_name(sig)
+
+
+def test_generic_persona_name_weak_signal_falls_back():
+    weak = {"dominant_domain": "usage", "stars": {"usage": {"stars": 1, "max_dev": 0.0}}, "top_features": [], "evidence": ""}
+    assert generic_persona_name(weak) == "Nhóm chưa phân hoá rõ"
+
+
+def test_generic_persona_name_none_is_safe():
+    assert generic_persona_name(None) == "Nhóm chưa phân hoá rõ"

@@ -195,3 +195,37 @@ def compose_signal_narrative(persona: dict) -> str:
         return " ".join(parts)
     except Exception:
         return ""
+
+
+def generic_persona_name(sig: dict | None) -> str:
+    """Deterministic, dataset-neutral persona name from a distinguishing_signal.
+
+    Names the persona after its single most-deviating feature and direction when
+    the dominant domain is distinctive (>= 3 stars), else a neutral fallback.
+    Contains NO churn/telco vocabulary. Best-effort: never raises.
+
+    Args:
+        sig: A persona's ``distinguishing_signal`` dict (see
+            :func:`distinguishing_signal`), or None.
+
+    Returns:
+        A short, dataset-agnostic Vietnamese persona name; the neutral
+        "Nhóm chưa phân hoá rõ" when no distinctive signal is present.
+    """
+    fallback = "Nhóm chưa phân hoá rõ"
+    try:
+        if not isinstance(sig, dict) or not sig:
+            return fallback
+        dom = sig.get("dominant_domain")
+        stars = sig.get("stars") or {}
+        dom_info = stars.get(dom) if isinstance(stars, dict) else None
+        dom_stars = dom_info.get("stars", 0) if isinstance(dom_info, dict) else 0
+        top = sig.get("top_features") or []
+        if dom and dom_stars >= 3 and top:
+            t = top[0]
+            label = t.get("label") or t.get("feature") or dom
+            direction = "cao" if t.get("deviation", 0) >= 0 else "thấp"
+            return f"Nhóm {label} {direction}"
+        return fallback
+    except Exception:
+        return fallback
