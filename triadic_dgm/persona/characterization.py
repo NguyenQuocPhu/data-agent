@@ -244,6 +244,17 @@ def enforce_generic_persona(personas: list[dict], profile: DatasetProfile | None
     generically regardless of what the improvising LLM emitted. This is the
     deterministic guarantee behind Phase 4. Best-effort per persona; never raises.
 
+    Also neutralises ``severity``/``risk``/``risk_tier``: the LLM's
+    ``apply_business_rules``/``classify_risk_tier`` derive all three from
+    telco keyword matches (complaint/call/cl_total) and telco profile keys
+    (high_spender_pct, tier_downgrade_rate, ...) that never fire on non-telco
+    data, so they always collapse to the same constant values (severity/risk
+    "LOW", risk_tier "Nhóm bị động – theo dõi & cảnh báo") — technically true
+    but meaningless labels that render as noise (or dump every persona into
+    one bucket) on a dataset with no severity/risk/risk-tier concept. Nulling
+    them lets the report/UI layer drop those fields instead of showing a
+    constant, uninformative value.
+
     Args:
         personas: Persona dicts to mutate in place.
         profile: Active DatasetProfile (accepted for symmetry / future use).
@@ -252,11 +263,20 @@ def enforce_generic_persona(personas: list[dict], profile: DatasetProfile | None
         return
     for p in personas:
         try:
+            # Explicit mode marker: downstream renderers (report_generator, feed, UI) must be able
+            # to tell "generic dataset" apart from "telco dataset that happens to score LOW on
+            # everything". Without it they fall back to telco keyword heuristics that silently
+            # match nothing and then assert telco facts as true (e.g. "ARPU ở mức thấp",
+            # "ít khi liên hệ CSKH") about a dataset that has no such columns at all.
+            p["dataset_mode"] = "GENERIC"
             p["persona_name"] = generic_persona_name(p.get("distinguishing_signal"))
             p["churn_driver"] = None
             p["churn_driver_evidence"] = None
             p["churn_driver_confidence"] = None
             p["temporal_trajectory"] = []
             p["domain_signature"] = {}
+            p["severity"] = None
+            p["risk"] = None
+            p["risk_tier"] = None
         except Exception:
             continue

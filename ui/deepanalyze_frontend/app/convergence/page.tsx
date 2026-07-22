@@ -329,7 +329,7 @@ export default function ConvergencePage() {
                 </div>
                 {p.profile_backfilled_from && (
                   <p className="text-xs text-amber-600 dark:text-amber-500">
-                    ⓘ Lần chạy mới nhất không tính được nhóm chỉ số phụ (ARPU/loyalty/churn driver) —
+                    ⓘ Lần chạy mới nhất không tính được nhóm chỉ số phụ (profile attributes) —
                     đang hiển thị bản đầy đủ gần nhất của cùng cụm này (lượt{" "}
                     {formatTime(p.profile_backfilled_from.created_at)}). Support % vẫn của lần chạy mới nhất.
                   </p>
@@ -357,13 +357,13 @@ export default function ConvergencePage() {
                       ? renderCompactStatsTable(
                           p.stats_table,
                           p.history.profile_features,
-                          "Feature đóng góp phân tích persona (ARPU/loyalty/tier — KHÔNG dùng để phân cụm)",
+                          "Feature đóng góp phân tích persona (KHÔNG dùng để phân cụm)",
                           `giống hệt nhau ở cả ${p.history.runs.length} lần chạy — không lặp lại từng cột`
                         )
                       : renderFeatureHistoryTable(
                           p.history,
                           p.history.profile_features,
-                          "Feature đóng góp phân tích persona (ARPU/loyalty/tier — KHÔNG dùng để phân cụm)"
+                          "Feature đóng góp phân tích persona (KHÔNG dùng để phân cụm)"
                         )}
                   </div>
                 ) : null}
@@ -411,7 +411,7 @@ export default function ConvergencePage() {
                     {renderCompactStatsTable(
                       p.stats_table,
                       p.stats_table.filter((s) => s.is_profile_attr).map((s) => s.feature),
-                      "Feature đóng góp phân tích persona (ARPU/loyalty/tier — KHÔNG dùng để phân cụm)"
+                      "Feature đóng góp phân tích persona (KHÔNG dùng để phân cụm)"
                     )}
                   </>
                 )}

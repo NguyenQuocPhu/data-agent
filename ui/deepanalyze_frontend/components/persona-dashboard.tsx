@@ -175,7 +175,7 @@ export function PersonaDashboard({ data }: PersonaDashboardProps) {
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Revenue at Risk</CardTitle>
+            <CardTitle className="text-sm font-medium">{hasRevenueData ? "Total Revenue at Risk" : "Revenue Data"}</CardTitle>
             <Coins className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -197,20 +197,24 @@ export function PersonaDashboard({ data }: PersonaDashboardProps) {
             >
               Population Overview
             </Badge>
-            <Badge
-              variant={activeTab === "churn" ? "default" : "outline"}
-              className="cursor-pointer"
-              onClick={() => setActiveTab("churn")}
-            >
-              Churn Risk (Radar)
-            </Badge>
-            <Badge
-              variant={activeTab === "revenue" ? "default" : "outline"}
-              className="cursor-pointer"
-              onClick={() => setActiveTab("revenue")}
-            >
-              Revenue at Risk
-            </Badge>
+            {hasChurnData && (
+              <Badge
+                variant={activeTab === "churn" ? "default" : "outline"}
+                className="cursor-pointer"
+                onClick={() => setActiveTab("churn")}
+              >
+                Churn Risk (Radar)
+              </Badge>
+            )}
+            {hasRevenueData && (
+              <Badge
+                variant={activeTab === "revenue" ? "default" : "outline"}
+                className="cursor-pointer"
+                onClick={() => setActiveTab("revenue")}
+              >
+                Revenue at Risk
+              </Badge>
+            )}
           </div>
         </CardHeader>
         <CardContent>
@@ -238,7 +242,7 @@ export function PersonaDashboard({ data }: PersonaDashboardProps) {
               </ResponsiveContainer>
             )}
 
-            {activeTab === "churn" && (
+            {activeTab === "churn" && hasChurnData && (
               <ResponsiveContainer width="100%" height="100%">
                 <RadarChart cx="50%" cy="50%" outerRadius="80%" data={chartData}>
                   <PolarGrid opacity={0.3} />
@@ -251,7 +255,7 @@ export function PersonaDashboard({ data }: PersonaDashboardProps) {
               </ResponsiveContainer>
             )}
 
-            {activeTab === "revenue" && (
+            {activeTab === "revenue" && hasRevenueData && (
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 60 }}>
                   <CartesianGrid strokeDasharray="3 3" opacity={0.3} />

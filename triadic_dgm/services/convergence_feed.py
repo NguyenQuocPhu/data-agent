@@ -339,7 +339,7 @@ def render_markdown(items: list[dict], status: dict | None = None) -> str:
             bf = item.get("profile_backfilled_from")
             if bf:
                 lines.append(
-                    f"_ⓘ Lần chạy mới nhất không tính được nhóm chỉ số phụ (ARPU/loyalty/churn driver) — "
+                    f"_ⓘ Lần chạy mới nhất không tính được nhóm chỉ số phụ (profile attributes) — "
                     f"đang hiển thị bản đầy đủ gần nhất của cùng cụm này (lượt {_format_time(bf.get('created_at'))}). "
                     f"Support % vẫn của lần chạy mới nhất._"
                 )
@@ -399,12 +399,12 @@ def render_markdown(items: list[dict], status: dict | None = None) -> str:
                 _render_wide("Feature đóng góp phân cụm (dùng để train KMeans)", hist["cluster_features"])
             if hist.get("profile_stable"):
                 _render_compact(
-                    "Feature đóng góp phân tích persona (ARPU/loyalty/tier — KHÔNG dùng để phân cụm)",
+                    "Feature đóng góp phân tích persona (KHÔNG dùng để phân cụm)",
                     hist["profile_features"],
                 )
             else:
                 _render_wide(
-                    "Feature đóng góp phân tích persona (ARPU/loyalty/tier — KHÔNG dùng để phân cụm)",
+                    "Feature đóng góp phân tích persona (KHÔNG dùng để phân cụm)",
                     hist["profile_features"],
                 )
 

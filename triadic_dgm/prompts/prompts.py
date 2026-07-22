@@ -42,10 +42,10 @@ CRITICAL REQUIREMENT: YOU MUST NOT output any analysis, explanation, or markdown
 NO MATTER WHAT THE USER ASKS (even if they just say "EDA" or "Analyze"), YOU MUST ALWAYS WRITE THE FULL CLUSTERING PIPELINE AND OUTPUT THE JSON PERSONA AT THE END. Never stop at basic EDA!
 
 [READ THIS CAREFULLY FOR METADATA]
-Bộ dữ liệu đã bị xoá các cột time-series (T1, T2, T3, T4). Dưới đây là TỪ ĐIỂN DỮ LIỆU CHÍNH THỨC. Bạn BẮT BUỘC phải áp dụng chính xác các định nghĩa này:
+Nếu phần METADATA dưới đây có nội dung (không rỗng), đó là TỪ ĐIỂN DỮ LIỆU CHÍNH THỨC cho CHÍNH dataset đang phân tích — bạn BẮT BUỘC phải áp dụng chính xác các định nghĩa này. Nếu phần METADATA rỗng, bỏ qua mục này (dataset này không có metadata bổ sung, không cần suy diễn):
 --- BẮT ĐẦU METADATA ---
 {{METADATA_PLACEHOLDER}}
---- KẾT THÚC METADATA --- 
+--- KẾT THÚC METADATA ---
 
 QUY TẮC VỀ CỘT DOANH THU (áp dụng chung, không riêng dataset nào): nếu dataset KHÔNG CÓ cột doanh
 thu (cuoc_hang_thang) và/hoặc cột nhãn (RMDT), TUYỆT ĐỐI KHÔNG ĐƯỢC tự hardcode ARPU = 609,620 hay
@@ -53,8 +53,8 @@ bất kỳ con số doanh thu/churn ảo nào — để 0 trong báo cáo JSON. 
 biến nào khác làm proxy để nhân lên thành doanh thu (như CTBDV * 2)! (Nếu biến hành vi thực sự có
 variance = 0 — TỰ KIỂM TRA THẬT trên dữ liệu, KHÔNG giả định trước — pipeline K-Means/Stage-2/
 OUTLIER_DRIVEN ở các mục bên dưới đã có cơ chế fallback tương ứng, không cần xử lý riêng ở đây.)
-2. FEATURE EXCLUSION GATE & ANTI-HALLUCINATION: BẮT BUỘC LOẠI BỎ các biến sau khỏi quá trình clustering: fee_total, arpu, revenue, ctbdv, và các cột bắt đầu bằng fee_, segment_, cnt_. Các biến này chỉ dùng để tính Revenue Impact sau khi cluster xong. CHỈ sử dụng biến hành vi: call_total, complaint_total, cl_total, csat, network quality. KHÔNG ĐƯỢC TỰ BỊA RA TÊN CỘT ảo. BẠN BẮT BUỘC PHẢI lưu tập features dùng để train KMeans ra file trung gian `intermediate_features.csv` để người dùng kiểm định! LOẠI BỎ ID, Địa lý và Cước khi train. TUYỆT ĐỐI CẤM đưa các cột do CHÍNH PIPELINE này sinh ra (`cluster`, `persona_text`, `is_anomaly`, `priority_score`) vào `behavioral_features` — nếu để lọt, `cluster_stats`/`global_mean`/`evidence` sẽ hiện ra dòng "cluster tăng rất mạnh" vô nghĩa trong báo cáo cuối cùng.
-3. FEATURE PREPARATION & TYPE ERROR PREVENTION: KHÔNG ĐƯỢC gom cụm các biến T1, T2, T3, T4 nữa (vì đã bị xoá). HÃY TRỰC TIẾP SỬ DỤNG CÁC BIẾN ĐÃ ĐƯỢC TỔNG HỢP SẴN TRONG DATA (ví dụ các cột bắt đầu bằng `Total_` hoặc `TOTAL_`). CỰC KỲ CHÚ Ý: Dataset có nhiều cột chứa String/Text. NGAY SAU KHI `behavioral_features` được chốt danh sách cuối cùng (TRƯỚC KHI build `X`/train KMeans), BẮT BUỘC chạy ĐÚNG dòng sau để ép kiểu SỐ NGAY TRÊN `data` GỐC (không chỉ ép kiểu trên 1 bản sao/matrix riêng để train KMeans — nếu chỉ ép kiểu trên bản sao, các bước SAU đó như `cluster_stats = data.groupby('cluster')[behavioral_features].mean()` vẫn sẽ dùng cột String gốc và ném lỗi `TypeError: can only concatenate str (not "int") to str`, lỗi này ĐÃ XẢY RA TRÊN DỮ LIỆU THẬT):
+2. FEATURE EXCLUSION GATE & ANTI-HALLUCINATION: BẮT BUỘC dùng CHÍNH XÁC danh sách `behavioral_features` đã được liệt kê trong yêu cầu ở trên (danh sách này do hệ thống tự suy ra từ CHÍNH dataset đang phân tích — KHÔNG được tự chọn cột theo tên cột hardcode như call_total/complaint_total/cl_total/csat, đó chỉ là ví dụ của MỘT dataset cụ thể (telco), KHÔNG áp dụng cho mọi dataset). Nếu yêu cầu KHÔNG có sẵn danh sách features, tự chọn các cột SỐ có ý nghĩa hành vi/mô tả, LOẠI BỎ cột ID, cột hằng số/near-constant, và (nếu tồn tại trong dataset này) các cột chỉ dùng để tính doanh thu/giá như fee_total, arpu, revenue, ctbdv, và các cột bắt đầu bằng fee_, segment_, cnt_ — các biến này chỉ dùng để tính Revenue Impact sau khi cluster xong, không phải feature clustering. KHÔNG ĐƯỢC TỰ BỊA RA TÊN CỘT ảo. BẠN BẮT BUỘC PHẢI lưu tập features dùng để train KMeans ra file trung gian `intermediate_features.csv` để người dùng kiểm định! LOẠI BỎ ID, Địa lý và Cước khi train. TUYỆT ĐỐI CẤM đưa các cột do CHÍNH PIPELINE này sinh ra (`cluster`, `persona_text`, `is_anomaly`, `priority_score`) vào `behavioral_features` — nếu để lọt, `cluster_stats`/`global_mean`/`evidence` sẽ hiện ra dòng "cluster tăng rất mạnh" vô nghĩa trong báo cáo cuối cùng.
+3. FEATURE PREPARATION & TYPE ERROR PREVENTION: LUÔN sử dụng ĐÚNG danh sách `behavioral_features` đã chốt ở mục 2 phía trên (KHÔNG tự suy diễn thêm biến tổng hợp/thời gian nào khác ngoài danh sách đó — nếu dataset này có sẵn các cột tổng hợp như `Total_`/`TOTAL_`, chúng CHỈ được dùng khi đã nằm trong `behavioral_features`). CỰC KỲ CHÚ Ý: Dataset có nhiều cột chứa String/Text. NGAY SAU KHI `behavioral_features` được chốt danh sách cuối cùng (TRƯỚC KHI build `X`/train KMeans), BẮT BUỘC chạy ĐÚNG dòng sau để ép kiểu SỐ NGAY TRÊN `data` GỐC (không chỉ ép kiểu trên 1 bản sao/matrix riêng để train KMeans — nếu chỉ ép kiểu trên bản sao, các bước SAU đó như `cluster_stats = data.groupby('cluster')[behavioral_features].mean()` vẫn sẽ dùng cột String gốc và ném lỗi `TypeError: can only concatenate str (not "int") to str`, lỗi này ĐÃ XẢY RA TRÊN DỮ LIỆU THẬT):
 ```python
 data[behavioral_features] = data[behavioral_features].apply(lambda c: pd.to_numeric(c, errors='coerce')).fillna(0)
 ```
@@ -893,7 +893,7 @@ Nếu Total Revenue = 0 hoặc ARPU = 0 (do thiếu dữ liệu), BẠN BẮT BU
 #2 [Insight/Action 2] cho [Persona 2]
 #3 [Insight/Action 3] cho [Persona 3]
 **Explainability (Tại sao nên tin AI này):**
-- Personas sinh từ thuật toán K-Means thuần túy dựa trên hành vi (Không dùng biến mục tiêu RMDT, không Target Leakage).
+- Personas sinh từ thuật toán K-Means thuần túy dựa trên hành vi (Không dùng bất kỳ biến mục tiêu/nhãn nào của dataset trong lúc clustering, không Target Leakage).
 - Hidden Rules được khai phá từ Decision Tree.
 - K-Means ban đầu tạo ra số lượng cụm lớn, sau đó gộp lại dựa trên rule tự động để đảm bảo độ lớn của cụm.
 - Silhouette Score = [Lấy từ JSON/Log]. STRICT RULE (RULE_SINGLE_DOMINANT_CLUSTER): Nếu cụm lớn nhất chiếm > 80% data, BẮT BUỘC hiển thị cảnh báo: "⚠️ Dominant Cluster Detected: [Tỷ lệ]% khách hàng nằm trong cùng một cụm. Kết quả này phản ánh dữ liệu quá đồng nhất, không phản ánh sự tồn tại của nhiều persona riêng biệt. Silhouette cao nhưng bị chi phối bởi việc tách outlier."
@@ -902,7 +902,7 @@ Nếu Total Revenue > 0, hãy xuất đúng format gốc:
 **Tổng KH:** [Total Support] | **Tổng Revenue:** [Sum of Total Revenue] VNĐ/tháng
 **Business Impact:** Nếu không can thiệp, hệ thống ước tính rủi ro mất khoảng [Sum of Revenue at Risk] VNĐ doanh thu/tháng từ các nhóm hiện tại.
 **Explainability (Tại sao nên tin AI này):**
-- Personas sinh từ thuật toán K-Means thuần túy dựa trên hành vi (Không dùng biến mục tiêu RMDT, không Target Leakage).
+- Personas sinh từ thuật toán K-Means thuần túy dựa trên hành vi (Không dùng bất kỳ biến mục tiêu/nhãn nào của dataset trong lúc clustering, không Target Leakage).
 - Hidden Rules được khai phá từ Decision Tree.
 - K-Means ban đầu tạo ra số lượng cụm lớn, sau đó gộp lại dựa trên rule tự động để đảm bảo độ lớn của cụm.
 - Silhouette Score = [Lấy từ JSON/Log]. STRICT RULE (RULE_SINGLE_DOMINANT_CLUSTER): Nếu cụm lớn nhất chiếm > 80% data, BẮT BUỘC hiển thị cảnh báo: "⚠️ Dominant Cluster Detected: [Tỷ lệ]% khách hàng nằm trong cùng một cụm. Kết quả này phản ánh dữ liệu quá đồng nhất, không phản ánh sự tồn tại của nhiều persona riêng biệt. Silhouette cao nhưng bị chi phối bởi việc tách outlier."
@@ -915,7 +915,8 @@ Nếu Total Revenue > 0, hãy xuất đúng format gốc:
 ### 👥 Tab 1: Personas
 (Provide a clear summary of ALL identified Personas. 
 CRITICAL ANTI-HALLUCINATION RULE: You MUST strictly extract Persona Names, Support, ARPU, and Churn Rate from the JSON output of the python execution. DO NOT invent your own Persona Names. Act as a pure translator/formatter of the statistical JSON data.
-NẾU Total Revenue = 0 (Root Cause Analysis Mode) hoặc BEHAVIOR_PLUS_FEE: BẮT BUỘC format bảng như sau:
+NẾU Total Revenue = 0 (Root Cause Analysis Mode) hoặc BEHAVIOR_PLUS_FEE: BẮT BUỘC format bảng như sau.
+NẾU field `severity`/`risk` của TẤT CẢ persona trong JSON đều là `null`/None (dataset không có khái niệm severity/risk kỹ thuật, ví dụ dataset không phải telco): BỎ 2 cột "Mức độ (Severity)" và "Rủi ro (Risk)" khỏi bảng — KHÔNG hiển thị cột với giá trị "LOW" vô nghĩa. Nếu ít nhất 1 persona có `severity`/`risk` khác null: giữ nguyên 2 cột như bên dưới.
 | Persona | Lớp (Type) | Mức độ (Severity) | Rủi ro (Risk) | Số KH | % | Evidence (Đặc trưng) | Confidence |
 |---|---|---|---|---|---|---|---|
 | [persona_name] | [persona_type] | [severity] | [risk] | [support] | [support_pct%] | [Từ `evidence`] | [confidence] |
@@ -943,18 +944,18 @@ QUY TẮC PHÂN TÍCH: Chỉ được nhận xét về feature nào có giá tr�
 NẾU Total Revenue > 0: Analyze the Churn Rate and Revenue at Risk. STRICT BUSINESS METRIC: You MUST calculate `Priority Score = Revenue at Risk * Churn Rate`. Priority MUST be ranked strictly descending by Priority Score (ROI Intervention). Các cột BẮT BUỘC: Persona | Priority Score | Revenue at Risk | Potential Saved (20%) | Potential Saved (30%) | Potential Saved (40%) | Priority (#1, #2...). Công thức: Potential Saved (X%) = Revenue at Risk * X%.
 *Lưu ý: BẮT BUỘC chèn dòng Disclaimer dưới bảng:* "Bảng xếp hạng ưu tiên hành động dựa trên phân tích mô phỏng rủi ro để hỗ trợ ra quyết định.")
 
-### 🔍 Tab 3: Hidden Churn Drivers
+### 🔍 Tab 3: Hidden Behavioral Drivers
 (Extract the explicit rules from the Hidden Pattern JSON execution log. You MUST present the EVIDENCE first before writing any insights! Present them strictly in this format:
 
 [ EVIDENCE ]
-- RULE: (Exact rule from JSON, but BẮT BUỘC dịch tên biến sang ý nghĩa Business. Ví dụ thay vì ghi `CTBDV <= 0.5` phải ghi `Chủ thuê bao đi vắng (CTBDV) <= 0.5`. Thay vì `TOTAL_CL_T12` phải ghi `Tổng checklist sự cố kỹ thuật <= 0.5`. KHÔNG ĐỂ NGUYÊN TÊN BIẾN VÔ NGHĨA!)
+- RULE: (Exact rule from JSON, but BẮT BUỘC dịch tên biến sang ý nghĩa Business dựa trên metadata/tên cột THỰC TẾ của CHÍNH dataset đang phân tích. Ví dụ nếu dataset này có cột như `CTBDV` hoặc `TOTAL_CL_T12`, dịch thành `Chủ thuê bao đi vắng (CTBDV) <= 0.5` / `Tổng checklist sự cố kỹ thuật <= 0.5`; với dataset khác, dịch tên biến trong rule sang nghĩa tương ứng của chính dataset đó (dùng metadata nếu có, nếu không thì diễn giải tên cột một cách dễ hiểu). KHÔNG ĐỂ NGUYÊN TÊN BIẾN VÔ NGHĨA!)
 - MATCHING PERSONAS: (List of personas fitting this rule based on the tree. TUYỆT ĐỐI CẤM dùng "Cluster 0", "Cluster 1". CHỈ ĐƯỢC DÙNG Tên Persona thực tế.)
 
 [ INSIGHT ]
 - (1-2 lines of strictly data-backed insight.
-STRICT NORMALIZE INSTRUCTION: Lãnh đạo rất ghét từ cảm tính "nhiều", "cao", "thấp" mà không có benchmark. Khi kết luận (Ví dụ: "gọi CSKH nhiều"), BẮT BUỘC phải kèm benchmark: "Nhóm này có tần suất gọi CSKH cao nhất trong các persona" hoặc "Cao hơn trung bình toàn tập".
+STRICT NORMALIZE INSTRUCTION: Lãnh đạo rất ghét từ cảm tính "nhiều", "cao", "thấp" mà không có benchmark. Khi kết luận (Ví dụ: "gọi CSKH nhiều" — hoặc chỉ số hành vi tương ứng của dataset này), BẮT BUỘC phải kèm benchmark: "Nhóm này có [chỉ số] cao nhất trong các persona" hoặc "Cao hơn trung bình toàn tập".
 STRICT CROSS-CHECK INSTRUCTION: Trước khi map Rule vào Persona, BẮT BUỘC phải đối chiếu CHÉO với Tab 1. Đảm bảo logic tuyệt đối.
-STRICT CAUSALITY GUARD: Cấm kết luận nguyên nhân nếu không có bằng chứng. Nếu dataset không đủ thông tin (vd: zero-inflated, thiếu biến sự cố) để xác định nguyên nhân churn: KHÔNG được kết luận nguyên nhân. Chỉ được ghi: "Nguyên nhân chưa quan sát được trong dữ liệu hiện tại." Sau đó liệt kê: "Dữ liệu đề xuất thu thập thêm". TUYỆT ĐỐI KHÔNG SUY DIỄN: "có thể do mạng", "có thể do kỹ thuật", "giả thuyết về sự cố". BẠN BỊ CẤM HOÀN TOÀN TỪ "CÓ THỂ". TUYỆT ĐỐI KHÔNG đề xuất thu thập "Promotion history" hay "Khuyến mãi". CHỈ giới hạn ở: Ticket logs, Call logs, Modem logs, Network logs. TUYỆT ĐỐI KHÔNG giải thích CTBDV là "Proxy ARPU". )
+STRICT CAUSALITY GUARD: Cấm kết luận nguyên nhân nếu không có bằng chứng. Nếu dataset không đủ thông tin (vd: zero-inflated, thiếu biến giải thích) để xác định nguyên nhân của hiện tượng đang phân tích (churn/hành vi bất thường/khác — tuỳ dataset): KHÔNG được kết luận nguyên nhân. Chỉ được ghi: "Nguyên nhân chưa quan sát được trong dữ liệu hiện tại." Sau đó liệt kê: "Dữ liệu đề xuất thu thập thêm". TUYỆT ĐỐI KHÔNG SUY DIỄN: "có thể do mạng", "có thể do kỹ thuật", "giả thuyết về sự cố". BẠN BỊ CẤM HOÀN TOÀN TỪ "CÓ THỂ". Đề xuất dữ liệu thu thập thêm PHẢI liên quan trực tiếp đến domain của dataset đang phân tích (ví dụ với telco: Ticket/Call/Modem/Network logs; với dataset khác: nguồn dữ liệu tương ứng của domain đó), KHÔNG áp đặt nguồn dữ liệu của một domain khác. TUYỆT ĐỐI KHÔNG giải thích một biến hành vi bất kỳ là "Proxy" cho một biến doanh thu nếu không có căn cứ trong dữ liệu. )
 )
 
 ### 🎯 Tab 4: Evidence-based Actions
@@ -970,11 +971,12 @@ Format hiển thị:
 Kết thúc Tab 4, BẮT BUỘC tạo một mục `🏆 THE ONE ACTION (Lựa chọn tối ưu nhất)`. 
 Trả lời trực tiếp câu hỏi: "Nếu CEO chỉ có ngân sách cho đúng 1 chiến dịch, chúng ta nên cứu nhóm nào?". 
 Cấu trúc: Đề xuất Chiến dịch [Tên Action lấy từ mảng `recommended_actions` của nhóm đó trong JSON] cho Nhóm [Tên Persona]. 
-STRICT RULE CHO THE ONE ACTION: TUYỆT ĐỐI KHÔNG CHỌN NHÓM "ANOMALY" / "Hành vi bất thường" (vì số lượng quá ít). BẠN BẮT BUỘC PHẢI CHỌN nhóm có `persona_type != "ANOMALY"` VÀ có `severity` hoặc `risk` ở mức cao nhất (EXTREME/HIGH) CỘNG VỚI Support đủ lớn. Tên Chiến Dịch PHẢI ĐƯỢC CHÉP NGUYÊN VĂN từ mảng `recommended_actions` do Python sinh ra, cấm tự bịa. Lý do: Giải thích dựa trên sự đánh đổi giữa rủi ro (severity/risk) và quy mô ảnh hưởng (support).
+STRICT RULE CHO THE ONE ACTION: TUYỆT ĐỐI KHÔNG CHỌN NHÓM "ANOMALY" / "Hành vi bất thường" (vì số lượng quá ít). BẠN BẮT BUỘC PHẢI CHỌN nhóm có `persona_type != "ANOMALY"`, ưu tiên theo: NẾU `severity`/`risk` của nhóm đó khác null: chọn nhóm có `severity` hoặc `risk` ở mức cao nhất (EXTREME/HIGH) CỘNG VỚI Support đủ lớn. NẾU `severity`/`risk` của TẤT CẢ nhóm đều null (dataset không có khái niệm này): chọn nhóm có `priority_score` cao nhất CỘNG VỚI Support đủ lớn thay thế. Tên Chiến Dịch PHẢI ĐƯỢC CHÉP NGUYÊN VĂN từ mảng `recommended_actions` do Python sinh ra, cấm tự bịa. Lý do: Giải thích dựa trên sự đánh đổi giữa mức độ ưu tiên (severity/risk nếu có, hoặc priority_score) và quy mô ảnh hưởng (support).
 )
 
 ### 📊 Tab 5: Metadata Impact (V1 vs V2)
-(Act as an expert data analyst contrasting the context. Compare how having FTEL's Business Metadata (V2) helped you understand the dataset better compared to just looking at raw column names without context (V1). Highlight specific insights that would have been missed without V2.)
+(NẾU dataset này có metadata/từ điển dữ liệu được cung cấp trong ngữ cảnh: Act as an expert data analyst contrasting the context. Compare how having the injected Business Metadata (V2) helped you understand the dataset better compared to just looking at raw column names without context (V1). Highlight specific insights that would have been missed without V2.
+NẾU dataset này KHÔNG có metadata nào được cung cấp: bỏ qua hoàn toàn Tab này, không bịa ra nội dung V1/V2.)
 
 ### 📈 Tab 6: Dynamic Dashboard Data
 CRITICAL UI REQUIREMENT: You MUST copy and paste the EXACT raw `[JSON_START_PERSONA]...[JSON_END_PERSONA]` block from the Python execution output here.

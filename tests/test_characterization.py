@@ -132,6 +132,9 @@ def test_enforce_generic_persona_neutralises_churn_and_renames():
         "churn_driver_confidence": "MEDIUM",
         "temporal_trajectory": [1, 2, 3],
         "domain_signature": {"value": {"stars": 5}},
+        "severity": "EXTREME",
+        "risk": "HIGH",
+        "risk_tier": "Nhóm rủi ro cao – cần hành động ưu tiên",
         "distinguishing_signal": {
             "dominant_domain": "usage",
             "stars": {"usage": {"stars": 4, "max_dev": 2.1}},
@@ -145,6 +148,9 @@ def test_enforce_generic_persona_neutralises_churn_and_renames():
     assert p["churn_driver_confidence"] is None
     assert p["temporal_trajectory"] == []
     assert p["domain_signature"] == {}
+    assert p["severity"] is None
+    assert p["risk"] is None
+    assert p["risk_tier"] is None
     assert "rời mạng" not in p["persona_name"].lower()
     assert "Mức sử dụng" in p["persona_name"]
 
@@ -155,6 +161,9 @@ def test_enforce_generic_persona_is_best_effort():
     enforce_generic_persona([p], profile=object())
     assert p["churn_driver"] is None
     assert p["persona_name"] == "Nhóm chưa phân hoá rõ"
+    assert p["severity"] is None
+    assert p["risk"] is None
+    assert p["risk_tier"] is None
 
 
 def test_enforce_generic_persona_empty_list_is_noop():

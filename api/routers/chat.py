@@ -13,6 +13,45 @@ import os
 
 router = APIRouter()
 
+
+def _active_dataset_columns() -> list[str] | None:
+    """Best-effort column peek at the currently active dataset in the "default"
+    workspace, without loading the full file. Mirrors the same latest-tabular-file
+    selection logic as api/dependencies.py's injected load_dataset(), so the file
+    picked here matches what the sandbox will actually load. Returns None if no
+    usable tabular dataset is registered (e.g. nothing uploaded yet)."""
+    try:
+        workspace_root = str(workspace_service.resolve_workspace_root("default"))
+        index_path = os.path.join(workspace_root, "index.json")
+        if not os.path.exists(index_path):
+            return None
+        with open(index_path, "r", encoding="utf-8") as f:
+            index_data = json.load(f)
+        if not index_data:
+            return None
+        tabular_exts = {".csv", ".tsv", ".xlsx", ".xls", ".parquet"}
+        tabular_entries = [
+            (fid, info) for fid, info in index_data.items()
+            if os.path.splitext(info.get("filename", info.get("path", "")))[1].lower() in tabular_exts
+        ]
+        if not tabular_entries:
+            return None
+        tabular_entries.sort(key=lambda x: x[1].get("created_at", ""), reverse=True)
+        _, info = tabular_entries[0]
+        file_path = os.path.join(workspace_root, info["path"])
+        ext = os.path.splitext(file_path)[1].lower()
+        import pandas as pd
+        if ext in (".csv", ".tsv"):
+            df = pd.read_csv(file_path, sep="\t" if ext == ".tsv" else ",", nrows=0)
+        elif ext in (".xlsx", ".xls"):
+            df = pd.read_excel(file_path, nrows=0)
+        else:
+            return None
+        return list(df.columns)
+    except Exception:
+        return None
+
+
 @router.post("/execute")
 async def execute_code_api(
     request: dict = Body(...),
@@ -127,12 +166,27 @@ async def chat(body: dict = Body(...), lambda_instance = Depends(get_lambda_agen
         except Exception as e:
             rules_context = ""
             
+        active_cols = [str(c).lower() for c in (_active_dataset_columns() or [])]
+        financial_metrics_lines = []
+        if "cuoc_hang_thang" in active_cols:
+            financial_metrics_lines.append(
+                "- ARPU (Average Revenue Per User) MUST be calculated exactly as `df['cuoc_hang_thang'].mean()` for each cluster. NEVER divide by 30 or any other number."
+            )
+        if "rmdt" in active_cols:
+            financial_metrics_lines.append(
+                "- Churn_Rate MUST be calculated exactly as `df['RMDT'].mean()` for each cluster."
+            )
+        if not financial_metrics_lines:
+            financial_metrics_lines.append(
+                "- Dataset đang phân tích KHÔNG có cột `cuoc_hang_thang`/`RMDT` (đó là tên cột của một dataset telco cụ thể, KHÔNG áp dụng cho mọi dataset). Nếu cần tính chỉ số doanh thu/tỷ lệ mục tiêu theo cụm, PHẢI tự xác định đúng cột tương ứng THỰC SỰ có trong dataset này (không hardcode tên cột của dataset khác); nếu không có cột phù hợp thì bỏ qua, KHÔNG được bịa cột."
+            )
+        financial_metrics_block = "\n".join(financial_metrics_lines)
+
         domain_knowledge = f"""
 ---
 [DOMAIN KNOWLEDGE FOR DATA AGENT]
 1. Financial Metrics:
-- ARPU (Average Revenue Per User) MUST be calculated exactly as `df['cuoc_hang_thang'].mean()` for each cluster. NEVER divide by 30 or any other number.
-- Churn_Rate MUST be calculated exactly as `df['RMDT'].mean()` for each cluster.
+{financial_metrics_block}
 
 2. Anti-Hallucination for Categorical Data:
 - When writing if-else rules to describe a persona based on a categorical column (like `khu_vuc`), you MUST NOT hallucinate or guess the values (e.g., 'Đô thị', 'Nông thôn'). You MUST use only the exact values present in the data (e.g., 'Vung Tau', 'Binh Duong'). To be safe, run `.unique()` on the column first if you are unsure.
