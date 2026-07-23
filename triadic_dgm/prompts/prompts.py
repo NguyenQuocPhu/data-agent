@@ -59,7 +59,23 @@ OUTLIER_DRIVEN ở các mục bên dưới đã có cơ chế fallback tương �
 data[behavioral_features] = data[behavioral_features].apply(lambda c: pd.to_numeric(c, errors='coerce')).fillna(0)
 ```
 Sau dòng này, MỌI cột trong `behavioral_features` (dùng để train KMeans, tính `cluster_stats`, `global_mean`, Decision Tree...) đều đã là số — không cần ép kiểu lại ở nơi khác.
-4. TÊN PERSONA VÀ METADATA NGHIỆP VỤ (BUSINESS RULES ENGINE): BẮT BUỘC COPY-PASTE NGUYÊN VẸN HÀM SAU VÀO CODE (không được tự viết lại hay sáng tạo hàm khác):
+3b. ĐƯỜNG MẶC ĐỊNH — GỌI PIPELINE CÓ SẴN, KHÔNG TỰ VIẾT LẠI (ƯU TIÊN CAO NHẤT, GHI ĐÈ MỌI HƯỚNG DẪN Ở CÁC MỤC 4, 4b, 5, 6, 6b, 11 BÊN DƯỚI):
+Toàn bộ phần phân cụm + business rules + profiling + Stage-2 + sinh JSON persona ĐÃ ĐƯỢC ĐÓNG GÓI THÀNH CODE PYTHON CỐ ĐỊNH trong repo, đã có unit test, chạy giống hệt nhau mọi lần. Với yêu cầu phân cụm/persona THÔNG THƯỜNG, chỉ cần gõ ĐÚNG đoạn dưới đây và DỪNG — KHÔNG copy-paste lại các hàm dài ở mục 4/4b/5/6/11:
+```python
+import json
+from triadic_dgm.persona.pipeline import run_persona_pipeline
+
+personas = run_persona_pipeline(data, behavioral_features)
+
+print("[JSON_START_PERSONA]")
+print(json.dumps(personas, ensure_ascii=False))
+print("[JSON_END_PERSONA]")
+```
+LÝ DO (đã xảy ra trên dữ liệu thật, nhiều lần): khi bạn tự gõ lại ~800 dòng script đó, mỗi lần chạy ra một phiên bản code khác nhau; chỉ cần 1 lỗi là vòng sửa lỗi bắt đầu viết lại script theo trí nhớ và trôi xa dần bản gốc (NameError -> KeyError -> hết 5 lượt retry -> người dùng KHÔNG nhận được báo cáo nào). `run_persona_pipeline` loại bỏ hoàn toàn nguồn lỗi đó.
+CHỈ tự viết code phân cụm riêng khi người dùng yêu cầu MỘT ĐIỀU MÀ HÀM TRÊN KHÔNG LÀM ĐƯỢC (vd chỉ phân cụm trên một tập con, ép số cụm cố định, thêm bước tiền xử lý đặc thù). Khi đó vẫn nên gọi `run_persona_pipeline` trên DataFrame đã xử lý, thay vì viết lại từ đầu.
+Các mục 4, 4b, 5, 6, 6b, 11 bên dưới GIỮ LẠI để tham chiếu logic nghiệp vụ và CHỈ dùng khi bạn buộc phải tự cài đặt lại — chúng mô tả đúng những gì `run_persona_pipeline` đang làm bên trong.
+
+4. TÊN PERSONA VÀ METADATA NGHIỆP VỤ (BUSINESS RULES ENGINE) — CHỈ DÙNG KHI KHÔNG GỌI ĐƯỢC `run_persona_pipeline` Ở MỤC 3b. BẮT BUỘC COPY-PASTE NGUYÊN VẸN HÀM SAU VÀO CODE (không được tự viết lại hay sáng tạo hàm khác):
 def get_metric(m, keywords):
     for k, v in m.items():
         if any(kw in k.lower() for kw in keywords):

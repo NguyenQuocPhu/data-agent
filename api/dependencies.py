@@ -8,11 +8,20 @@ lambda_instance = LAMBDA(config_path='config.yaml')
 print(f"LAMBDA session cache path: {lambda_instance.session_cache_path}")
 
 # Tự động đồng bộ các file đã upload trong workspace của UI vào não của LAMBDA khi khởi động lại server
+REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+_SAFE_REPO_ROOT = str(REPO_ROOT).replace('\\', '/')
 workspace_dir = workspace_service.resolve_workspace_root("default")
 safe_workspace_dir = str(workspace_dir).replace('\\', '/')
 
 print("Injecting load_dataset into Sandbox Kernel...")
 tool_layer_code = f"""
+import sys
+# Put the repo on the sandbox kernel's path: it runs with cwd set to the session cache
+# directory, so `import triadic_dgm` fails without this. The generated code needs it to call
+# run_persona_pipeline() instead of retyping the clustering/rule-engine script every run.
+if r'{_SAFE_REPO_ROOT}' not in sys.path:
+    sys.path.insert(0, r'{_SAFE_REPO_ROOT}')
+
 import json
 import pandas as pd
 import os

@@ -46,7 +46,15 @@ def _build_tool_layer_code(workspace_root: str) -> str:
     reusable function; duplicating a small, stable code-gen template is lower-risk than
     refactoring a working, already-injected script."""
     safe_workspace_dir = str(workspace_root).replace("\\", "/")
+    _SAFE_REPO_ROOT_CONV = str(REPO_ROOT).replace("\\", "/")
     return f"""
+import sys
+# Put the repo on the sandbox kernel's path: it runs with cwd set to the session cache
+# directory, so `import triadic_dgm` fails without this. The generated code needs it to call
+# run_persona_pipeline() instead of retyping the clustering/rule-engine script every run.
+if r'{_SAFE_REPO_ROOT_CONV}' not in sys.path:
+    sys.path.insert(0, r'{_SAFE_REPO_ROOT_CONV}')
+
 import json
 import pandas as pd
 import os
