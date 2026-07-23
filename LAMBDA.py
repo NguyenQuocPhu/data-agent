@@ -270,8 +270,30 @@ def list_datasets():
             # mô tả từng cột vào context thay vì chỉ liệt kê 20 tên cột đầu trơn.
             known_desc_maps = self._load_known_column_descriptions()
 
-            context_str = "\n\n[ACTIVE DATASETS]\n"
-            for file_id, info in index_data.items():
+            # Describe ONLY the dataset load_dataset() will actually return, not every file
+            # ever uploaded to this workspace. DATA LEAKAGE OBSERVED LIVE: the workspace held
+            # 4 retail datasets plus 3 telco ones, and this loop injected all of them with
+            # their full per-column Vietnamese descriptions. The model then wrote its
+            # behavioral_features list against the TELCO schema (cl_total_6m, LOYALTY_RANK,
+            # OBJID_mask...) while load_dataset() returned the retail file — analysing one
+            # dataset with another's column names. Showing a schema is enough to make the
+            # model code against it, so only the active one may appear.
+            tabular_exts = {'.csv', '.tsv', '.xlsx', '.xls', '.parquet'}
+            tabular = [
+                (fid, inf) for fid, inf in index_data.items()
+                if os.path.splitext(inf.get('filename', inf.get('path', '')))[1].lower() in tabular_exts
+            ]
+            tabular.sort(key=lambda x: x[1].get('created_at', ''), reverse=True)
+            active = tabular[:1] if tabular else list(index_data.items())[-1:]
+
+            context_str = "\n\n[ACTIVE DATASET]\n"
+            if len(index_data) > len(active):
+                context_str += (
+                    f"(Workspace còn {len(index_data) - len(active)} file cũ khác. "
+                    f"Chúng KHÔNG liên quan tới phân tích này — `load_dataset()` chỉ trả về file bên dưới. "
+                    f"TUYỆT ĐỐI KHÔNG dùng tên cột từ bất kỳ dataset nào khác.)\n"
+                )
+            for file_id, info in active:
                 context_str += f"- File ID: {file_id}\n  Filename: {info.get('filename', os.path.basename(info.get('path', file_id)))}\n"
 
                 # Load metadata
