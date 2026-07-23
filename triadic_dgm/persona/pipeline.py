@@ -46,6 +46,97 @@ _HARD_STOP_DOMINANT = 0.8
 _STAGE2_TRIGGER = 0.5
 
 
+
+#: Above this share of zeros across the WHOLE selected matrix, clustering has nothing to
+#: separate. Checked on the aggregate only: behavioural data legitimately has individual
+#: columns that are 90-99% zero, and treating one sparse column as grounds to abort was a
+#: real failure mode.
+_MAX_ZERO_FRACTION = 0.99
+
+
+def _sample_persona_text(name: str, means: dict, global_mean: dict, top_n: int = 3) -> str:
+    """One Vietnamese sentence describing a cluster's standout features.
+
+    Consumed by SemanticVerifier (triadic_dgm/agent/verifier.py) and the dashboard, so it
+    must always be a non-empty string and must never contain "nan" — a NaN leaking in here
+    used to surface verbatim in the UI.
+    """
+    devs = []
+    for f, v in means.items():
+        g = global_mean.get(f, 0)
+        if not isinstance(v, (int, float)) or v != v:  # NaN-safe
+            continue
+        dev = (v - g) / abs(g) if g else 0.0
+        devs.append((f, dev))
+    devs.sort(key=lambda x: -abs(x[1]))
+    bits = [
+        f"{f} {'cao hơn' if d >= 0 else 'thấp hơn'} trung bình {abs(d) * 100:.0f}%"
+        for f, d in devs[:top_n] if abs(d) >= 0.1
+    ]
+    text = f"{name}: " + ("; ".join(bits) if bits else "không lệch rõ rệt so với mặt bằng chung")
+    return text.replace("nan", "0")
+
+
+def hidden_drivers(X_raw: pd.DataFrame, labels, features: list[str]) -> dict[str, float]:
+    """Which raw features actually separate the clusters, via a shallow decision tree.
+
+    Depth and leaf size are capped so a single outlier cannot become a "driver", and
+    classes are balanced so small clusters still register. Only features above 5%
+    importance are returned — below that the tree is describing noise. Best-effort.
+
+    Args:
+        X_raw: Unscaled feature matrix.
+        labels: Cluster assignment per row.
+        features: Column names matching X_raw.
+
+    Returns:
+        Feature -> importance, descending; empty when nothing clears the threshold.
+    """
+    try:
+        from sklearn.tree import DecisionTreeClassifier
+
+        dt = DecisionTreeClassifier(
+            max_depth=3, min_samples_leaf=500, class_weight="balanced", random_state=SEED
+        )
+        dt.fit(X_raw, labels)
+        imp = pd.Series(dt.feature_importances_, index=features)
+        imp = imp[imp > 0.05].sort_values(ascending=False)
+        return {k: round(float(v), 4) for k, v in imp.items()}
+    except Exception as e:
+        print(f"[PIPELINE] hidden_drivers skipped: {e}")
+        return {}
+
+
+def save_cluster_chart(personas: list[dict], out_dir: str = "workspace/generated/reports") -> str:
+    """Write the cluster-size bar chart and return the markdown line that displays it.
+
+    Kept out of run_persona_pipeline because it performs file I/O against a caller-chosen
+    path. Best-effort: returns "" if plotting is unavailable, so a missing chart never
+    costs the caller its personas.
+    """
+    try:
+        import os
+
+        import matplotlib
+        matplotlib.use("Agg")
+        import matplotlib.pyplot as plt
+        import seaborn as sns
+
+        os.makedirs(out_dir, exist_ok=True)
+        path = os.path.join(out_dir, "cluster_distribution.png")
+        plt.figure(figsize=(10, 6))
+        sns.barplot(x=[p["persona_name"] for p in personas], y=[p["support"] for p in personas])
+        plt.xticks(rotation=45, ha="right")
+        plt.title("Cluster Distribution")
+        plt.tight_layout()
+        plt.savefig(path)
+        plt.close()
+        return f"![Cluster Distribution](/file?path={path})"
+    except Exception as e:
+        print(f"[PIPELINE] cluster chart skipped: {e}")
+        return ""
+
+
 def detect_dataset_mode(columns) -> str:
     """Classify the dataset without guessing beyond what the columns prove.
 
@@ -149,6 +240,7 @@ def _failed_persona(data: pd.DataFrame, reason: str) -> list[dict]:
             "Thu thập thêm biến mô tả hành vi để phân nhóm hiệu quả hơn",
         ],
         "is_anomaly": False,
+        "sample_persona_text": f"Không phân hoá được nhóm ({reason}).",
         "failure_reason": reason,
     }]
 
@@ -190,6 +282,10 @@ def run_persona_pipeline(
 
     mode = dataset_mode or detect_dataset_mode(data.columns)
     X_raw = data[feats].apply(pd.to_numeric, errors="coerce").fillna(0.0)
+
+    zero_fraction = float((X_raw == 0).to_numpy().mean())
+    if zero_fraction > _MAX_ZERO_FRACTION:
+        return _failed_persona(data, f"zero_inflated_{zero_fraction:.3f}")
     X = StandardScaler().fit_transform(X_raw.to_numpy(dtype=float))
 
     best_k, best_sil, labels = choose_k(X)
@@ -269,7 +365,15 @@ def run_persona_pipeline(
             "is_anomaly": is_anomaly,
             "segmentation_quality": quality,
             "recommended_actions": generate_actions(mode, name, meta["severity"], meta["risk"], profile),
+            "sample_persona_text": _sample_persona_text(name, means, global_mean),
         })
+
+    drivers = hidden_drivers(X_raw, data[cluster_col], feats)
+    if drivers:
+        print("[PIPELINE] hidden drivers (>5% importance): " + ", ".join(
+            f"{k}={v}" for k, v in drivers.items()))
+    else:
+        print("[PIPELINE] hidden drivers: không feature nào vượt 5% importance")
 
     print(
         f"[PIPELINE] mode={mode} k={len(cluster_sizes)} silhouette={best_sil:.3f} "
