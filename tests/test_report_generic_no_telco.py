@@ -231,3 +231,89 @@ def test_telco_dataset_still_uses_the_original_prompt():
     prompt = rg._build_prompt(personas, {})
     assert "BỐI CẢNH QUAN TRỌNG" not in prompt
     assert "Consultant tại Deloitte" in prompt
+
+
+# --- the chat path reaches render_markdown without a profile argument ----------------
+
+def _raw_sandbox_personas():
+    """Personas exactly as the sandbox emits them: telco names, severity/risk, telco
+    profile_attributes and actions — no dataset_mode marker."""
+    specs = [
+        ("Khách hàng ổn định (Mức 1)", 800, {"MntWines": 600.0, "Income": 78000.0}),
+        ("Khách hàng ổn định (Mức 2)", 1200, {"MntWines": 120.0, "Income": 41000.0}),
+    ]
+    return [
+        {
+            "cluster_id": i, "persona_name": n, "support": s, "support_pct": s / 2000,
+            "confidence": "HIGH", "persona_type": "SEGMENT", "severity": "LOW", "risk": "LOW",
+            "risk_tier": "Nhóm bị động – theo dõi & cảnh báo", "priority_score": 20,
+            "profile_attributes": {"avg_fee": 0.0},
+            "recommended_actions": ["Khảo sát nguyên nhân rời mạng (Exit Survey) cho nhóm giá trị cao"],
+            "domain_signature": {}, "segmentation_quality": "NORMAL",
+            "feature_means": m, "evidence": m,
+        }
+        for i, (n, s, m) in enumerate(specs)
+    ]
+
+
+class _FakeProfile:
+    dataset_name = "d"
+    fingerprint = "f"
+    labels = {"MntWines": "Chi tiêu rượu vang", "Income": "Thu nhập"}
+    behavioral_features = ["MntWines", "Income"]
+    domains = {"mntwines": ["MntWines"], "income": ["Income"]}
+    derived_features: dict = {}
+
+
+def _render_via_resolver(personas, profile):
+    """Render the way engine.stream_workflow does — no profile argument at all."""
+    from triadic_dgm.services import report_generator as rg_mod
+
+    raw = "[JSON_START_PERSONA]" + json.dumps(personas, ensure_ascii=False) + "[JSON_END_PERSONA]"
+    rg = ReportGenerator(api_key="x", base_url="http://localhost:1", model_name="m")
+    rg.generate_llm_narrative = lambda *a, **k: rg._fallback_narrative()
+    rg_mod.set_profile_resolver(lambda: profile)
+    try:
+        return rg.generate_markdown_report(raw).split("### Raw Facts")[0]
+    finally:
+        rg_mod.set_profile_resolver(None)
+
+
+@pytest.mark.parametrize("term", ["arpu", "cước", "cskh", "rời mạng", "exit survey", "tổng đàn"])
+def test_chat_path_applies_the_generic_path_via_the_resolver(term):
+    """engine.stream_workflow calls generate_markdown_report(raw) with no profile, so the
+    registered resolver is the only thing that can trigger the generic path there."""
+    body = _render_via_resolver(_raw_sandbox_personas(), _FakeProfile())
+    assert term not in body.lower()
+
+
+def test_chat_path_renames_personas_from_inferred_labels():
+    body = _render_via_resolver(_raw_sandbox_personas(), _FakeProfile())
+    assert "Khách hàng ổn định (Mức" not in body
+    assert "Chi tiêu rượu vang" in body or "Thu nhập" in body
+
+
+def test_no_resolver_keeps_the_previous_behaviour():
+    """A deployment that never registers one must still render, unchanged."""
+    from triadic_dgm.services import report_generator as rg_mod
+
+    rg_mod.set_profile_resolver(None)
+    body = _render_via_resolver(_raw_sandbox_personas(), None)
+    assert "Khách hàng ổn định (Mức 1)" in body
+
+
+def test_failing_resolver_degrades_instead_of_breaking_the_report():
+    from triadic_dgm.services import report_generator as rg_mod
+
+    def _boom():
+        raise RuntimeError("profile store down")
+
+    raw = "[JSON_START_PERSONA]" + json.dumps(_raw_sandbox_personas(), ensure_ascii=False) + "[JSON_END_PERSONA]"
+    rg = ReportGenerator(api_key="x", base_url="http://localhost:1", model_name="m")
+    rg.generate_llm_narrative = lambda *a, **k: rg._fallback_narrative()
+    rg_mod.set_profile_resolver(_boom)
+    try:
+        body = rg.generate_markdown_report(raw)
+    finally:
+        rg_mod.set_profile_resolver(None)
+    assert "Business Roadmap" in body  # rendered anyway

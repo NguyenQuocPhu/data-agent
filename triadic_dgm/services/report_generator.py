@@ -4,6 +4,7 @@ import time
 from datetime import datetime
 import instructor
 from openai import OpenAI
+from triadic_dgm.persona.characterization import apply_dataset_profile
 from triadic_dgm.persona.vocabulary import contains_forbidden_term
 from triadic_dgm.schemas.report_schema import ReportNarrative, ExecutiveSummaryNarrative
 
@@ -545,6 +546,32 @@ class ReportValidator:
 # ==============================================================
 # CORE GENERATOR (v3 Enterprise)
 # ==============================================================
+# Resolver for the active DatasetProfile, registered by the API layer at startup (see
+# api_server.py). A hook rather than an import because triadic_dgm must not depend on api/,
+# and rather than a parameter because the chat path reaches render_markdown through
+# engine.stream_workflow, which this process cannot modify (the file is owned by another
+# uid on this host). An explicitly passed profile always wins; a failing or absent resolver
+# degrades to profile=None, i.e. the pre-Phase-4 behaviour.
+_PROFILE_RESOLVER = None
+
+
+def set_profile_resolver(resolver) -> None:
+    """Register a zero-arg callable returning the active DatasetProfile, or None to clear."""
+    global _PROFILE_RESOLVER
+    _PROFILE_RESOLVER = resolver
+
+
+def _resolve_profile():
+    """Best-effort profile lookup via the registered resolver; never raises."""
+    if _PROFILE_RESOLVER is None:
+        return None
+    try:
+        return _PROFILE_RESOLVER()
+    except Exception as e:
+        print(f"[ReportGenerator] profile resolver failed, rendering without it: {e}")
+        return None
+
+
 class ReportGenerator:
     def __init__(self, api_key: str, base_url: str, model_name: str):
         self.api_key = api_key
@@ -1790,7 +1817,7 @@ Dữ liệu Business Facts duy nhất bạn được thấy:
             conclusion="Báo cáo được tạo với dữ liệu và phân tích đầy đủ; phần diễn giải mở rộng từ AI tạm thời không khả dụng do lỗi kết nối dịch vụ."
         )
 
-    def render_markdown(self, raw_python_output: str) -> str:
+    def render_markdown(self, raw_python_output: str, profile=None) -> str:
         personas_data = self.extract_json(raw_python_output)
         if not personas_data:
             return "Lỗi: Không tìm thấy dữ liệu JSON Persona hợp lệ."
@@ -1804,6 +1831,24 @@ Dữ liệu Business Facts duy nhất bạn được thấy:
             sp = p.get('support_pct')
             if isinstance(sp, (int, float)) and sp > 1:
                 p['support_pct'] = sp / 100
+
+        if profile is None:
+            profile = _resolve_profile()
+
+        # Profile-driven enrichment BEFORE the mode latch below, which reads the
+        # dataset_mode that enforce_generic_persona sets. global_means is computed here
+        # rather than further down because the enrichment needs it; the later section
+        # reuses this value instead of recomputing it.
+        global_means = {}
+        _total_support = sum(p.get('support', 0) for p in personas_data)
+        _all_features = set()
+        for p in personas_data:
+            for f in self._get_means(p).keys():
+                _all_features.add(f)
+        for f in _all_features:
+            _tv = sum(self._get_means(p).get(f, 0) * p.get('support', 0) for p in personas_data)
+            global_means[f] = _tv / _total_support if _total_support > 0 else 0
+        apply_dataset_profile(personas_data, global_means, profile, means_getter=self._get_means)
 
         # Latch the dataset mode once, here, so every deterministic section below agrees on it.
         # Without a single latch each section re-derives "is this telco?" from its own heuristic
@@ -1823,16 +1868,7 @@ Dữ liệu Business Facts duy nhất bạn được thấy:
         max_pct_val = max_pct * 100 if max_pct < 1.0 else max_pct
         seg_quality = personas_data[0].get('segmentation_quality', 'NORMAL')
         
-        global_means = {}
-        all_features = set()
-        for p in personas_data:
-            for f in self._get_means(p).keys():
-                all_features.add(f)
-                
-        for f in all_features:
-            total_val = sum(self._get_means(p).get(f, 0) * p.get('support', 0) for p in personas_data)
-            global_means[f] = total_val / total_customers if total_customers > 0 else 0
-            
+        # global_means already computed above, before the profile enrichment that needs it.
         for p in personas_data:
             p['priority_score'] = p.get('priority_score', 0)
         ranked_personas = sorted(personas_data, key=lambda x: x['priority_score'], reverse=True)
@@ -2168,5 +2204,7 @@ Dữ liệu Business Facts duy nhất bạn được thấy:
             
         return md
 
-    def generate_markdown_report(self, raw_python_output: str) -> str:
-        return self.render_markdown(raw_python_output)
+    def generate_markdown_report(self, raw_python_output: str, profile=None) -> str:
+        """Render the full report. ``profile`` enables the dataset-profile enrichment
+        (generic naming / telco neutralisation); None keeps the pre-Phase-4 behaviour."""
+        return self.render_markdown(raw_python_output, profile=profile)

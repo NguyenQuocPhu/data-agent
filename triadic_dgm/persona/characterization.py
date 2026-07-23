@@ -451,3 +451,48 @@ def enforce_generic_persona(personas: list[dict], profile: DatasetProfile | None
             )
         except Exception:
             continue
+
+
+def apply_dataset_profile(
+    personas: list[dict],
+    global_means: dict,
+    profile: DatasetProfile | None,
+    means_getter: Callable[[dict], dict] | None = None,
+) -> None:
+    """Run the full profile-driven persona enrichment, in place.
+
+    The two steps a report needs before rendering: attach a dataset-agnostic
+    ``distinguishing_signal`` to every persona, then — only for a dataset with no churn
+    columns — force them onto the generic path.
+
+    Exists so the churn gate lives in exactly ONE place. It was previously inlined in the
+    convergence runner, and the report path had no equivalent at all, which is how a
+    non-telco dataset reached users as a full telco report.
+
+    Args:
+        personas: Persona dicts to mutate in place.
+        global_means: Whole-population per-feature means.
+        profile: Active DatasetProfile; None disables enrichment entirely.
+        means_getter: Optional accessor for a persona's feature means.
+
+    Returns:
+        None. Best-effort at every step — never raises, never drops a persona.
+    """
+    if not personas or profile is None:
+        return
+    try:
+        characterize_personas(personas, global_means, profile, means_getter=means_getter)
+    except Exception as e:
+        print(f"[persona] characterize_personas failed (non-fatal): {e}")
+    try:
+        from triadic_dgm.persona.dataset_profile import has_churn_columns
+
+        if has_churn_columns(getattr(profile, "labels", {}).keys()):
+            return
+    except Exception as e:
+        print(f"[persona] churn-column detection failed, leaving telco path (non-fatal): {e}")
+        return
+    try:
+        enforce_generic_persona(personas, profile)
+    except Exception as e:
+        print(f"[persona] enforce_generic_persona failed (non-fatal): {e}")
