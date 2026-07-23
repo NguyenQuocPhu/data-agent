@@ -14,29 +14,40 @@ from __future__ import annotations
 from typing import Callable
 
 from triadic_dgm.persona.dataset_profile import DatasetProfile
+from triadic_dgm.persona.vocabulary import GENERIC_FALLBACK_ACTIONS
 
 
 def stars_from_max_dev(max_dev: float) -> int:
-    """Map a domain's max signed relative deviation to a 1-5 star rating.
+    """Map a domain's largest relative deviation to a 1-5 star rating.
 
     Mirrors the thresholds used by the legacy telco path so ratings stay
-    comparable. Deviation below the global average (negative) is never a
-    "signal" and floors at 1 star.
+    comparable. Rated on MAGNITUDE: being distinctively below the population
+    average is a persona just as much as being above it. Observed live on a
+    retail dataset — the largest cluster (86.5% of rows) was defined by zero
+    late deliveries against an 8% average and below-average spend, scored 1 star
+    for having no positive deviation, and fell through to the unnamed fallback
+    "Nhóm chưa phân hoá rõ".
+
+    The ladder stays asymmetric by nature rather than by rule: a non-negative
+    quantity can deviate arbitrarily far upward (+1128% was observed) but never
+    below -100%, so a "low" domain tops out at 3 stars — enough to earn a name,
+    not enough to outrank a genuinely extreme high one.
 
     Args:
-        max_dev: Max signed relative deviation (v-g)/|g| across a domain's
-            columns, already floored at 0 by the caller for below-average.
+        max_dev: Relative deviation (v-g)/|g| of a domain's most-deviating
+            column. Sign is ignored.
 
     Returns:
         Star rating in the range 1-5 (higher = more distinctive).
     """
-    if max_dev >= 5.0:
+    magnitude = abs(max_dev)
+    if magnitude >= 5.0:
         return 5
-    if max_dev >= 2.0:
+    if magnitude >= 2.0:
         return 4
-    if max_dev >= 0.75:
+    if magnitude >= 0.75:
         return 3
-    if max_dev >= 0.25:
+    if magnitude >= 0.25:
         return 2
     return 1
 
@@ -44,7 +55,11 @@ def stars_from_max_dev(max_dev: float) -> int:
 def compute_domain_stars(
     means: dict, global_means: dict, domains: dict[str, list[str]]
 ) -> dict[str, dict]:
-    """Rate each domain by how far its columns deviate above the global mean.
+    """Rate each domain by how far its columns deviate from the global mean.
+
+    Selects the member column deviating the most in EITHER direction and keeps
+    that deviation's sign, so downstream naming can say "cao" or "thấp" while the
+    rating itself is magnitude-based (see :func:`stars_from_max_dev`).
 
     Args:
         means: This cluster's per-feature mean values.
@@ -52,7 +67,8 @@ def compute_domain_stars(
         domains: Domain name -> member column list (from DatasetProfile.domains).
 
     Returns:
-        Domain name -> {"stars": int, "max_dev": float}.
+        Domain name -> {"stars": int, "max_dev": float}, where ``max_dev`` is
+        signed and ``stars`` reflects its magnitude.
     """
     signature: dict[str, dict] = {}
     for dom, cols in domains.items():
@@ -63,7 +79,7 @@ def compute_domain_stars(
                 continue
             g = global_means.get(f, 0)
             dev = (v - g) / abs(g) if g else 0.0
-            if dev > max_dev:
+            if abs(dev) > abs(max_dev):
                 max_dev = dev
         signature[dom] = {"stars": stars_from_max_dev(max_dev), "max_dev": round(max_dev, 4)}
     return signature
@@ -109,7 +125,10 @@ def distinguishing_signal(
     if not stars:
         return {"dominant_domain": None, "stars": stars, "top_features": top, "evidence": ""}
 
-    dominant = max(stars, key=lambda d: (stars[d]["stars"], stars[d]["max_dev"]))
+    # Tie-break on magnitude, not signed value — max_dev is now signed, so comparing it
+    # raw would rank any positive deviation above a larger negative one at the same star
+    # level, quietly reintroducing the above-average-only bias this rating just dropped.
+    dominant = max(stars, key=lambda d: (stars[d]["stars"], abs(stars[d]["max_dev"])))
     dom_stars = stars[dominant]["stars"]
 
     if dom_stars <= 2:
@@ -199,22 +218,100 @@ def compose_signal_narrative(persona: dict) -> str:
         return ""
 
 
-def generic_persona_name(sig: dict | None) -> str:
+def _lower_first(label: str) -> str:
+    """Lowercase a label's first letter so it reads naturally mid-sentence.
+
+    "Tỷ lệ giao hàng trễ" -> "Nhóm tỷ lệ giao hàng trễ cao". Acronyms are left alone:
+    an all-caps first word ("ARPU", "CSAT") is a name, not a capitalised sentence start.
+
+    Args:
+        label: Human label for a feature.
+
+    Returns:
+        The label with its first character lowercased where appropriate.
+    """
+    if not label:
+        return label
+    first_word = label.split(maxsplit=1)[0]
+    if len(first_word) > 1 and first_word.isupper():
+        return label
+    return label[0].lower() + label[1:]
+
+
+#: Smallest relative deviation a feature may have and still be worth naming a persona
+#: after. Matches the threshold ``distinguishing_signal`` already uses to decide a feature
+#: is worth listing as evidence — a feature too weak to mention is too weak to be a name.
+_MIN_NAMING_DEVIATION = 0.1
+
+
+def _signal_strength(persona: dict) -> float:
+    """Magnitude of a persona's strongest feature deviation; 0.0 when unavailable."""
+    try:
+        top = (persona.get("distinguishing_signal") or {}).get("top_features") or []
+        return abs(float(top[0].get("deviation", 0.0))) if top else 0.0
+    except (AttributeError, IndexError, TypeError, ValueError):
+        return 0.0
+
+
+def assign_generic_persona_names(personas: list[dict]) -> list[str]:
+    """Name every persona, preferring a feature no other persona has claimed.
+
+    :func:`generic_persona_name` sees one persona at a time, so two clusters split by the
+    same dominant axis both get named after it — observed on Olist, where the 86.5% and
+    7.9% clusters came out "Nhóm tỷ lệ giao hàng trễ thấp" and "Nhóm tỷ lệ giao hàng trễ
+    cao". Technically distinguishable, but it reads as a naming failure and buries what
+    else separates the groups.
+
+    Personas are processed strongest-signal-first so the cluster with the most extreme
+    claim on a feature keeps it, and weaker ones fall to their next-best unclaimed
+    feature. A persona whose features are all claimed keeps its top feature anyway —
+    a repeated name beats an unnamed group.
+
+    Args:
+        personas: Persona dicts carrying ``distinguishing_signal``. Not mutated.
+
+    Returns:
+        Names positionally aligned with ``personas``. Best-effort: never raises.
+    """
+    names: list[str] = [_FALLBACK_NAME] * len(personas)
+    claimed: set[str] = set()
+    try:
+        order = sorted(range(len(personas)), key=lambda i: -_signal_strength(personas[i]))
+    except Exception:
+        order = list(range(len(personas)))
+    for i in order:
+        try:
+            names[i] = generic_persona_name(
+                personas[i].get("distinguishing_signal"), claimed=claimed
+            )
+        except Exception:
+            continue
+    return names
+
+
+_FALLBACK_NAME = "Nhóm chưa phân hoá rõ"
+
+
+def generic_persona_name(sig: dict | None, claimed: set[str] | None = None) -> str:
     """Deterministic, dataset-neutral persona name from a distinguishing_signal.
 
-    Names the persona after its single most-deviating feature and direction when
-    the dominant domain is distinctive (>= 3 stars), else a neutral fallback.
-    Contains NO churn/telco vocabulary. Best-effort: never raises.
+    Names the persona after its most-deviating feature and direction when the dominant
+    domain is distinctive (>= 3 stars), else a neutral fallback. Contains NO churn/telco
+    vocabulary. Best-effort: never raises.
 
     Args:
         sig: A persona's ``distinguishing_signal`` dict (see
             :func:`distinguishing_signal`), or None.
+        claimed: Optional mutable set of feature names already used to name another
+            persona. When given, the first top-feature that is unclaimed and deviates by
+            at least :data:`_MIN_NAMING_DEVIATION` is preferred, and the chosen feature is
+            added to the set. Pass None (the default) for standalone naming.
 
     Returns:
         A short, dataset-agnostic Vietnamese persona name; the neutral
         "Nhóm chưa phân hoá rõ" when no distinctive signal is present.
     """
-    fallback = "Nhóm chưa phân hoá rõ"
+    fallback = _FALLBACK_NAME
     try:
         if not isinstance(sig, dict) or not sig:
             return fallback
@@ -225,12 +322,47 @@ def generic_persona_name(sig: dict | None) -> str:
         top = sig.get("top_features") or []
         if dom and dom_stars >= 3 and top:
             t = top[0]
+            if claimed is not None:
+                for cand in top:
+                    feat = str(cand.get("feature", ""))
+                    if feat and feat not in claimed and abs(
+                        float(cand.get("deviation", 0.0))
+                    ) >= _MIN_NAMING_DEVIATION:
+                        t = cand
+                        break
+                claimed.add(str(t.get("feature", "")))
             label = t.get("label") or t.get("feature") or dom
             direction = "cao" if t.get("deviation", 0) >= 0 else "thấp"
-            return f"Nhóm {label} {direction}"
+            return f"Nhóm {_lower_first(str(label))} {direction}"
         return fallback
     except Exception:
         return fallback
+
+
+def _generic_priority_score(sig: dict | None, support_pct: float | None) -> int:
+    """Rank a generic persona by distinctiveness, with size as tiebreaker.
+
+    Args:
+        sig: The persona's ``distinguishing_signal`` dict, or None.
+        support_pct: Share of the population in this persona (0-1).
+
+    Returns:
+        An integer in [10, 99]; higher means more distinctive. Falls back to a
+        size-only score when no usable signal is present. Never raises.
+    """
+    try:
+        pct = float(support_pct or 0.0)
+    except (TypeError, ValueError):
+        pct = 0.0
+    stars = 0
+    try:
+        if isinstance(sig, dict):
+            dom_info = (sig.get("stars") or {}).get(sig.get("dominant_domain"))
+            if isinstance(dom_info, dict):
+                stars = int(dom_info.get("stars", 0))
+    except (TypeError, ValueError, AttributeError):
+        stars = 0
+    return int(max(10, min(99, round(20 + stars * 12 + pct * 10))))
 
 
 def enforce_generic_persona(personas: list[dict], profile: DatasetProfile | None) -> None:
@@ -261,7 +393,10 @@ def enforce_generic_persona(personas: list[dict], profile: DatasetProfile | None
     """
     if not personas:
         return
-    for p in personas:
+    # Named in one coordinated pass, not per persona: the choice of which feature to name
+    # a cluster after depends on what the other clusters already took.
+    names = assign_generic_persona_names(personas)
+    for p, generic_name in zip(personas, names):
         try:
             # Explicit mode marker: downstream renderers (report_generator, feed, UI) must be able
             # to tell "generic dataset" apart from "telco dataset that happens to score LOW on
@@ -269,7 +404,7 @@ def enforce_generic_persona(personas: list[dict], profile: DatasetProfile | None
             # match nothing and then assert telco facts as true (e.g. "ARPU ở mức thấp",
             # "ít khi liên hệ CSKH") about a dataset that has no such columns at all.
             p["dataset_mode"] = "GENERIC"
-            p["persona_name"] = generic_persona_name(p.get("distinguishing_signal"))
+            p["persona_name"] = generic_name
             p["churn_driver"] = None
             p["churn_driver_evidence"] = None
             p["churn_driver_confidence"] = None
@@ -278,5 +413,41 @@ def enforce_generic_persona(personas: list[dict], profile: DatasetProfile | None
             p["severity"] = None
             p["risk"] = None
             p["risk_tier"] = None
+
+            # profile_attributes is built by keyword-matching telco column names
+            # (high_spender/fee_avg/segment_*_count/loyalty_rank/csat/goi_cuoc...).
+            # On a non-telco dataset the matches are absent or accidental, yet ~20
+            # render sites in report_generator phrase whatever is there in telco
+            # prose — including asserting a NUMBER that was never measured
+            # (observed live on a wine-marketing dataset: "Nhóm này có mức cước
+            # trung bình khoảng 0 nghìn đồng/tháng", printed four times). The
+            # generic profile section is built from distinguishing_signal instead,
+            # so dropping this loses nothing.
+            p["profile_attributes"] = {}
+
+            # recommended_actions comes from generate_actions(), branching on the
+            # sandbox LLM's OWN dataset_mode guess — independent of the Python-side
+            # has_churn_columns() decision that triggered this function. When they
+            # disagree (LLM reads a non-telco dataset as POST_CHURN) the churn
+            # fields end up nulled while the Business Roadmap still renders the
+            # telco playbook. Replaced wholesale rather than filtered, for two
+            # reasons: (1) every input generate_actions() branches on — persona
+            # name, severity, risk, profile_attributes — is a field this function
+            # just established as meaningless here, so nothing it produced is
+            # worth salvaging; (2) filtering by vocabulary provably misses items
+            # whose own wording is neutral but whose ROADMAP_METADATA entry is not
+            # (observed: "Phân tích đối thủ cạnh tranh và chính sách giá" passes
+            # any term filter, then renders KPI "High-Value Churn Rate" on a
+            # wine-retail dataset). No-op when the LLM did classify GENERIC.
+            p["recommended_actions"] = list(GENERIC_FALLBACK_ACTIONS)
+
+            # priority_score comes from apply_business_rules, whose thresholds read
+            # complaint/call/cl_total — all zero here, so every persona lands on the
+            # same constant base and ranking degenerates to cluster size alone. Rank
+            # by how distinctive a persona actually is (dominant-domain deviation),
+            # keeping size as the tiebreaker.
+            p["priority_score"] = _generic_priority_score(
+                p.get("distinguishing_signal"), p.get("support_pct")
+            )
         except Exception:
             continue

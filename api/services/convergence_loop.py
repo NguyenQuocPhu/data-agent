@@ -155,6 +155,41 @@ def _load_convergence_dataframe(workspace_root: str) -> "pd.DataFrame | None":
     return None
 
 
+def _selected_dataset_id(workspace_root: str) -> "str | None":
+    """Return the file_id ``load_dataset()`` would auto-select right now.
+
+    Reads only index.json, never the data file, so it is cheap enough to call once per
+    loop iteration. Must mirror the ordering in ``_build_tool_layer_code``'s injected
+    ``load_dataset()`` and ``_load_convergence_dataframe`` — if it drifts, the staleness
+    check silently stops firing.
+
+    Args:
+        workspace_root: Absolute path to the convergence session's workspace directory.
+
+    Returns:
+        The selected file_id, or None when no usable tabular dataset is registered.
+    """
+    index_path = os.path.join(workspace_root, "index.json")
+    if not os.path.exists(index_path):
+        return None
+    try:
+        with open(index_path, "r", encoding="utf-8") as f:
+            index_data = json.load(f)
+    except Exception:
+        return None
+    if not index_data:
+        return None
+    tabular_exts = {".csv", ".tsv", ".xlsx", ".xls", ".parquet"}
+    entries = [
+        (fid, info) for fid, info in index_data.items()
+        if os.path.splitext(info.get("filename", info.get("path", "")))[1].lower() in tabular_exts
+    ]
+    if not entries:
+        return None
+    entries.sort(key=lambda x: x[1].get("created_at", ""), reverse=True)
+    return entries[0][0]
+
+
 class ConvergenceLoop:
     def __init__(self, base_config: dict, db_path: str = DEFAULT_DB_PATH, session_cache_path: str = DEFAULT_SESSION_CACHE_PATH):
         self._base_config = base_config
@@ -202,15 +237,21 @@ class ConvergenceLoop:
         # improvised in-memory sample (~6 rows) instead of the real ~54k-row fixed dataset —
         # silently producing garbage "personas" that look superficially valid.
         workspace_root = resolve_workspace_root(CONVERGENCE_SESSION_ID)
+        self._workspace_root = str(workspace_root)
         self._tool_layer_code = _build_tool_layer_code(str(workspace_root))
         self._agent.run_code(self._tool_layer_code)
+        self._active_dataset_id = _selected_dataset_id(str(workspace_root))
 
         # Build & freeze a DatasetProfile for whatever dataset the workspace holds,
         # so the loop's clustering features are dataset-derived, not hardcoded telco.
         try:
             df = _load_convergence_dataframe(str(workspace_root))
             if df is not None:
-                self._profile = load_or_build_cached(df, DEFAULT_PROFILES_DIR)
+                self._profile = load_or_build_cached(
+                    df, DEFAULT_PROFILES_DIR,
+                    label_enricher=self._build_label_enricher(config),
+                    derived_enricher=lambda d, pr: self._select_derived_features(d, pr, config),
+                )
                 print(f"[convergence] DatasetProfile: {len(self._profile.behavioral_features)} features, fp={self._profile.fingerprint}")
         except Exception as e:
             print(f"[convergence] DatasetProfile build failed, using fallback prompt: {e}")
@@ -240,11 +281,132 @@ class ConvergenceLoop:
         self._running = False
         print("[convergence] Background loop stopped.")
 
+    def _build_label_enricher(self, config: dict):
+        """Return a label_enricher for load_or_build_cached, or None if unavailable.
+
+        Runs only on a profile cache miss (once per dataset fingerprint), so the
+        continuously-running loop never pays for an inference per iteration.
+        """
+        try:
+            import instructor
+            from openai import OpenAI
+
+            from triadic_dgm.persona.dataset_profile import has_churn_columns
+            from triadic_dgm.persona.label_inference import infer_column_labels
+        except Exception as e:
+            print(f"[convergence] label inference unavailable: {e}")
+            return None
+
+        api_key = config.get("api_key")
+        base_url = config.get("base_url_programmer")
+        model_name = config.get("programmer_model")
+        if not (api_key and model_name):
+            return None
+
+        def _enricher(df, profile):
+            return infer_column_labels(
+                df,
+                client_factory=lambda: instructor.from_openai(
+                    OpenAI(api_key=api_key, base_url=base_url), mode=instructor.Mode.JSON
+                ),
+                model_name=model_name,
+                dataset_name=profile.dataset_name,
+                # A dataset that genuinely carries churn columns SHOULD be labelled with
+                # telco vocabulary; only a dataset without them would have to invent it.
+                allow_domain_terms=has_churn_columns(profile.labels.keys()),
+            )
+
+        return _enricher
+
+    def _select_derived_features(self, df, profile, config: dict):
+        """Propose derived features with an LLM, keep only the measured winners.
+
+        Returns (derived_features, behavioral_features, labels). On any failure the
+        profile's existing feature list is returned unchanged — a run on raw columns beats
+        no run. Labels are validated like any other: a derived feature left unlabelled
+        would put a raw identifier back into persona names.
+        """
+        base = list(profile.behavioral_features)
+        try:
+            import instructor
+            from openai import OpenAI
+
+            from triadic_dgm.persona.derived_features import (
+                resulting_feature_list,
+                select_derived_features,
+            )
+            from triadic_dgm.persona.dataset_profile import has_churn_columns
+            from triadic_dgm.persona.label_inference import propose_derived_features, validate_labels
+
+            api_key = config.get("api_key")
+            model_name = config.get("programmer_model")
+            if not (api_key and model_name) or len(base) < 2:
+                return {}, base, {}
+            candidates = propose_derived_features(
+                df, base,
+                client_factory=lambda: instructor.from_openai(
+                    OpenAI(api_key=api_key, base_url=config.get("base_url_programmer")),
+                    mode=instructor.Mode.JSON,
+                ),
+                model_name=model_name,
+                labels=profile.labels,
+            )
+            if not candidates:
+                return {}, base, {}
+            accepted = select_derived_features(df, base, candidates)
+            proposed_labels = {
+                c.name: c.label for c in candidates if c.name in accepted and c.label
+            }
+            labels = validate_labels(
+                proposed_labels, list(accepted),
+                allow_domain_terms=has_churn_columns(profile.labels.keys()),
+            )
+            return accepted, resulting_feature_list(base, candidates, accepted), labels
+        except Exception as e:
+            print(f"[convergence] derived-feature selection skipped: {e}")
+            return {}, base, {}
+
+    def _refresh_profile_if_dataset_changed(self) -> None:
+        """Rebuild the frozen DatasetProfile when the workspace's dataset has been swapped.
+
+        The profile is built once in ``start()``, but the sandbox's ``load_dataset()``
+        re-reads index.json on every run — so uploading a new dataset while the loop is
+        running makes the two diverge silently. Observed live: a non-telco dataset analysed
+        against a stale telco profile, whose labels still satisfy ``has_churn_columns``,
+        which is the exact gate ``enrich_personas`` uses to decide whether to apply the
+        generic path — so Phase 4 was skipped entirely and the report came out full of
+        telco vocabulary for data that had no such columns. Best-effort: on any failure the
+        previous profile is kept, since a stale profile still beats no profile.
+        """
+        try:
+            current_id = _selected_dataset_id(getattr(self, "_workspace_root", ""))
+        except Exception:
+            return
+        if current_id is None or current_id == getattr(self, "_active_dataset_id", None):
+            return
+        print(f"[convergence] Dataset changed ({self._active_dataset_id} -> {current_id}); rebuilding DatasetProfile")
+        try:
+            df = _load_convergence_dataframe(self._workspace_root)
+            if df is not None:
+                self._profile = load_or_build_cached(
+                    df, DEFAULT_PROFILES_DIR,
+                    label_enricher=self._build_label_enricher(self._base_config),
+                    derived_enricher=lambda d, pr: self._select_derived_features(d, pr, self._base_config),
+                )
+                self._active_dataset_id = current_id
+                print(f"[convergence] DatasetProfile rebuilt: {len(self._profile.behavioral_features)} features, fp={self._profile.fingerprint}")
+        except Exception as e:
+            print(f"[convergence] DatasetProfile rebuild failed, keeping previous: {e}")
+
     def _loop(self) -> None:
         while not self._stop_event.is_set():
             try:
+                self._refresh_profile_if_dataset_changed()
                 task_prompt = (
-                    build_task_prompt(self._profile.behavioral_features)
+                    build_task_prompt(
+                        self._profile.behavioral_features,
+                        getattr(self._profile, "derived_features", None),
+                    )
                     if self._profile and self._profile.behavioral_features
                     else None
                 )

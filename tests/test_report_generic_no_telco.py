@@ -17,6 +17,10 @@ from triadic_dgm.services.report_generator import ReportGenerator
 _TELCO_TERMS = [
     "arpu", "churn", "cskh", "rời mạng", "khiếu nại", "sự cố kỹ thuật",
     "cước phí", "thuê bao", "rmdt",
+    # Wording whose telco-ness is not in the sentence itself but in what it presumes:
+    # a ROADMAP_METADATA KPI ("High-Value Churn Rate"), a subscriber-base noun, or the
+    # unit "KH" on rows that may not be customers at all.
+    "exit survey", "win-back", "tổng đàn", " kh ", "cước",
 ]
 
 
@@ -44,10 +48,19 @@ def _generic_personas():
             "priority_score": 40 - i,
             "feature_means": feats,
             "evidence": feats,
-            "profile_attributes": {},
+            # The sandbox pipeline computes these by keyword-matching telco column
+            # names, so a non-telco dataset yields absent/accidental values that the
+            # report still phrases in telco prose. An empty dict here would make this
+            # whole file pass while the live report leaked (which is what happened:
+            # "Nhóm này có mức cước trung bình khoảng 0 nghìn đồng/tháng").
+            "profile_attributes": {"avg_fee": 0.0, "tier_downgrade_rate": 0.0},
+            # generate_actions() branches on the LLM's OWN dataset_mode guess, which is
+            # independent of the Python-side has_churn_columns() decision. These are what
+            # it emits when the two disagree — the realistic worst case, not the happy path.
             "recommended_actions": [
-                "Phân tích sâu các đặc điểm nổi bật của nhóm để hiểu hành vi đặc trưng",
-                "Xây dựng chiến lược tiếp cận phù hợp với đặc trưng của nhóm",
+                "Phân tích đối thủ cạnh tranh và chính sách giá",
+                "Khảo sát nguyên nhân rời mạng (Exit Survey) cho nhóm giá trị cao",
+                "Chạy chiến dịch Win-back Campaign nếu khách hàng tiềm năng",
             ],
             "domain_signature": {},
             "segmentation_quality": "NORMAL",
@@ -104,6 +117,47 @@ def test_generic_report_still_describes_the_persona():
     # The profile section must be replaced by real signal, not simply deleted.
     assert "MntWines" in body
     assert "trung bình toàn tập" in body
+
+
+def test_generic_report_drops_telco_playbook_actions():
+    """The roadmap must not carry over the telco playbook — including entries whose own
+    wording is neutral but whose ROADMAP_METADATA attaches a telco KPI."""
+    body = _render(_generic_personas())
+    assert "chính sách giá" not in body
+    assert "High-Value Churn Rate" not in body
+    # ...and it must still say something, not just go blank.
+    assert "Phân tích sâu các đặc điểm nổi bật" in body
+
+
+def test_generic_report_counts_records_not_customers():
+    body = _render(_generic_personas())
+    assert "bản ghi" in body
+    assert "CHÂN DUNG KHÁCH HÀNG" not in body
+    assert "Customer Profile" not in body
+
+
+def test_enforce_generic_persona_drops_telco_profile_attributes():
+    personas = _generic_personas()
+    assert all(p["profile_attributes"] == {} for p in personas)
+
+
+def test_generic_priority_score_ranks_by_distinctiveness_not_size():
+    """apply_business_rules' telco thresholds all read zero here, collapsing every persona
+    onto one constant base so ranking degenerated to cluster size. A more distinctive but
+    smaller persona must be able to outrank a bland larger one."""
+    personas = _generic_personas()
+    big_bland, small_sharp = personas[1], personas[0]
+    big_bland["support_pct"], small_sharp["support_pct"] = 0.9, 0.1
+    big_bland["distinguishing_signal"]["stars"]["usage"]["stars"] = 1
+    small_sharp["distinguishing_signal"]["stars"]["usage"]["stars"] = 5
+    enforce_generic_persona(personas, profile=None)
+    assert small_sharp["priority_score"] > big_bland["priority_score"]
+
+
+def test_generic_priority_score_survives_a_missing_signal():
+    p = {"support_pct": 0.5}
+    enforce_generic_persona([p], profile=None)
+    assert isinstance(p["priority_score"], int)
 
 
 # --- LLM narrative path -------------------------------------------------------------------

@@ -13,8 +13,8 @@ import hashlib
 import json
 import os
 import re
-from collections.abc import Iterable
-from dataclasses import dataclass
+from collections.abc import Callable, Iterable
+from dataclasses import dataclass, field, replace
 
 import pandas as pd
 
@@ -35,6 +35,10 @@ class DatasetProfile:
         labels: Map of raw column name -> human-readable label (any language).
         behavioral_features: Frozen, sorted numeric feature list for clustering.
         domains: Generic domain root -> member columns (auto-grouped by name).
+        derived_features: Derived feature name -> arithmetic expression over raw columns,
+            accepted by measurement (see :mod:`triadic_dgm.persona.derived_features`).
+            Frozen alongside behavioral_features so every run clusters on the same inputs;
+            the sandbox must compute these columns before clustering. Empty by default.
     """
 
     dataset_name: str
@@ -42,6 +46,7 @@ class DatasetProfile:
     labels: dict[str, str]
     behavioral_features: list[str]
     domains: dict[str, list[str]]
+    derived_features: dict[str, str] = field(default_factory=dict)
 
     def label(self, column: str) -> str:
         """Return the human label for a column, falling back to the raw name."""
@@ -186,6 +191,7 @@ def _to_dict(profile: DatasetProfile) -> dict:
         "labels": profile.labels,
         "behavioral_features": profile.behavioral_features,
         "domains": profile.domains,
+        "derived_features": profile.derived_features,
     }
 
 
@@ -197,6 +203,8 @@ def _from_dict(data: dict) -> DatasetProfile:
         labels=dict(data.get("labels", {})),
         behavioral_features=list(data.get("behavioral_features", [])),
         domains={k: list(v) for k, v in data.get("domains", {}).items()},
+        # .get keeps profiles cached before this field existed loadable.
+        derived_features=dict(data.get("derived_features", {})),
     )
 
 
@@ -205,6 +213,8 @@ def load_or_build_cached(
     cache_dir: str,
     metadata: dict | None = None,
     dataset_name: str = "dataset",
+    label_enricher: "Callable[[pd.DataFrame, DatasetProfile], dict[str, str]] | None" = None,
+    derived_enricher: "Callable[[pd.DataFrame, DatasetProfile], tuple[dict[str, str], list[str]]] | None" = None,
 ) -> DatasetProfile:
     """Return the frozen profile for this dataset, building + caching on first sight.
 
@@ -217,6 +227,17 @@ def load_or_build_cached(
         cache_dir: Directory path where fingerprint-keyed profiles are stored.
         metadata: Optional curated metadata dict.
         dataset_name: Human-facing dataset name (default: "dataset").
+        label_enricher: Optional callable applied ONLY on a cache miss, returning extra
+            column -> label pairs to merge over the auto-derived ones (see
+            :mod:`triadic_dgm.persona.label_inference`). Injected rather than imported so
+            this module stays free of LLM/network dependencies and unit-testable offline.
+            Curated metadata labels win: the enricher only fills columns whose label is
+            still the raw column name. Best-effort — a failure leaves labels untouched.
+        derived_enricher: Optional callable, likewise applied ONLY on a cache miss,
+            returning ``(derived_features, behavioral_features, labels)``. Runs after
+            ``label_enricher`` so proposals can be phrased in terms of human labels.
+            Both results are frozen into the cached profile, which is what keeps the
+            feature space stable across convergence runs.
 
     Returns:
         A DatasetProfile, either loaded from cache or newly built and cached.
@@ -230,6 +251,28 @@ def load_or_build_cached(
         except (OSError, json.JSONDecodeError, KeyError):
             pass  # corrupt cache -> rebuild below
     profile = build_profile(df, metadata=metadata, dataset_name=dataset_name)
+    if label_enricher is not None:
+        try:
+            extra = label_enricher(df, profile) or {}
+            merged = dict(profile.labels)
+            for col, label in extra.items():
+                if merged.get(col, col) == col:  # only fill in raw-name placeholders
+                    merged[col] = label
+            profile = replace(profile, labels=merged)
+        except Exception as e:
+            print(f"[dataset_profile] label enrichment skipped: {e}")
+    if derived_enricher is not None:
+        try:
+            derived, features, derived_labels = derived_enricher(df, profile)
+            if derived:
+                profile = replace(
+                    profile,
+                    derived_features=dict(derived),
+                    behavioral_features=list(features),
+                    labels={**profile.labels, **(derived_labels or {})},
+                )
+        except Exception as e:
+            print(f"[dataset_profile] derived-feature selection skipped: {e}")
     os.makedirs(cache_dir, exist_ok=True)
     with open(path, "w", encoding="utf-8") as f:
         json.dump(_to_dict(profile), f, ensure_ascii=False, indent=2)

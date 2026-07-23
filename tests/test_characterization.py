@@ -23,7 +23,30 @@ def test_stars_ladder():
     assert stars_from_max_dev(1.0) == 3
     assert stars_from_max_dev(0.3) == 2
     assert stars_from_max_dev(0.0) == 1
-    assert stars_from_max_dev(-1.0) == 1  # below average is never a "signal"
+    # Rated on magnitude: distinctively BELOW average is a persona too. A non-negative
+    # quantity bottoms out at -100%, so "low" reaches 3 stars and no further.
+    assert stars_from_max_dev(-1.0) == 3
+    assert stars_from_max_dev(-0.3) == 2
+    assert stars_from_max_dev(-0.1) == 1
+
+
+def test_domain_rated_on_magnitude_so_a_low_cluster_is_nameable():
+    """Regression: the 86.5% Olist cluster (zero late deliveries vs an 8% average)
+    scored 1 star under above-average-only rating and rendered as unnamed."""
+    means = {"late_delivery_rate": 0.0}
+    global_means = {"late_delivery_rate": 0.08}
+    stars = compute_domain_stars(means, global_means, {"delivery": ["late_delivery_rate"]})
+    assert stars["delivery"]["stars"] == 3
+    assert stars["delivery"]["max_dev"] == -1.0  # sign retained for "cao"/"thấp"
+
+
+def test_dominant_domain_tiebreak_uses_magnitude():
+    means = {"a": 0.0, "b": 1.3}
+    global_means = {"a": 1.0, "b": 1.0}
+    stars = compute_domain_stars(means, global_means, {"low": ["a"], "high": ["b"]})
+    sig = distinguishing_signal(means, global_means, {"low": ["a"], "high": ["b"]}, {})
+    assert stars["low"]["stars"] == 3 and stars["high"]["stars"] == 2
+    assert sig["dominant_domain"] == "low"
 
 
 def test_compute_domain_stars_uses_provided_domains():
@@ -98,7 +121,8 @@ def _strong_sig():
 
 def test_generic_persona_name_from_strong_signal():
     name = generic_persona_name(_strong_sig())
-    assert "Mức sử dụng" in name
+    # Label's first letter is lowercased so it reads naturally after "Nhóm".
+    assert "mức sử dụng" in name
     assert "cao" in name
     # dataset-neutral: no telco/churn vocabulary
     assert "churn" not in name.lower()
@@ -152,7 +176,7 @@ def test_enforce_generic_persona_neutralises_churn_and_renames():
     assert p["risk"] is None
     assert p["risk_tier"] is None
     assert "rời mạng" not in p["persona_name"].lower()
-    assert "Mức sử dụng" in p["persona_name"]
+    assert "mức sử dụng" in p["persona_name"]
 
 
 def test_enforce_generic_persona_is_best_effort():
@@ -168,3 +192,67 @@ def test_enforce_generic_persona_is_best_effort():
 
 def test_enforce_generic_persona_empty_list_is_noop():
     enforce_generic_persona([], profile=object())  # must not raise
+
+
+# --- coordinated naming across personas ---------------------------------------------
+
+from triadic_dgm.persona.characterization import assign_generic_persona_names
+
+
+def _sig(*features):
+    """features: (name, label, deviation) tuples, strongest first."""
+    return {
+        "dominant_domain": "d",
+        "stars": {"d": {"stars": 4, "max_dev": features[0][2]}},
+        "top_features": [
+            {"feature": f, "label": lab, "deviation": dev} for f, lab, dev in features
+        ],
+        "evidence": "…",
+    }
+
+
+def test_second_persona_on_the_same_axis_takes_its_next_feature():
+    """Regression (Olist): two clusters split by late_delivery_rate were both named after
+    it — "…trễ cao" and "…trễ thấp" — burying what else separated them."""
+    personas = [
+        # weaker claim on the shared axis, but has its own alternative
+        {"distinguishing_signal": _sig(
+            ("late_delivery_rate", "Tỷ lệ giao hàng trễ", -1.0),
+            ("total_spend", "Tổng chi tiêu", -0.5),
+        )},
+        # strongest claim -> keeps the shared axis
+        {"distinguishing_signal": _sig(
+            ("late_delivery_rate", "Tỷ lệ giao hàng trễ", 11.28),
+            ("avg_delivery_days", "Số ngày giao hàng", 1.53),
+        )},
+    ]
+    names = assign_generic_persona_names(personas)
+    assert names[1] == "Nhóm tỷ lệ giao hàng trễ cao"
+    assert names[0] == "Nhóm tổng chi tiêu thấp"
+
+
+def test_alternative_must_still_be_a_meaningful_deviation():
+    """A feature too weak to appear as evidence is too weak to be a name — better to
+    repeat the strong shared axis than to name a group after noise."""
+    personas = [
+        {"distinguishing_signal": _sig(
+            ("shared", "Trục chung", -1.0),
+            ("noise", "Nhiễu", 0.02),
+        )},
+        {"distinguishing_signal": _sig(("shared", "Trục chung", 9.0))},
+    ]
+    names = assign_generic_persona_names(personas)
+    assert names[1] == "Nhóm trục chung cao"
+    assert names[0] == "Nhóm trục chung thấp"  # fell back rather than name on 2% noise
+
+
+def test_assign_names_is_positional_and_best_effort():
+    personas = [{"distinguishing_signal": None}, {}, {"distinguishing_signal": _sig(("a", "Chỉ số A", 3.0))}]
+    names = assign_generic_persona_names(personas)
+    assert len(names) == 3
+    assert names[0] == names[1] == "Nhóm chưa phân hoá rõ"
+    assert names[2] == "Nhóm chỉ số A cao"
+
+
+def test_standalone_naming_is_unchanged_without_claimed():
+    assert generic_persona_name(_sig(("a", "Chỉ số A", 3.0))) == "Nhóm chỉ số A cao"

@@ -4,6 +4,7 @@ import time
 from datetime import datetime
 import instructor
 from openai import OpenAI
+from triadic_dgm.persona.vocabulary import contains_forbidden_term
 from triadic_dgm.schemas.report_schema import ReportNarrative, ExecutiveSummaryNarrative
 
 # ==============================================================
@@ -476,16 +477,6 @@ _POST_CHURN_TIER_DISPLAY_LABELS = {
     "Nhóm cần giữ chân ngay – ưu tiên giữ chân": "Nhóm giá trị cao đã rời mạng – ưu tiên phân tích nguyên nhân",
 }
 
-# Domain concepts a GENERIC (non-telco) dataset provably does not contain. An LLM sentence that
-# asserts any of these is describing data it was never shown, so it is dropped outright rather than
-# rewritten — a partially-true sentence is harder for a reader to distrust than a missing one.
-_GENERIC_FORBIDDEN_TERMS = (
-    "arpu", "churn", "cskh", "rời mạng", "roi mang", "khiếu nại", "khieu nai",
-    "sự cố kỹ thuật", "su co ky thuat", "cước", "cuoc phi", "thuê bao", "rmdt",
-    "giữ chân", "giu chan", "gói cước", "chăm sóc khách hàng", "bán chéo", "cross-sell",
-    "upsell", "bán thêm", "retention", "win-back",
-)
-
 # Sentence terminators used to split narrative prose. Kept explicit (not a regex on ".") so a
 # decimal number inside a sentence never splits it.
 _SENTENCE_SPLIT_RE = re.compile(r'(?<=[.!?])\s+')
@@ -501,7 +492,7 @@ def _strip_forbidden_sentences(text: str) -> str:
         return ""
     kept = [
         s for s in _SENTENCE_SPLIT_RE.split(text.strip())
-        if s.strip() and not any(t in s.lower() for t in _GENERIC_FORBIDDEN_TERMS)
+        if s.strip() and not contains_forbidden_term(s)
     ]
     return " ".join(kept).strip()
 
@@ -563,6 +554,9 @@ class ReportGenerator:
             OpenAI(api_key=api_key, base_url=base_url),
             mode=instructor.Mode.JSON
         )
+        # Latched per render_markdown() call; defaults to the telco path so a helper invoked
+        # outside a render (tests, feed) behaves exactly as it did before this flag existed.
+        self._is_generic: bool = False
 
     def extract_json(self, raw_python_output: str):
         match = re.search(r'\[JSON_START_PERSONA\](.*?)\[JSON_END_PERSONA\]', raw_python_output, re.DOTALL)
@@ -842,9 +836,16 @@ class ReportGenerator:
         return name
 
     def format_support(self, support: int) -> str:
+        """Render a cluster size with a unit the dataset actually supports.
+
+        "KH" (khách hàng) is only correct when the rows are customers; a generic
+        dataset's rows may be transactions, sensors or products, so it counts
+        neutral "bản ghi" instead.
+        """
+        unit = "bản ghi" if getattr(self, "_is_generic", False) else "KH"
         if support >= 1000:
-            return f"≈{support/1000:.1f}k KH"
-        return f"{support} KH"
+            return f"≈{support/1000:.1f}k {unit}"
+        return f"{support} {unit}"
 
     def _build_executive_headline(self, personas_data: list) -> str:
         """Deterministic, Python-computed lead sentence — never LLM-authored (anti-hallucination).
@@ -1804,6 +1805,14 @@ Dữ liệu Business Facts duy nhất bạn được thấy:
             if isinstance(sp, (int, float)) and sp > 1:
                 p['support_pct'] = sp / 100
 
+        # Latch the dataset mode once, here, so every deterministic section below agrees on it.
+        # Without a single latch each section re-derives "is this telco?" from its own heuristic
+        # and they disagree — which is how the generic prompt ended up telling the LLM to say
+        # "bản ghi" while the surrounding scaffolding printed "KH" in the same report.
+        self._is_generic = bool(personas_data) and all(
+            p.get('dataset_mode') == 'GENERIC' for p in personas_data
+        )
+
         # 1. Validation Harness
         ReportValidator.validate(personas_data)
         
@@ -1844,7 +1853,9 @@ Dữ liệu Business Facts duy nhất bạn được thấy:
         # ==============================================================
         
         # Executive Summary
-        md = "# BÁO CÁO PHÂN TÍCH CHÂN DUNG KHÁCH HÀNG\n\n"
+        title = ("BÁO CÁO PHÂN TÍCH PHÂN KHÚC DỮ LIỆU" if self._is_generic
+                 else "BÁO CÁO PHÂN TÍCH CHÂN DUNG KHÁCH HÀNG")
+        md = f"# {title}\n\n"
         md += "**ISC - AI - Data Product Team**\n\n"
         md += f"*Ngày {date_str}*\n\n"
         md += "---\n\n"
@@ -2043,7 +2054,7 @@ Dữ liệu Business Facts duy nhất bạn được thấy:
             # readers get "Top nhóm giá trị cao, ít liên hệ CSKH" instead of raw numbers they skip.
             profile_bullets = self._build_customer_profile_bullets(p, global_means)
             if profile_bullets:
-                md += "**Customer Profile:**\n"
+                md += "**Đặc trưng phân biệt:**\n" if self._is_generic else "**Customer Profile:**\n"
                 for b in profile_bullets:
                     md += f"- {b}\n"
                 md += "\n"
@@ -2119,7 +2130,11 @@ Dữ liệu Business Facts duy nhất bạn được thấy:
             objective = meta.get("objective", "Cải thiện chỉ số nghiệp vụ")
             # Deterministic, Python-computed outcome — never LLM-authored (anti-hallucination),
             # tied to this persona's actual support size/rank instead of generic LLM prose.
-            outcome = f"{objective} cho ~{sup_str} ({sup_pct:.1f}% tổng đàn) — ưu tiên #{rank}, theo dõi qua {kpi}."
+            # "tổng đàn" is telco jargon for the subscriber base; a generic dataset has no herd.
+            # format_support() already prefixes "≈" when it rounds, so only add "~" when it did not.
+            whole = "tổng thể" if self._is_generic else "tổng đàn"
+            approx = "" if sup_str.startswith("≈") else "~"
+            outcome = f"{objective} cho {approx}{sup_str} ({sup_pct:.1f}% {whole}) — ưu tiên #{rank}, theo dõi qua {kpi}."
 
             md += f"| **#{rank}** | {action_text} | {p_name} | {owner} | {timeline} | {kpi} | {outcome} |\n"
 
