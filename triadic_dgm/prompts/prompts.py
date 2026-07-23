@@ -535,6 +535,21 @@ def try_substage_cluster(data, dominant_cid, cluster_col='cluster'):
         ['customer_type'], ['vip_type'],
     ]
     stage2_profile_cols = get_columns(cols, stage2_keyword_groups)
+    if len(stage2_profile_cols) < 3:
+        # GENERIC FALLBACK — the keyword groups above are telco PROFILE columns, so on any
+        # other dataset they match nothing, Stage-2 never runs, and the >0.8 dominant-cluster
+        # hard stop below then aborts the whole run. ĐÃ XẢY RA TRÊN DỮ LIỆU THẬT (retail 50k
+        # dòng): "n_features_found: 0, reason: insufficient_features", cụm dominant 86.5%,
+        # và script xuất ra đúng 1 persona "Clustering Failed" — trong khi dữ liệu hoàn toàn
+        # tách được, chỉ là không có cột telco nào để Stage-2 bám vào.
+        # Fall back to the subset's OWN numeric columns that still vary INSIDE the dominant
+        # cluster: sub-structure the global clustering missed is exactly what this stage
+        # looks for, and the silhouette/size gates below still reject a bad split.
+        numeric_sub = subset.select_dtypes(include='number')
+        stage2_profile_cols = [
+            c for c in numeric_sub.columns
+            if c != cluster_col and numeric_sub[c].nunique(dropna=True) > 1
+        ]
     info = {{'attempted': False, 'n_features_found': len(stage2_profile_cols), 'reason': None}}
 
     if len(stage2_profile_cols) < 3:
