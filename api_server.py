@@ -1,3 +1,4 @@
+import os
 from contextlib import asynccontextmanager
 
 import uvicorn
@@ -10,11 +11,26 @@ from api.routers.convergence import router as convergence_router
 from api.services.convergence_loop import convergence_loop
 
 
+# The convergence loop runs the persona pipeline continuously in the background against a
+# fixed dataset, for cross-run convergence monitoring. It is a research instrument, not
+# part of the user-facing chat product: it holds its own kernel and calls the LLM without
+# pause. Off by default so a normal deployment only serves chat; set
+# CONVERGENCE_LOOP_ENABLED=1 to run it. The /convergence/* endpoints keep working either
+# way — they read the stored run history, which simply stops growing while it is off.
+CONVERGENCE_LOOP_ENABLED = os.getenv("CONVERGENCE_LOOP_ENABLED", "0").strip().lower() in (
+    "1", "true", "yes", "on",
+)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    convergence_loop.start()
+    if CONVERGENCE_LOOP_ENABLED:
+        convergence_loop.start()
+    else:
+        print("[convergence] background loop disabled (CONVERGENCE_LOOP_ENABLED=1 to enable)")
     yield
-    convergence_loop.stop()
+    if CONVERGENCE_LOOP_ENABLED:
+        convergence_loop.stop()
 
 
 app = FastAPI(title="LAMBDA Unified Backend (DeepAnalyze Compatible)", lifespan=lifespan)

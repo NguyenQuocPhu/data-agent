@@ -48,11 +48,17 @@ export default function RootLayout({
       <body suppressHydrationWarning>
         <Suspense fallback={<div>Loading...</div>}>
           <ThemeProvider defaultTheme="light" storageKey="theme">
-            <div className="fixed top-2 right-2 z-50">
-              <Link href="/convergence" className="text-xs text-muted-foreground underline">
-                Convergence Feed
-              </Link>
-            </div>
+            {/* Convergence Feed is a research instrument, not part of the chat product.
+                Its background loop is off by default (CONVERGENCE_LOOP_ENABLED in
+                api_server.py), so this link would lead to a page whose data no longer
+                updates. The route itself still exists for internal use. */}
+            {process.env.NEXT_PUBLIC_SHOW_CONVERGENCE === "1" && (
+              <div className="fixed top-2 right-2 z-50">
+                <Link href="/convergence" className="text-xs text-muted-foreground underline">
+                  Convergence Feed
+                </Link>
+              </div>
+            )}
             {children}
             <Toaster />
             <SonnerToaster richColors closeButton position="bottom-right" />
