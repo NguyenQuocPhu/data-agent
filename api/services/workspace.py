@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 import re
 import shutil
 import sqlite3
@@ -942,11 +943,68 @@ async def _save_uploads(
     return saved, rejected
 
 
+TABULAR_EXTS = {".csv", ".tsv", ".xlsx", ".xls", ".parquet"}
+
+
+def purge_datasets(session_id: str) -> dict:
+    """Remove every registered tabular dataset from a workspace, in place.
+
+    Only datasets are removed — generated reports, charts and other outputs are left
+    alone, since they are results the user may still want.
+
+    Called before each upload so a new dataset REPLACES the previous one rather than
+    joining it. Stale datasets are not merely clutter: while several were registered, the
+    model was shown all of their schemas and wrote its analysis against the wrong one
+    (a telco column list applied to a retail file). One registered dataset means there is
+    nothing to confuse.
+
+    Args:
+        session_id: Workspace to purge.
+
+    Returns:
+        {"removed": int, "freed_bytes": int}.
+    """
+    workspace_root = resolve_workspace_root(session_id)
+    index_path = workspace_root / "index.json"
+    if not index_path.exists():
+        return {"removed": 0, "freed_bytes": 0}
+    try:
+        index_data = json.loads(index_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return {"removed": 0, "freed_bytes": 0}
+
+    removed, freed = 0, 0
+    for file_id, info in list(index_data.items()):
+        name = info.get("filename", info.get("path", ""))
+        if os.path.splitext(name)[1].lower() not in TABULAR_EXTS:
+            continue
+        for rel in (info.get("path"), info.get("metadata_file")):
+            if not rel:
+                continue
+            target = workspace_root / rel
+            try:
+                if target.exists():
+                    freed += target.stat().st_size
+                    target.unlink()
+            except OSError as e:
+                print(f"[workspace] could not remove {target}: {e}")
+        del index_data[file_id]
+        removed += 1
+
+    if removed:
+        index_path.write_text(json.dumps(index_data, ensure_ascii=False, indent=2), encoding="utf-8")
+        print(f"[workspace] purged {removed} dataset(s), freed {freed / 1e6:.1f} MB from '{session_id}'")
+    return {"removed": removed, "freed_bytes": freed}
+
+
 async def upload_files_to_workspace(session_id: str, files: Iterable[UploadFile]) -> dict:
     workspace_root = resolve_workspace_root(session_id)
+    # A new upload REPLACES the active dataset instead of stacking on top of it.
+    purged = purge_datasets(session_id)
     saved, rejected = await _save_uploads(workspace_root, workspace_root, files)
     return {
         "message": f"Successfully uploaded {len(saved)} files",
+        "replaced": purged["removed"],
         "files": saved,
         "rejected": rejected,
     }

@@ -57,8 +57,28 @@ def _resolve_chat_profile():
 set_profile_resolver(_resolve_chat_profile)
 
 
+# Start each server run with no dataset registered, so an analysis can only ever run on
+# data uploaded in the current session. Deliberately DESTRUCTIVE and on by default: a
+# leftover dataset does not just sit there, it gets described to the model and changes what
+# the model writes — a stale telco file made it emit a telco column list for a retail
+# dataset. Set CLEAR_DATASETS_ON_START=0 to keep uploads across restarts.
+CLEAR_DATASETS_ON_START = os.getenv("CLEAR_DATASETS_ON_START", "1").strip().lower() in (
+    "1", "true", "yes", "on",
+)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    if CLEAR_DATASETS_ON_START:
+        try:
+            from api.services import workspace as workspace_service
+
+            # Datasets only — generated reports and charts are results worth keeping.
+            result = workspace_service.purge_datasets("default")
+            print(f"[startup] cleared {result['removed']} dataset(s) from the chat workspace")
+        except Exception as e:
+            print(f"[startup] dataset purge skipped: {e}")
+
     if CONVERGENCE_LOOP_ENABLED:
         convergence_loop.start()
     else:
