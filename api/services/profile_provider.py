@@ -50,6 +50,33 @@ def selected_dataset_id(workspace_root: str) -> "str | None":
     return entries[0][0]
 
 
+def stored_separator(workspace_root: str, info: dict, ext: str) -> str:
+    """Return the separator recorded for a dataset at upload time.
+
+    Falls back to the extension only when nothing was recorded. Guessing from the
+    extension read a tab-separated ".csv" as ONE column named after the whole header
+    line, which left the DatasetProfile with zero behavioral features and every persona
+    unnamed — a failure visible only three layers downstream.
+
+    Args:
+        workspace_root: Directory containing the metadata sidecars.
+        info: The dataset's index entry.
+        ext: The file's lowercased extension.
+
+    Returns:
+        The separator to pass to ``pd.read_csv``.
+    """
+    default = "\t" if ext == ".tsv" else ","
+    rel = info.get("metadata_file")
+    if not rel:
+        return default
+    try:
+        with open(os.path.join(workspace_root, rel), "r", encoding="utf-8") as f:
+            return json.load(f).get("separator") or default
+    except Exception:
+        return default
+
+
 def load_dataframe(workspace_root: str) -> "pd.DataFrame | None":
     """Read the workspace's auto-selected tabular dataset. Returns None on any failure."""
     index_path = os.path.join(workspace_root or "", "index.json")
@@ -64,7 +91,8 @@ def load_dataframe(workspace_root: str) -> "pd.DataFrame | None":
         file_path = os.path.join(workspace_root, index_data[fid]["path"])
         ext = os.path.splitext(file_path)[1].lower()
         if ext in (".csv", ".tsv"):
-            return pd.read_csv(file_path, sep="\t" if ext == ".tsv" else ",")
+            return pd.read_csv(file_path, sep=stored_separator(workspace_root, index_data[fid], ext),
+                               engine="python")
         if ext in (".xlsx", ".xls"):
             return pd.read_excel(file_path)
     except Exception:

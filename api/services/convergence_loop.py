@@ -97,7 +97,18 @@ def load_dataset(file_id=None):
     file_path = os.path.join(workspace_root, index_data[matched_id]['path'])
     ext = os.path.splitext(file_path)[1].lower()
     if ext in ['.csv', '.tsv']:
-        df = pd.read_csv(file_path, sep='\\t' if ext == '.tsv' else ',')
+        # Separator detected at upload time and stored in the metadata sidecar. Guessing it
+        # from the extension read a tab-separated ".csv" as ONE column whose name was the
+        # whole header line — the analysis then had nothing to work with.
+        _sep = '\\t' if ext == '.tsv' else ','
+        _meta_rel = index_data[matched_id].get('metadata_file')
+        if _meta_rel:
+            try:
+                with open(os.path.join(workspace_root, _meta_rel), 'r', encoding='utf-8') as _mf:
+                    _sep = json.load(_mf).get('separator') or _sep
+            except Exception:
+                pass
+        df = pd.read_csv(file_path, sep=_sep, engine='python')
     elif ext in ['.xlsx', '.xls']:
         df = pd.read_excel(file_path)
     else:
@@ -155,7 +166,10 @@ def _load_convergence_dataframe(workspace_root: str) -> "pd.DataFrame | None":
     ext = os.path.splitext(file_path)[1].lower()
     try:
         if ext in (".csv", ".tsv"):
-            return pd.read_csv(file_path, sep="\t" if ext == ".tsv" else ",")
+            from .profile_provider import stored_separator
+
+            return pd.read_csv(file_path, sep=stored_separator(workspace_root, info, ext),
+                               engine="python")
         if ext in (".xlsx", ".xls"):
             return pd.read_excel(file_path)
     except Exception:

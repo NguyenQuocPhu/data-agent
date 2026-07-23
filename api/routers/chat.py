@@ -42,7 +42,10 @@ def _active_dataset_columns() -> list[str] | None:
         ext = os.path.splitext(file_path)[1].lower()
         import pandas as pd
         if ext in (".csv", ".tsv"):
-            df = pd.read_csv(file_path, sep="\t" if ext == ".tsv" else ",", nrows=0)
+            from api.services.profile_provider import stored_separator
+
+            df = pd.read_csv(file_path, sep=stored_separator(workspace_root, info, ext),
+                             nrows=0, engine="python")
         elif ext in (".xlsx", ".xls"):
             df = pd.read_excel(file_path, nrows=0)
         else:
