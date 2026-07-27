@@ -8,11 +8,20 @@ lambda_instance = LAMBDA(config_path='config.yaml')
 print(f"LAMBDA session cache path: {lambda_instance.session_cache_path}")
 
 # Tự động đồng bộ các file đã upload trong workspace của UI vào não của LAMBDA khi khởi động lại server
+REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+_SAFE_REPO_ROOT = str(REPO_ROOT).replace('\\', '/')
 workspace_dir = workspace_service.resolve_workspace_root("default")
 safe_workspace_dir = str(workspace_dir).replace('\\', '/')
 
 print("Injecting load_dataset into Sandbox Kernel...")
 tool_layer_code = f"""
+import sys
+# Put the repo on the sandbox kernel's path: it runs with cwd set to the session cache
+# directory, so `import triadic_dgm` fails without this. The generated code needs it to call
+# run_persona_pipeline() instead of retyping the clustering/rule-engine script every run.
+if r'{_SAFE_REPO_ROOT}' not in sys.path:
+    sys.path.insert(0, r'{_SAFE_REPO_ROOT}')
+
 import json
 import pandas as pd
 import os
@@ -82,7 +91,18 @@ def load_dataset(file_id=None):
         
     ext = os.path.splitext(file_path)[1].lower()
     if ext in ['.csv', '.tsv']:
-        df = pd.read_csv(file_path, sep='\\t' if ext == '.tsv' else ',')
+        # Separator detected at upload time and stored in the metadata sidecar. Guessing it
+        # from the extension read a tab-separated ".csv" as ONE column whose name was the
+        # whole header line — the analysis then had nothing to work with.
+        _sep = '\\t' if ext == '.tsv' else ','
+        _meta_rel = index_data[matched_id].get('metadata_file')
+        if _meta_rel:
+            try:
+                with open(os.path.join(workspace_root, _meta_rel), 'r', encoding='utf-8') as _mf:
+                    _sep = json.load(_mf).get('separator') or _sep
+            except Exception:
+                pass
+        df = pd.read_csv(file_path, sep=_sep, engine='python')
     elif ext in ['.xlsx', '.xls']:
         df = pd.read_excel(file_path)
     else:

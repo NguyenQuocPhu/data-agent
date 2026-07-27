@@ -1,3 +1,4 @@
+import os
 from contextlib import asynccontextmanager
 
 import uvicorn
@@ -8,13 +9,83 @@ from api.routers.chat import router as chat_router
 from api.routers.export import router as export_router
 from api.routers.convergence import router as convergence_router
 from api.services.convergence_loop import convergence_loop
+from triadic_dgm.services.report_generator import set_profile_resolver
+
+
+# The convergence loop runs the persona pipeline continuously in the background against a
+# fixed dataset, for cross-run convergence monitoring. It is a research instrument, not
+# part of the user-facing chat product: it holds its own kernel and calls the LLM without
+# pause. Off by default so a normal deployment only serves chat; set
+# CONVERGENCE_LOOP_ENABLED=1 to run it. The /convergence/* endpoints keep working either
+# way — they read the stored run history, which simply stops growing while it is off.
+CONVERGENCE_LOOP_ENABLED = os.getenv("CONVERGENCE_LOOP_ENABLED", "0").strip().lower() in (
+    "1", "true", "yes", "on",
+)
+
+
+# Where chat's DatasetProfile cache lives. Deliberately NOT the convergence loop's
+# directory: that loop emits its frozen derived-feature definitions into its task prompt so
+# the sandbox materialises those columns, and the chat path has no equivalent — the user
+# writes their own query. Sharing one cache would hand chat a feature list naming columns
+# that never get created.
+CHAT_PROFILES_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "cache", "chat", "profiles")
+
+
+def _resolve_chat_profile():
+    """Build/load the DatasetProfile for the chat workspace's active dataset.
+
+    Registered on ReportGenerator so a persona report rendered from a chat session gets
+    the same treatment the convergence loop gets: readable persona names from inferred
+    column labels, and telco fields neutralised when the data has no churn columns.
+
+    Derived-feature selection is off here — see CHAT_PROFILES_DIR.
+    """
+    from api.services import profile_provider, workspace as workspace_service
+    from api.services.convergence_loop import _load_base_config
+
+    return profile_provider.load_profile(
+        str(workspace_service.resolve_workspace_root("default")),
+        _load_base_config(),
+        CHAT_PROFILES_DIR,
+        with_derived=False,
+    )
+
+
+# Registered at import, not in lifespan: lifespan only runs under uvicorn, so any other
+# entry point (a worker importing the app, a script, a test) would silently render reports
+# with no profile — the exact "generic path never ran" failure this wiring exists to fix.
+set_profile_resolver(_resolve_chat_profile)
+
+
+# Start each server run with no dataset registered, so an analysis can only ever run on
+# data uploaded in the current session. Deliberately DESTRUCTIVE and on by default: a
+# leftover dataset does not just sit there, it gets described to the model and changes what
+# the model writes — a stale telco file made it emit a telco column list for a retail
+# dataset. Set CLEAR_DATASETS_ON_START=0 to keep uploads across restarts.
+CLEAR_DATASETS_ON_START = os.getenv("CLEAR_DATASETS_ON_START", "1").strip().lower() in (
+    "1", "true", "yes", "on",
+)
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    convergence_loop.start()
+    if CLEAR_DATASETS_ON_START:
+        try:
+            from api.services import workspace as workspace_service
+
+            # Datasets only — generated reports and charts are results worth keeping.
+            result = workspace_service.purge_datasets("default")
+            print(f"[startup] cleared {result['removed']} dataset(s) from the chat workspace")
+        except Exception as e:
+            print(f"[startup] dataset purge skipped: {e}")
+
+    if CONVERGENCE_LOOP_ENABLED:
+        convergence_loop.start()
+    else:
+        print("[convergence] background loop disabled (CONVERGENCE_LOOP_ENABLED=1 to enable)")
     yield
-    convergence_loop.stop()
+    if CONVERGENCE_LOOP_ENABLED:
+        convergence_loop.stop()
 
 
 app = FastAPI(title="LAMBDA Unified Backend (DeepAnalyze Compatible)", lifespan=lifespan)

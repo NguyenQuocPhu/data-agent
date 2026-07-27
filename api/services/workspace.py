@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import io
 import json
+import os
 import re
 import shutil
 import sqlite3
@@ -860,6 +862,111 @@ def save_workspace_index(workspace_root: Path, index_data: dict):
     index_path = workspace_root / "index.json"
     index_path.write_text(json.dumps(index_data, indent=2, ensure_ascii=False), encoding="utf-8")
 
+# --- zip uploads -------------------------------------------------------------------
+
+#: Caps on what a single uploaded archive may expand to. A zip is untrusted input: without
+#: these, a small file can expand to fill the disk (zip bomb) or write outside the workspace
+#: (zip slip).
+_ZIP_MAX_MEMBERS = 20
+_ZIP_MAX_TOTAL_BYTES = 500 * 1024 * 1024
+_ZIP_MAX_COMPRESSION_RATIO = 200
+
+
+def _safe_zip_members(archive: zipfile.ZipFile) -> tuple[list[zipfile.ZipInfo], list[str]]:
+    """Select the tabular members of an archive that are safe to extract.
+
+    Args:
+        archive: An open ZipFile.
+
+    Returns:
+        (members to extract, human-readable reasons for what was skipped).
+    """
+    members: list[zipfile.ZipInfo] = []
+    skipped: list[str] = []
+    total = 0
+    for info in archive.infolist():
+        name = info.filename
+        if info.is_dir():
+            continue
+        # Zip slip: a member may not escape the extraction directory.
+        if name.startswith("/") or ".." in Path(name).parts or Path(name).is_absolute():
+            skipped.append(f"{name} (đường dẫn không an toàn)")
+            continue
+        if Path(name).suffix.lower() not in TABULAR_EXTS:
+            continue  # quietly ignore READMEs, images, licences
+        if info.file_size > _ZIP_MAX_TOTAL_BYTES:
+            skipped.append(f"{name} (quá lớn: {info.file_size / 1e6:.0f} MB)")
+            continue
+        if info.compress_size and info.file_size / info.compress_size > _ZIP_MAX_COMPRESSION_RATIO:
+            skipped.append(f"{name} (tỷ lệ nén bất thường, nghi zip bomb)")
+            continue
+        total += info.file_size
+        if total > _ZIP_MAX_TOTAL_BYTES:
+            skipped.append(f"{name} (vượt tổng dung lượng cho phép)")
+            break
+        members.append(info)
+        if len(members) >= _ZIP_MAX_MEMBERS:
+            break
+    return members, skipped
+
+
+def extract_tabular_from_zip(content: bytes) -> tuple[list[tuple[str, bytes]], list[str]]:
+    """Pull the tabular files out of a zip upload.
+
+    Users routinely upload archives straight from a dataset site. Before this, such an
+    upload was stored verbatim and then silently ignored: load_dataset() only reads
+    tabular extensions, so the file sat in the workspace and the analysis quietly ran on
+    whatever OTHER dataset was newest. The user believed they had supplied their data and
+    could not see why the results did not match it.
+
+    Args:
+        content: Raw bytes of the uploaded archive.
+
+    Returns:
+        ([(member basename, bytes)], [reasons for anything skipped]). Both empty lists
+        mean the archive held no tabular file at all.
+    """
+    try:
+        with zipfile.ZipFile(io.BytesIO(content)) as archive:
+            members, skipped = _safe_zip_members(archive)
+            out = []
+            for info in members:
+                # Flatten: nested directories are irrelevant once registered by file_id.
+                out.append((Path(info.filename).name, archive.read(info)))
+            return out, skipped
+    except zipfile.BadZipFile:
+        return [], ["file .zip hỏng hoặc không đọc được"]
+    except Exception as e:
+        return [], [f"không giải nén được: {e}"]
+
+
+#: Separators tried when a delimited file is read, best-column-count wins. A ".csv" that
+#: is actually tab-separated is common (Kaggle exports one), and reading it with the comma
+#: default yields a single column whose name is the entire header line — which is then
+#: described to the model as a one-column dataset. Silent, and fatal to the analysis.
+_CANDIDATE_SEPARATORS = (",", "\t", ";", "|")
+
+
+def sniff_separator(path: "Path | str") -> str:
+    """Detect a delimited file's separator by which one yields the most columns.
+
+    Args:
+        path: File to inspect; only the first rows are read.
+
+    Returns:
+        The winning separator, defaulting to "," when nothing parses better.
+    """
+    best, best_cols = ",", 0
+    for sep in _CANDIDATE_SEPARATORS:
+        try:
+            cols = len(pd.read_csv(path, sep=sep, nrows=5, engine="python").columns)
+        except Exception:
+            continue
+        if cols > best_cols:
+            best, best_cols = sep, cols
+    return best
+
+
 async def _save_uploads(
     workspace_root: Path,
     target_dir: Path,
@@ -871,13 +978,32 @@ async def _save_uploads(
     # Load current index
     index_data = get_workspace_index(workspace_root)
     
+    # (filename, bytes) pairs to register. A .zip contributes its tabular members instead
+    # of itself, so an archive upload behaves exactly like uploading the file inside it.
+    pending: list[tuple[str, bytes]] = []
     for file in files:
         filename = file.filename or "untitled"
         ext = Path(filename).suffix.lower()
         if ext in BLOCKED_UPLOAD_EXTENSIONS:
             rejected.append(filename)
             continue
-            
+
+        content = await file.read()
+        if ext == ".zip":
+            extracted, skipped = extract_tabular_from_zip(content)
+            rejected.extend(f"{filename} -> {reason}" for reason in skipped)
+            if not extracted:
+                # Never store an archive we cannot read: it would sit in the workspace
+                # looking uploaded while load_dataset() ignores it.
+                rejected.append(f"{filename} (không chứa file dữ liệu nào: {', '.join(sorted(TABULAR_EXTS))})")
+                continue
+            print(f"[workspace] '{filename}': giải nén {len(extracted)} file dữ liệu")
+            pending.extend(extracted)
+        else:
+            pending.append((filename, content))
+
+    for filename, content in pending:
+        ext = Path(filename).suffix.lower()
         file_id = f"{uuid.uuid4().hex[:8]}"
         new_filename = f"{file_id}_{filename}"
         
@@ -886,7 +1012,6 @@ async def _save_uploads(
         files_dir.mkdir(parents=True, exist_ok=True)
         dst = files_dir / new_filename
         
-        content = await file.read()
         with open(dst, "wb") as buffer:
             buffer.write(content)
             
@@ -903,7 +1028,13 @@ async def _save_uploads(
         if ext in [".csv", ".tsv", ".xlsx", ".xls"]:
             try:
                 if ext in [".csv", ".tsv"]:
-                    df = pd.read_csv(dst, nrows=100)
+                    sep = sniff_separator(dst)
+                    # Recorded so load_dataset() reads the file the same way rather than
+                    # guessing from the extension, which is what got this wrong.
+                    metadata["separator"] = sep
+                    if sep != ("\t" if ext == ".tsv" else ","):
+                        print(f"[workspace] '{filename}': separator thực tế là {sep!r}, không khớp đuôi file")
+                    df = pd.read_csv(dst, sep=sep, nrows=100, engine="python")
                 else:
                     df = pd.read_excel(dst, nrows=100)
                 metadata["columns"] = list(df.columns)
@@ -942,11 +1073,68 @@ async def _save_uploads(
     return saved, rejected
 
 
+TABULAR_EXTS = {".csv", ".tsv", ".xlsx", ".xls", ".parquet"}
+
+
+def purge_datasets(session_id: str) -> dict:
+    """Remove every registered tabular dataset from a workspace, in place.
+
+    Only datasets are removed — generated reports, charts and other outputs are left
+    alone, since they are results the user may still want.
+
+    Called before each upload so a new dataset REPLACES the previous one rather than
+    joining it. Stale datasets are not merely clutter: while several were registered, the
+    model was shown all of their schemas and wrote its analysis against the wrong one
+    (a telco column list applied to a retail file). One registered dataset means there is
+    nothing to confuse.
+
+    Args:
+        session_id: Workspace to purge.
+
+    Returns:
+        {"removed": int, "freed_bytes": int}.
+    """
+    workspace_root = resolve_workspace_root(session_id)
+    index_path = workspace_root / "index.json"
+    if not index_path.exists():
+        return {"removed": 0, "freed_bytes": 0}
+    try:
+        index_data = json.loads(index_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return {"removed": 0, "freed_bytes": 0}
+
+    removed, freed = 0, 0
+    for file_id, info in list(index_data.items()):
+        name = info.get("filename", info.get("path", ""))
+        if os.path.splitext(name)[1].lower() not in TABULAR_EXTS:
+            continue
+        for rel in (info.get("path"), info.get("metadata_file")):
+            if not rel:
+                continue
+            target = workspace_root / rel
+            try:
+                if target.exists():
+                    freed += target.stat().st_size
+                    target.unlink()
+            except OSError as e:
+                print(f"[workspace] could not remove {target}: {e}")
+        del index_data[file_id]
+        removed += 1
+
+    if removed:
+        index_path.write_text(json.dumps(index_data, ensure_ascii=False, indent=2), encoding="utf-8")
+        print(f"[workspace] purged {removed} dataset(s), freed {freed / 1e6:.1f} MB from '{session_id}'")
+    return {"removed": removed, "freed_bytes": freed}
+
+
 async def upload_files_to_workspace(session_id: str, files: Iterable[UploadFile]) -> dict:
     workspace_root = resolve_workspace_root(session_id)
+    # A new upload REPLACES the active dataset instead of stacking on top of it.
+    purged = purge_datasets(session_id)
     saved, rejected = await _save_uploads(workspace_root, workspace_root, files)
     return {
         "message": f"Successfully uploaded {len(saved)} files",
+        "replaced": purged["removed"],
         "files": saved,
         "rejected": rejected,
     }

@@ -4,6 +4,8 @@ import time
 from datetime import datetime
 import instructor
 from openai import OpenAI
+from triadic_dgm.persona.characterization import apply_dataset_profile, relative_deviation
+from triadic_dgm.persona.vocabulary import contains_forbidden_term
 from triadic_dgm.schemas.report_schema import ReportNarrative, ExecutiveSummaryNarrative
 
 # ==============================================================
@@ -164,7 +166,24 @@ ROADMAP_METADATA = {
         "investigation": "Review Usage Timeline, Segment by Package Change",
         "owner": "Product Team",
         "timeline": "14 days"
-    }
+    },
+    # GENERIC mode actions — emitted by generate_actions()'s dataset-agnostic branch for datasets
+    # with no churn/telco concept. Without these the Roadmap table renders Owner/Timeline/KPI as
+    # "TBD" on every row for any non-telco dataset (confirmed on a marketing dataset).
+    "Phân tích sâu các đặc điểm nổi bật của nhóm để hiểu hành vi đặc trưng": {
+        "objective": "Hiểu rõ đặc trưng phân biệt của nhóm so với phần còn lại",
+        "kpi": "Segment Coverage, Insight Adoption Rate",
+        "investigation": "Review Cluster Feature Deviations, Validate with Domain Owner",
+        "owner": "Data Team",
+        "timeline": "14 days"
+    },
+    "Xây dựng chiến lược tiếp cận phù hợp với đặc trưng của nhóm": {
+        "objective": "Chuyển đặc trưng nhóm thành hành động nghiệp vụ cụ thể",
+        "kpi": "Campaign Conversion Rate, Segment Engagement Rate",
+        "investigation": "Design Segment-specific Approach, Pilot & Measure",
+        "owner": "Business/Marketing Team",
+        "timeline": "30 days"
+    },
 }
 
 # Fallback KEYWORD-BASED khi action_text không khớp CHÍNH XÁC bất kỳ key nào ở trên — bắt buộc vì
@@ -459,6 +478,40 @@ _POST_CHURN_TIER_DISPLAY_LABELS = {
     "Nhóm cần giữ chân ngay – ưu tiên giữ chân": "Nhóm giá trị cao đã rời mạng – ưu tiên phân tích nguyên nhân",
 }
 
+# Sentence terminators used to split narrative prose. Kept explicit (not a regex on ".") so a
+# decimal number inside a sentence never splits it.
+_SENTENCE_SPLIT_RE = re.compile(r'(?<=[.!?])\s+')
+
+
+def _strip_forbidden_sentences(text: str) -> str:
+    """Drop every sentence mentioning a concept a generic dataset cannot support.
+
+    Returns the surviving sentences joined back together, or "" when nothing survives (callers
+    treat empty narrative as "no LLM prose", falling back to the deterministic sections).
+    """
+    if not text:
+        return ""
+    kept = [
+        s for s in _SENTENCE_SPLIT_RE.split(text.strip())
+        if s.strip() and not contains_forbidden_term(s)
+    ]
+    return " ".join(kept).strip()
+
+
+def _sanitize_generic_narrative(narrative: "ReportNarrative") -> None:
+    """Strip telco-domain claims out of an LLM narrative in place, for GENERIC datasets."""
+    try:
+        eo = narrative.executive_summary.executive_overview
+        narrative.executive_summary.executive_overview = _strip_forbidden_sentences(eo)
+        narrative.conclusion = _strip_forbidden_sentences(narrative.conclusion)
+        for pn in narrative.personas_analysis:
+            pn.business_interpretation = _strip_forbidden_sentences(pn.business_interpretation)
+            pn.operational_impact = _strip_forbidden_sentences(pn.operational_impact)
+    except Exception as e:
+        # Never let sanitisation break a report that is otherwise complete.
+        print(f"[ReportGenerator] generic narrative sanitisation skipped: {e}")
+
+
 # ==============================================================
 # REPORT VALIDATION HARNESS
 # ==============================================================
@@ -468,8 +521,22 @@ class ReportValidator:
         if not personas_data:
             return
             
+        # Not an assert: this fires on real user traffic, and the message is shown to the
+        # user verbatim as "[LLM ERROR: ...]". "Total support must be greater than 0" reads
+        # as an empty dataset — it is not. Every observed occurrence had a full dataset and
+        # successful clustering, and persona objects that simply carried no population
+        # count, because the sandbox emitted hand-written JSON instead of the output of
+        # run_persona_pipeline. Naming the field and showing the keys that ARE present
+        # identifies that in one line instead of an hour of log archaeology.
         total_customers = sum(p.get('support', 0) for p in personas_data)
-        assert total_customers > 0, "Total support must be greater than 0"
+        if total_customers <= 0:
+            observed_keys = sorted({k for p in personas_data for k in p})
+            raise ValueError(
+                f"Persona JSON thiếu số lượng bản ghi: {len(personas_data)} persona nhưng tổng "
+                f"`support` = {total_customers}. Dataset KHÔNG rỗng — lỗi nằm ở JSON mà sandbox "
+                f"sinh ra, thường là do tự viết JSON thay vì gọi `run_persona_pipeline`, vốn "
+                f"luôn đặt `support`. Các key thực có: {observed_keys}"
+            )
         
         # Check unique persona names
         names = [p.get('persona_name') for p in personas_data]
@@ -483,13 +550,42 @@ class ReportValidator:
                 if action not in ROADMAP_METADATA:
                     print(f"[Validator Warning] Action '{action}' not found in Roadmap Metadata.")
 
-        # Soft warning only — older/plainer JSON without the extended profiling fields must keep working
-        if not any(p.get('profile_attributes') for p in personas_data):
+        # Soft warning only — older/plainer JSON without the extended profiling fields must keep
+        # working. Skipped for GENERIC datasets: having no telco profile_attributes is the EXPECTED
+        # state there, not a data-quality problem worth warning about on every single run.
+        if (not any(p.get('profile_attributes') for p in personas_data)
+                and not all(p.get('dataset_mode') == 'GENERIC' for p in personas_data)):
             print("[Validator Warning] No persona has 'profile_attributes' — dataset may lack the extended columns (spend/tier/usage-trend/CSAT/loyalty). Risk-tier/profile sections will be limited.")
 
 # ==============================================================
 # CORE GENERATOR (v3 Enterprise)
 # ==============================================================
+# Resolver for the active DatasetProfile, registered by the API layer at startup (see
+# api_server.py). A hook rather than an import because triadic_dgm must not depend on api/,
+# and rather than a parameter because the chat path reaches render_markdown through
+# engine.stream_workflow, which this process cannot modify (the file is owned by another
+# uid on this host). An explicitly passed profile always wins; a failing or absent resolver
+# degrades to profile=None, i.e. the pre-Phase-4 behaviour.
+_PROFILE_RESOLVER = None
+
+
+def set_profile_resolver(resolver) -> None:
+    """Register a zero-arg callable returning the active DatasetProfile, or None to clear."""
+    global _PROFILE_RESOLVER
+    _PROFILE_RESOLVER = resolver
+
+
+def _resolve_profile():
+    """Best-effort profile lookup via the registered resolver; never raises."""
+    if _PROFILE_RESOLVER is None:
+        return None
+    try:
+        return _PROFILE_RESOLVER()
+    except Exception as e:
+        print(f"[ReportGenerator] profile resolver failed, rendering without it: {e}")
+        return None
+
+
 class ReportGenerator:
     def __init__(self, api_key: str, base_url: str, model_name: str):
         self.api_key = api_key
@@ -499,6 +595,9 @@ class ReportGenerator:
             OpenAI(api_key=api_key, base_url=base_url),
             mode=instructor.Mode.JSON
         )
+        # Latched per render_markdown() call; defaults to the telco path so a helper invoked
+        # outside a render (tests, feed) behaves exactly as it did before this flag existed.
+        self._is_generic: bool = False
 
     def extract_json(self, raw_python_output: str):
         match = re.search(r'\[JSON_START_PERSONA\](.*?)\[JSON_END_PERSONA\]', raw_python_output, re.DOTALL)
@@ -547,7 +646,7 @@ class ReportGenerator:
             return "Root Cause Identified" if p.get('churn_driver_confidence') == 'MEDIUM' else "Unclear Cause"
         if p.get('severity') == 'EXTREME' or p.get('risk') == 'EXTREME':
             return "Very High Risk"
-        tier = p.get('risk_tier', '')
+        tier = p.get('risk_tier') or ''
         if "giữ chân" in tier:
             return "Priority Retention"
         if p.get('severity') == 'HIGH' or p.get('risk') == 'HIGH':
@@ -778,9 +877,16 @@ class ReportGenerator:
         return name
 
     def format_support(self, support: int) -> str:
+        """Render a cluster size with a unit the dataset actually supports.
+
+        "KH" (khách hàng) is only correct when the rows are customers; a generic
+        dataset's rows may be transactions, sensors or products, so it counts
+        neutral "bản ghi" instead.
+        """
+        unit = "bản ghi" if getattr(self, "_is_generic", False) else "KH"
         if support >= 1000:
-            return f"≈{support/1000:.1f}k KH"
-        return f"{support} KH"
+            return f"≈{support/1000:.1f}k {unit}"
+        return f"{support} {unit}"
 
     def _build_executive_headline(self, personas_data: list) -> str:
         """Deterministic, Python-computed lead sentence — never LLM-authored (anti-hallucination).
@@ -814,6 +920,19 @@ class ReportGenerator:
             else:
                 lines.append("→ Không có nguyên nhân hành vi rõ ràng để can thiệp trực tiếp — cần xem xét yếu tố ngoài hành vi (giá cước, đối thủ cạnh tranh...).")
             return " ".join(lines)
+
+        # GENERIC: there is no risk/severity concept in the data, so a "X% stable, no high-risk
+        # group" verdict would be a churn-framed conclusion the dataset cannot support. Lead with
+        # the actual segmentation split instead.
+        if all(p.get('dataset_mode') == 'GENERIC' for p in personas_data):
+            total_customers = sum(p.get('support', 0) for p in personas_data)
+            total_str = f"{total_customers:,}".replace(",", ".")
+            biggest = max(personas_data, key=lambda p: p.get('support_pct', 0))
+            biggest_name = self.clean_persona_name(biggest.get('persona_name', ''))
+            biggest_pct = biggest.get('support_pct', 0) * 100
+            return (f"**{total_str} bản ghi** được phân thành **{len(personas_data)} nhóm** có đặc "
+                    f"trưng hành vi khác biệt. Nhóm lớn nhất ({biggest_name}) chiếm "
+                    f"**{biggest_pct:.1f}%** tổng thể.")
 
         at_risk = [p for p in personas_data if p.get('risk') in ('HIGH', 'EXTREME') or p.get('severity') in ('HIGH', 'EXTREME')]
         at_risk_ids = {p.get('cluster_id') for p in at_risk}
@@ -941,11 +1060,59 @@ class ReportGenerator:
                     continue
         return None
 
+    def _build_generic_profile_bullets(self, p: dict) -> list:
+        """Dataset-agnostic persona profile, derived only from the persona's own
+        distinguishing_signal (feature label + measured deviation vs the population mean).
+
+        States nothing that isn't already computed from the data at hand — no domain
+        vocabulary, no assumed columns — so it stays truthful on any dataset. Returns []
+        when there is no usable signal, so the caller simply omits the section rather
+        than printing a filler claim."""
+        sig = p.get('distinguishing_signal') or {}
+        if not isinstance(sig, dict):
+            return []
+        bullets = []
+        for feat in (sig.get('top_features') or [])[:4]:
+            if not isinstance(feat, dict):
+                continue
+            label = str(feat.get('label') or feat.get('feature') or '').strip()
+            dev = feat.get('deviation')
+            if not label:
+                continue
+            if isinstance(dev, (int, float)):
+                direction = "cao hơn" if dev > 0 else "thấp hơn"
+                bullets.append(f"{label}: {direction} trung bình toàn tập {abs(dev) * 100:.0f}%")
+                continue
+            # No usable percentage — the population mean is zero or negative, so the feature
+            # is a signed measure with no magnitude to be a percentage of (see
+            # relative_deviation). State the two numbers instead of a false ratio; the
+            # report previously asserted "cao hơn trung bình toàn tập 187%" off a mean of
+            # -11.18, which is arithmetic without meaning.
+            value, baseline = feat.get('value'), feat.get('baseline')
+            if isinstance(value, (int, float)) and isinstance(baseline, (int, float)):
+                bullets.append(
+                    f"{label}: {value:g} (trung bình toàn tập {baseline:g}) — "
+                    f"không quy ra phần trăm vì trung bình không dương"
+                )
+        evidence = str(sig.get('evidence') or '').strip()
+        if evidence and not bullets:
+            bullets.append(evidence)
+        return bullets
+
     def _build_customer_profile_bullets(self, p: dict, global_means: dict = None) -> list:
         """Qualitative persona summary (Adobe/Salesforce-style) — derived from domain_signature
         stars, profile_attributes and onset_sequence. Deliberately NOT just 2 bullets — a real
         profile needs enough dimensions (value/usage/loyalty/segment/complaint/technical/service/
         sequencing) that a reader can actually picture the customer, not just skim raw numbers."""
+        # GENERIC datasets have no ARPU/CSKH/complaint/technical concepts at all. Every telco
+        # bullet below is keyword-driven, and on a non-telco dataset those keywords match NOTHING —
+        # which silently lands in the "low/stable/quiet" branches and prints telco claims as FACT
+        # (confirmed on a marketing dataset: "ARPU/cước phí ở mức trung bình hoặc thấp",
+        # "Ít khi liên hệ CSKH hoặc khiếu nại" for data with no such columns). Describe the
+        # persona from its dataset-agnostic distinguishing_signal instead.
+        if p.get('dataset_mode') == 'GENERIC':
+            return self._build_generic_profile_bullets(p)
+
         domain_sig = p.get('domain_signature') or {}
 
         def stars(dom):
@@ -1336,8 +1503,66 @@ class ReportGenerator:
             contradictions.append("Giá trị cao NHƯNG usage giảm, KHÔNG có complaint/sự cố kỹ thuật đi kèm — nguyên nhân nhiều khả năng KHÔNG phải chất lượng dịch vụ")
         return contradictions
 
+    def _build_generic_prompt(self, personas_data: list, global_means: dict) -> str:
+        """Narrative prompt for GENERIC (non-telco) datasets.
+
+        The main prompt teaches the model telco analysis through ~12k chars of few-shot
+        examples (ARPU, khiếu nại, CSKH, rời mạng, Net Pay...) and — for exactly the shape a
+        generic dataset produces (no domain_signals, no profile_context) — instructs it to emit
+        a fixed telco-flavoured sentence. Feeding clean generic data through that prompt still
+        yields telco prose, because the vocabulary comes from the instructions, not the data.
+        So GENERIC datasets get their own prompt: same schema, same anti-hallucination rules,
+        but stated only in terms of the measured feature deviations actually present.
+        """
+        clean_data = []
+        for p in personas_data:
+            means = self._get_means(p)
+            deviations = self._top_signals(means, global_means, top_n=3) if means else []
+            clean_data.append({
+                'persona': self.clean_persona_name(p.get('persona_name', '')),
+                'cluster_id': p.get('cluster_id'),
+                'ty_le_nhom': f"{p.get('support_pct', 0) * 100:.1f}%",
+                'dac_trung_noi_bat': [
+                    self._get_business_signal(f, val, g_val) for f, val, g_val, _ in deviations
+                ],
+                'confidence': "High" if (deviations and deviations[0][3] > 1.0) else "Medium",
+            })
+        data_str = json.dumps(clean_data, ensure_ascii=False, indent=2)
+        return f"""
+Bạn là chuyên gia phân tích dữ liệu.
+Nhiệm vụ: Viết diễn giải cho Báo cáo Phân tích Phân khúc bằng NGÔN NGỮ QUẢN TRỊ.
+
+BỐI CẢNH QUAN TRỌNG: Đây là một bộ dữ liệu BẤT KỲ do người dùng tải lên. Bạn KHÔNG biết nó thuộc
+ngành nào. Mỗi phân khúc chỉ được mô tả bằng các đặc trưng đo được trong `dac_trung_noi_bat`.
+
+QUY TẮC CỨNG:
+- CHỈ được nói về những gì có trong `dac_trung_noi_bat`. KHÔNG suy diễn ra bất kỳ đặc điểm nào khác.
+- TUYỆT ĐỐI KHÔNG giả định lĩnh vực kinh doanh. CẤM dùng các khái niệm KHÔNG có trong dữ liệu, ví dụ:
+  doanh thu/ARPU/cước phí, tỷ lệ rời bỏ (churn), khiếu nại, chăm sóc khách hàng, sự cố kỹ thuật,
+  gói dịch vụ, giữ chân khách hàng. Nếu dữ liệu không có, thì KHÔNG được nhắc tới.
+- KHÔNG sinh thêm số liệu mới. KHÔNG lặp lại nguyên văn các con số đã cho.
+- KHÔNG đề xuất hành động/chiến dịch cụ thể (phần Roadmap đã lo việc đó).
+- Gọi đối tượng trong dữ liệu một cách trung tính: "nhóm", "phân khúc", "bản ghi" — KHÔNG mặc định
+  gọi là "khách hàng" trừ khi tên phân khúc đã nói vậy.
+- Độ dài: tối đa 2 câu cho mỗi trường.
+- CẤM các câu rỗng nghĩa kiểu "nhóm này rất quan trọng", "cần theo dõi đặc biệt". LUÔN nói CỤ THỂ
+  đặc trưng nào cao/thấp hơn mặt bằng chung và điều đó có nghĩa gì khi so sánh giữa các nhóm.
+- `business_interpretation`: nhóm này khác biệt ở điểm nào so với phần còn lại của tập dữ liệu.
+- `operational_impact`: sự khác biệt đó có ý nghĩa gì khi phân tích/ra quyết định — diễn đạt ở mức
+  chung chung, KHÔNG gán vào một quy trình nghiệp vụ cụ thể mà bạn không có bằng chứng.
+- Nếu một nhóm không có đặc trưng nào nổi bật: nói thẳng là nhóm này không phân hoá rõ so với mặt
+  bằng chung, KHÔNG bịa ra ý nghĩa.
+
+Dữ liệu duy nhất bạn được thấy:
+{data_str}
+"""
+
     def _build_prompt(self, personas_data: list, global_means: dict) -> str:
         """Prepares a heavily sterilized JSON for the LLM"""
+        # GENERIC datasets get a dedicated, telco-free prompt (see _build_generic_prompt).
+        if personas_data and all(p.get('dataset_mode') == 'GENERIC' for p in personas_data):
+            return self._build_generic_prompt(personas_data, global_means)
+
         clean_data = []
         for p in personas_data:
             c = {}
@@ -1596,7 +1821,16 @@ Dữ liệu Business Facts duy nhất bạn được thấy:
             # và rơi về _fallback_narrative() như hành vi cũ.
             raise RuntimeError(f"Failed to generate LLM Narrative for any batch: {last_err}")
 
-        return ReportNarrative(executive_summary=exec_summary, personas_analysis=merged_personas, conclusion=conclusion)
+        result = ReportNarrative(
+            executive_summary=exec_summary, personas_analysis=merged_personas, conclusion=conclusion
+        )
+        # Prompt-level steering (_build_generic_prompt) is best-effort — the model can still reach
+        # for domain vocabulary it was never given data for. For GENERIC datasets the deterministic
+        # guarantee lives here, in Python: any sentence asserting a concept the dataset does not
+        # contain is dropped rather than shown to the user as analysis.
+        if personas_data and all(p.get('dataset_mode') == 'GENERIC' for p in personas_data):
+            _sanitize_generic_narrative(result)
+        return result
 
     def _fallback_narrative(self) -> ReportNarrative:
         """Used when generate_llm_narrative() fails (timeout, gateway error, etc.) so the report
@@ -1610,7 +1844,7 @@ Dữ liệu Business Facts duy nhất bạn được thấy:
             conclusion="Báo cáo được tạo với dữ liệu và phân tích đầy đủ; phần diễn giải mở rộng từ AI tạm thời không khả dụng do lỗi kết nối dịch vụ."
         )
 
-    def render_markdown(self, raw_python_output: str) -> str:
+    def render_markdown(self, raw_python_output: str, profile=None) -> str:
         personas_data = self.extract_json(raw_python_output)
         if not personas_data:
             return "Lỗi: Không tìm thấy dữ liệu JSON Persona hợp lệ."
@@ -1625,6 +1859,32 @@ Dữ liệu Business Facts duy nhất bạn được thấy:
             if isinstance(sp, (int, float)) and sp > 1:
                 p['support_pct'] = sp / 100
 
+        if profile is None:
+            profile = _resolve_profile()
+
+        # Profile-driven enrichment BEFORE the mode latch below, which reads the
+        # dataset_mode that enforce_generic_persona sets. global_means is computed here
+        # rather than further down because the enrichment needs it; the later section
+        # reuses this value instead of recomputing it.
+        global_means = {}
+        _total_support = sum(p.get('support', 0) for p in personas_data)
+        _all_features = set()
+        for p in personas_data:
+            for f in self._get_means(p).keys():
+                _all_features.add(f)
+        for f in _all_features:
+            _tv = sum(self._get_means(p).get(f, 0) * p.get('support', 0) for p in personas_data)
+            global_means[f] = _tv / _total_support if _total_support > 0 else 0
+        apply_dataset_profile(personas_data, global_means, profile, means_getter=self._get_means)
+
+        # Latch the dataset mode once, here, so every deterministic section below agrees on it.
+        # Without a single latch each section re-derives "is this telco?" from its own heuristic
+        # and they disagree — which is how the generic prompt ended up telling the LLM to say
+        # "bản ghi" while the surrounding scaffolding printed "KH" in the same report.
+        self._is_generic = bool(personas_data) and all(
+            p.get('dataset_mode') == 'GENERIC' for p in personas_data
+        )
+
         # 1. Validation Harness
         ReportValidator.validate(personas_data)
         
@@ -1635,16 +1895,7 @@ Dữ liệu Business Facts duy nhất bạn được thấy:
         max_pct_val = max_pct * 100 if max_pct < 1.0 else max_pct
         seg_quality = personas_data[0].get('segmentation_quality', 'NORMAL')
         
-        global_means = {}
-        all_features = set()
-        for p in personas_data:
-            for f in self._get_means(p).keys():
-                all_features.add(f)
-                
-        for f in all_features:
-            total_val = sum(self._get_means(p).get(f, 0) * p.get('support', 0) for p in personas_data)
-            global_means[f] = total_val / total_customers if total_customers > 0 else 0
-            
+        # global_means already computed above, before the profile enrichment that needs it.
         for p in personas_data:
             p['priority_score'] = p.get('priority_score', 0)
         ranked_personas = sorted(personas_data, key=lambda x: x['priority_score'], reverse=True)
@@ -1665,7 +1916,9 @@ Dữ liệu Business Facts duy nhất bạn được thấy:
         # ==============================================================
         
         # Executive Summary
-        md = "# BÁO CÁO PHÂN TÍCH CHÂN DUNG KHÁCH HÀNG\n\n"
+        title = ("BÁO CÁO PHÂN TÍCH PHÂN KHÚC DỮ LIỆU" if self._is_generic
+                 else "BÁO CÁO PHÂN TÍCH CHÂN DUNG KHÁCH HÀNG")
+        md = f"# {title}\n\n"
         md += "**ISC - AI - Data Product Team**\n\n"
         md += f"*Ngày {date_str}*\n\n"
         md += "---\n\n"
@@ -1708,7 +1961,14 @@ Dữ liệu Business Facts duy nhất bạn được thấy:
             sup_str = self.format_support(p.get('support', 0))
 
             md += f"### {icon} {p_name} — {sup_pct:.1f}% ({tag})\n\n"
-            md += f"*Quy mô: {sup_str} | Severity: {p.get('severity','N/A')} | Risk: {p.get('risk','N/A')}*\n\n"
+            # Severity/Risk are nulled for GENERIC datasets (no such concept) — omit them entirely
+            # rather than printing "None"/"N/A" noise on every persona line.
+            meta_bits = [f"Quy mô: {sup_str}"]
+            if p.get('severity'):
+                meta_bits.append(f"Severity: {p['severity']}")
+            if p.get('risk'):
+                meta_bits.append(f"Risk: {p['risk']}")
+            md += f"*{' | '.join(meta_bits)}*\n\n"
             story = self._build_persona_story(p, global_means)
             n = narrative_dict.get(cid)
             llm_text = getattr(n, 'business_interpretation', None) if n else None
@@ -1800,8 +2060,11 @@ Dữ liệu Business Facts duy nhất bạn được thấy:
             md += "| Thuộc tính | Giá trị |\n"
             md += "|---|---|\n"
             md += f"| **Quy mô** | {sup_str} |\n"
-            md += f"| **Severity** | {p.get('severity','N/A')} |\n"
-            md += f"| **Risk** | {p.get('risk','N/A')} |\n"
+            # Omit Severity/Risk rows entirely when nulled (GENERIC datasets) — see Persona Overview.
+            if p.get('severity'):
+                md += f"| **Severity** | {p['severity']} |\n"
+            if p.get('risk'):
+                md += f"| **Risk** | {p['risk']} |\n"
             md += f"| **Semantic Confidence**| {confidence} |\n"
             md += f"| **Recommended Direction**| {investigation} |\n\n"
 
@@ -1854,7 +2117,7 @@ Dữ liệu Business Facts duy nhất bạn được thấy:
             # readers get "Top nhóm giá trị cao, ít liên hệ CSKH" instead of raw numbers they skip.
             profile_bullets = self._build_customer_profile_bullets(p, global_means)
             if profile_bullets:
-                md += "**Customer Profile:**\n"
+                md += "**Đặc trưng phân biệt:**\n" if self._is_generic else "**Customer Profile:**\n"
                 for b in profile_bullets:
                     md += f"- {b}\n"
                 md += "\n"
@@ -1886,7 +2149,7 @@ Dữ liệu Business Facts duy nhất bạn được thấy:
                 md += "\n"
 
             # Retention Scripts — only for the "cần giữ chân ngay" tier or HIGH+/EXTREME severity/risk
-            risk_tier = p.get('risk_tier', '')
+            risk_tier = p.get('risk_tier') or ''
             if "giữ chân" in risk_tier or p.get('severity') in ("HIGH", "EXTREME") or p.get('risk') in ("HIGH", "EXTREME"):
                 scripts = attach_recommended_scripts(p)
                 if scripts:
@@ -1930,7 +2193,11 @@ Dữ liệu Business Facts duy nhất bạn được thấy:
             objective = meta.get("objective", "Cải thiện chỉ số nghiệp vụ")
             # Deterministic, Python-computed outcome — never LLM-authored (anti-hallucination),
             # tied to this persona's actual support size/rank instead of generic LLM prose.
-            outcome = f"{objective} cho ~{sup_str} ({sup_pct:.1f}% tổng đàn) — ưu tiên #{rank}, theo dõi qua {kpi}."
+            # "tổng đàn" is telco jargon for the subscriber base; a generic dataset has no herd.
+            # format_support() already prefixes "≈" when it rounds, so only add "~" when it did not.
+            whole = "tổng thể" if self._is_generic else "tổng đàn"
+            approx = "" if sup_str.startswith("≈") else "~"
+            outcome = f"{objective} cho {approx}{sup_str} ({sup_pct:.1f}% {whole}) — ưu tiên #{rank}, theo dõi qua {kpi}."
 
             md += f"| **#{rank}** | {action_text} | {p_name} | {owner} | {timeline} | {kpi} | {outcome} |\n"
 
@@ -1953,8 +2220,12 @@ Dữ liệu Business Facts duy nhất bạn được thấy:
             means = self._get_means(p)
             deviations = self._ranked_deviations(means, global_means)
             for f, val, g_val, dev in deviations[:5]:
-                delta_pct = ((val - g_val) / abs(g_val)) * 100 if g_val != 0 else (100 if val > 0 else 0)
-                md += f"| {f} | {val:.2f} | {g_val:.2f} | {delta_pct:+.1f}% |\n"
+                # n/a rather than a fabricated ratio when the baseline is not a positive
+                # magnitude — the appendix is the table a reader checks the prose against,
+                # so it must not be the one place the false percentage survives.
+                rel = relative_deviation(val, g_val)
+                delta = f"{rel * 100:+.1f}%" if rel is not None else "n/a"
+                md += f"| {f} | {val:.2f} | {g_val:.2f} | {delta} |\n"
             md += "\n"
         
         md += "### Raw Facts\n"
@@ -1964,5 +2235,7 @@ Dữ liệu Business Facts duy nhất bạn được thấy:
             
         return md
 
-    def generate_markdown_report(self, raw_python_output: str) -> str:
-        return self.render_markdown(raw_python_output)
+    def generate_markdown_report(self, raw_python_output: str, profile=None) -> str:
+        """Render the full report. ``profile`` enables the dataset-profile enrichment
+        (generic naming / telco neutralisation); None keeps the pre-Phase-4 behaviour."""
+        return self.render_markdown(raw_python_output, profile=profile)

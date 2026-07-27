@@ -2,6 +2,8 @@ import json
 import os
 from typing import List, Dict, Any
 
+from triadic_dgm.persona.vocabulary import dataset_is_telco, mentions_telco_domain
+
 class Rule:
     """
     [SOTA] Cấu trúc Lưu trữ Kép (Dual Representation) theo bài báo RIMRULE.
@@ -79,17 +81,36 @@ class RimruleMemoryBank:
         self.rules.append(new_rule)
         self._save_archive()
 
-    def retrieve_rules_symbolic(self, query_domain: str, top_k: int = 3) -> str:
+    def retrieve_rules_symbolic(self, query_domain: str, top_k: int = 3,
+                                active_columns: List[str] | None = None) -> str:
         """
         [SOTA] Truy xuất luật dựa trên Symbolic Matching.
         Trả về các quy tắc tốt nhất để tiêm vào System Prompt của Solver.
+
+        Args:
+            query_domain: Miền cần truy xuất (khớp với ``domain`` hoặc ``qualifier``).
+            top_k: Số luật tối đa trả về.
+            active_columns: Tên cột của dataset ĐANG được phân tích. Nếu dataset này không
+                phải telco, các luật nhắc tới định danh telco sẽ bị loại — chúng được học
+                trên một dataset khác, và khi tiêm vào chúng khẳng định với model rằng dữ
+                liệu hiện tại có những cột không hề tồn tại. ``None`` = người gọi không đưa
+                ra khẳng định nào, giữ nguyên hành vi cũ (vòng lặp tiến hoá đang debug
+                chính dataset telco cần đúng những luật đó).
         """
         if not self.rules:
             return ""
-            
+
         # Lọc thô (Coarse filter) bằng Domain
         relevant_rules = [r for r in self.rules if r.domain == query_domain or query_domain in r.qualifier]
-        
+
+        # Lọc theo dataset đang phân tích. Phải chạy TRƯỚC khi cắt top_k: xếp hạng theo MDL
+        # ưu tiên luật ngắn, mà các luật telco lại rất ngắn — cắt trước sẽ để chúng chiếm
+        # hết slot và đẩy các luật dùng được ra ngoài.
+        if active_columns is not None and not dataset_is_telco(active_columns):
+            relevant_rules = [r for r in relevant_rules if not mentions_telco_domain(r.nl_rule)]
+            if not relevant_rules:
+                return ""
+
         # Xếp hạng (Rank) theo MDL Score (ưu tiên luật sửa nhiều lỗi, ngắn gọn)
         ranked_rules = sorted(relevant_rules, key=lambda r: r.mdl_score, reverse=True)
         

@@ -393,7 +393,15 @@ export function PersonaCards({ data }: PersonaCardsProps) {
 
       {hasRiskTier && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {RISK_TIER_ORDER.map((tier) => {
+          {/* Only tiers that actually contain a persona are rendered. The tier names carry
+              telecom vocabulary ("giữ chân" = retention), and rendering all three
+              unconditionally printed "Nhóm cần giữ chân ngay – ưu tiên giữ chân / 0 / Không
+              có persona nào" on a retail report — a domain claim about data that has no such
+              concept, made by an empty card. On the telecom path the tier is populated and
+              still shows. */}
+          {RISK_TIER_ORDER.filter((tier) =>
+            actualData.some((p) => p.risk_tier === tier),
+          ).map((tier) => {
             const personasInTier = actualData.filter((p) => p.risk_tier === tier);
             const style = RISK_TIER_STYLE[tier];
             return (

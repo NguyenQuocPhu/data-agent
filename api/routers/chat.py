@@ -9,9 +9,52 @@ from fastapi.responses import StreamingResponse
 
 from ..dependencies import get_lambda_agent
 from ..services import workspace as workspace_service
+from ..services.metadata_gate import collect_matching_metadata
 import os
 
 router = APIRouter()
+
+
+def _active_dataset_columns() -> list[str] | None:
+    """Best-effort column peek at the currently active dataset in the "default"
+    workspace, without loading the full file. Mirrors the same latest-tabular-file
+    selection logic as api/dependencies.py's injected load_dataset(), so the file
+    picked here matches what the sandbox will actually load. Returns None if no
+    usable tabular dataset is registered (e.g. nothing uploaded yet)."""
+    try:
+        workspace_root = str(workspace_service.resolve_workspace_root("default"))
+        index_path = os.path.join(workspace_root, "index.json")
+        if not os.path.exists(index_path):
+            return None
+        with open(index_path, "r", encoding="utf-8") as f:
+            index_data = json.load(f)
+        if not index_data:
+            return None
+        tabular_exts = {".csv", ".tsv", ".xlsx", ".xls", ".parquet"}
+        tabular_entries = [
+            (fid, info) for fid, info in index_data.items()
+            if os.path.splitext(info.get("filename", info.get("path", "")))[1].lower() in tabular_exts
+        ]
+        if not tabular_entries:
+            return None
+        tabular_entries.sort(key=lambda x: x[1].get("created_at", ""), reverse=True)
+        _, info = tabular_entries[0]
+        file_path = os.path.join(workspace_root, info["path"])
+        ext = os.path.splitext(file_path)[1].lower()
+        import pandas as pd
+        if ext in (".csv", ".tsv"):
+            from api.services.profile_provider import stored_separator
+
+            df = pd.read_csv(file_path, sep=stored_separator(workspace_root, info, ext),
+                             nrows=0, engine="python")
+        elif ext in (".xlsx", ".xls"):
+            df = pd.read_excel(file_path, nrows=0)
+        else:
+            return None
+        return list(df.columns)
+    except Exception:
+        return None
+
 
 @router.post("/execute")
 async def execute_code_api(
@@ -118,24 +161,51 @@ async def chat(body: dict = Body(...), lambda_instance = Depends(get_lambda_agen
     last_msg = messages[-1]
     user_query = last_msg.get("content", "")
     
+    # Every block below appends to the model's context, and each one used to assert
+    # something about the data without checking it. Peek at the dataset once, up front, and
+    # gate all of them on it.
+    active_cols = [str(c).lower() for c in (_active_dataset_columns() or [])]
+
     # [DOMAIN KNOWLEDGE INJECTION & RIMRULE EVOLUTION]
     if any(keyword in user_query.lower() for keyword in ["phân cụm", "persona", "clustering", "cluster"]):
         try:
-            rules_context = lambda_instance.conv.verifier.memory_bank.retrieve_rules_symbolic(query_domain="python", top_k=5)
+            # Learned rules come from past debugging sessions, all of which ran on one telco
+            # dataset — 83 of the 284 archived rules name its columns. Injected unfiltered,
+            # they tell the model that THIS dataset has `RMDT`/ARPU, and it duly writes those
+            # column names into behavioral_features for a retail upload that has neither.
+            # Passing the real columns keeps them for the telco dataset and drops them
+            # everywhere else.
+            rules_context = lambda_instance.conv.verifier.memory_bank.retrieve_rules_symbolic(
+                query_domain="python", top_k=5, active_columns=active_cols
+            )
             if not rules_context:
                 rules_context = "No past mistakes recorded yet."
         except Exception as e:
             rules_context = ""
-            
+
+        financial_metrics_lines = []
+        if "cuoc_hang_thang" in active_cols:
+            financial_metrics_lines.append(
+                "- ARPU (Average Revenue Per User) MUST be calculated exactly as `df['cuoc_hang_thang'].mean()` for each cluster. NEVER divide by 30 or any other number."
+            )
+        if "rmdt" in active_cols:
+            financial_metrics_lines.append(
+                "- Churn_Rate MUST be calculated exactly as `df['RMDT'].mean()` for each cluster."
+            )
+        if not financial_metrics_lines:
+            financial_metrics_lines.append(
+                "- Dataset đang phân tích KHÔNG có cột `cuoc_hang_thang`/`RMDT` (đó là tên cột của một dataset telco cụ thể, KHÔNG áp dụng cho mọi dataset). Nếu cần tính chỉ số doanh thu/tỷ lệ mục tiêu theo cụm, PHẢI tự xác định đúng cột tương ứng THỰC SỰ có trong dataset này (không hardcode tên cột của dataset khác); nếu không có cột phù hợp thì bỏ qua, KHÔNG được bịa cột."
+            )
+        financial_metrics_block = "\n".join(financial_metrics_lines)
+
         domain_knowledge = f"""
 ---
 [DOMAIN KNOWLEDGE FOR DATA AGENT]
 1. Financial Metrics:
-- ARPU (Average Revenue Per User) MUST be calculated exactly as `df['cuoc_hang_thang'].mean()` for each cluster. NEVER divide by 30 or any other number.
-- Churn_Rate MUST be calculated exactly as `df['RMDT'].mean()` for each cluster.
+{financial_metrics_block}
 
 2. Anti-Hallucination for Categorical Data:
-- When writing if-else rules to describe a persona based on a categorical column (like `khu_vuc`), you MUST NOT hallucinate or guess the values (e.g., 'Đô thị', 'Nông thôn'). You MUST use only the exact values present in the data (e.g., 'Vung Tau', 'Binh Duong'). To be safe, run `.unique()` on the column first if you are unsure.
+- When writing if-else rules to describe a persona based on a categorical column, you MUST NOT guess that column's values. Run `.unique()` on the column and use only the values it actually returns. Do NOT reach for plausible-sounding categories you have seen in other datasets.
 
 3. RIMRULE EVOLUTION MEMORY (LESSONS LEARNED FROM PAST ERRORS):
 {rules_context}
@@ -143,16 +213,17 @@ async def chat(body: dict = Body(...), lambda_instance = Depends(get_lambda_agen
 """
         user_query += "\n" + domain_knowledge
 
-    # Dynamic Metadata Injection
-    import glob
-    metadata_content = ""
-    for file_path in glob.glob("/app/*metadata*.json"):
-        try:
-            with open(file_path, "r", encoding="utf-8") as f:
-                metadata_content += f"\n--- Metadata từ file: {file_path.split('/')[-1]} ---\n{f.read()}\n"
-        except Exception:
-            pass
-            
+    # Dynamic Metadata Injection.
+    # Only dictionaries that actually describe the loaded dataset are injected. This used to
+    # glob the working directory unconditionally, and `data_processed_t4_metadata.json` — the
+    # telco data dictionary, 11.8 KB naming cl_total_6m / fee_total / OBJID / LOYALTY_RANK —
+    # lives there permanently. Every analysis was handed it under "tuân thủ chặt chẽ", which
+    # is why a 17-column retail upload produced behavioral_features from a telco schema.
+    metadata_content = collect_matching_metadata(
+        os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
+        active_cols,
+    )
+
     if metadata_content:
         user_query += f"\n\n[USER UPLOADED METADATA]\nHãy tham khảo và tuân thủ chặt chẽ metadata sau đây cho dữ liệu:\n{metadata_content}\n"
 

@@ -260,7 +260,65 @@ def _align_name_with_driver(original_name: str, churn_driver: str) -> str:
     return f"{churn_driver}{suffix}"
 
 
-def build_task_prompt(features: list[str]) -> str:
+
+def _referenced_names(expression: str) -> set:
+    """Column names an expression mentions, for validating it against itself."""
+    import ast as _ast
+
+    try:
+        return {n.id for n in _ast.walk(_ast.parse(expression, mode="eval")) if isinstance(n, _ast.Name)}
+    except SyntaxError:
+        return set()
+
+
+def _derived_feature_block(derived_features: dict[str, str] | None) -> str:
+    """Instruct the sandbox to materialise the frozen derived columns before clustering.
+
+    These columns do not exist in the source file — they were accepted by measurement when
+    the DatasetProfile was built (see triadic_dgm.persona.derived_features). Without this
+    block the generated code's ``[f for f in behavioral_features if f in data.columns]``
+    filter silently drops every one of them, and the run quietly falls back to the raw
+    feature set while still reporting success.
+
+    Args:
+        derived_features: Frozen name -> arithmetic expression map; may be None/empty.
+
+    Returns:
+        A prompt fragment, or "" when there is nothing to compute.
+    """
+    if not derived_features:
+        return ""
+    from triadic_dgm.persona.derived_features import ExpressionError, to_pandas_expression
+
+    rendered = []
+    accepted_names: list[str] = []
+    known = set(derived_features)
+    for name, expr in derived_features.items():
+        try:
+            # Bare column names would be NameErrors in the sandbox; qualify them against
+            # `data`. Columns referenced are the raw ones, never other derived features.
+            rendered.append(f"data['{name}'] = {to_pandas_expression(expr, _referenced_names(expr) - known)}")
+            accepted_names.append(name)
+        except ExpressionError as e:
+            print(f"[convergence] bỏ derived feature '{name}' khỏi prompt: {e}")
+    if not rendered:
+        return ""
+    lines = "\n".join(rendered)
+    return (
+        "\n\nBẮT BUỘC — TẠO CÁC CỘT PHÁI SINH SAU TRƯỚC KHI PHÂN CỤM (các cột này CHƯA CÓ trong "
+        "file gốc, và ĐÃ nằm trong danh sách behavioral_features ở trên). Gõ chính xác, KHÔNG sửa "
+        "công thức. Mỗi biểu thức dùng cú pháp pandas trên DataFrame tên `data`; sau khi tính, thay "
+        "mọi giá trị vô cực/NaN bằng trung vị của chính cột đó:\n"
+        + lines
+        + "\nimport numpy as np\n"
+        # Only the columns actually emitted above — listing a dropped one would KeyError.
+        + "for _c in [" + ", ".join(f"'{n}'" for n in accepted_names) + "]:\n"
+        + "    data[_c] = data[_c].replace([np.inf, -np.inf], np.nan)\n"
+        + "    data[_c] = data[_c].fillna(data[_c].median())"
+    )
+
+
+def build_task_prompt(features: list[str], derived_features: dict[str, str] | None = None) -> str:
     """Build the convergence task prompt for a GIVEN behavioral feature set.
 
     Feature list is dataset-derived (DatasetProfile.behavioral_features), not the
@@ -285,6 +343,7 @@ def build_task_prompt(features: list[str]) -> str:
         "KHÔNG bớt, KHÔNG tự chọn cột khác thay thế), theo đúng thứ tự này:\n"
         + ", ".join(features)
         + "\nĐây là yêu cầu bắt buộc để đảm bảo kết quả phân cụm ổn định, có thể so sánh được giữa các lần chạy."
+        + _derived_feature_block(derived_features)
     )
 
 
