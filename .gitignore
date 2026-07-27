@@ -118,3 +118,12 @@ data_processed_t4_metadata.json
 # temp reports
 bao-cao-*.html
 pipeline_flow.html
+
+# Understand-Anything code graph.
+# knowledge-graph.json, meta.json, fingerprints.json, config.json and .understandignore
+# ARE committed on purpose: with them, a teammate reads the graph without re-running the
+# analysis pipeline. Only local scratch is ignored.
+.ua/intermediate/
+.ua/tmp/
+.ua/.trash-*
+.ua/diff-overlay.json

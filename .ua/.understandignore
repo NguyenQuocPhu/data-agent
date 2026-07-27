@@ -1,0 +1,61 @@
+# .understandignore — patterns for files/dirs to exclude from analysis
+# Syntax: same as .gitignore (globs, # comments, ! negation, trailing / for dirs)
+#
+# Scope for this project: the Python core only.
+#   Analysed:  triadic_dgm/  api/  tests/  *.py at root  + README/manifest/docker docs
+#   Excluded:  the frontend, every dataset, generated output, and secrets.
+#
+# Two rules here are not about cost — they are about what must never be sent to an LLM:
+#   - the CSV/PDF files at the repository root are real customer records
+#   - config.yaml / .env carry credentials
+
+# --- Frontend (846 MB of vendored code; out of scope) ---
+ui/
+node_modules/
+
+# --- Datasets and customer records (never analyse) ---
+*.csv
+*.pdf
+*.pkl
+*.joblib
+*.db
+data/
+data_processed_t4_metadata.json
+{working_path}/
+
+# --- Secrets ---
+config.yaml
+config_ollama.yaml
+.env
+
+# --- Generated output, caches, logs ---
+cache/
+.ua/
+.claude/
+.superpowers/
+outputs/
+output_data/
+output/
+workspace/
+logs/
+*.log
+__pycache__/
+*.pyc
+.pytest_cache/
+triadic_dgm.egg-info/
+bao-cao-*.html
+pipeline_flow.html
+decision_tree_rules.txt
+
+# --- Out of scope: side experiments and one-off utilities ---
+evolution_dgm/
+langgraph_agent/
+utils/
+scripts/
+triadic_dgm/benchmark/
+
+# --- Long-form prose that is not project documentation ---
+lcb_paper_text.md
+metadata.md
+metadata_data_2025.md
+proposal.md
