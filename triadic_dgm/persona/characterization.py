@@ -77,26 +77,115 @@ def compute_domain_stars(
             v = means.get(f)
             if not isinstance(v, (int, float)):
                 continue
-            g = global_means.get(f, 0)
-            dev = (v - g) / abs(g) if g else 0.0
-            if abs(dev) > abs(max_dev):
+            dev = relative_deviation(v, global_means.get(f, 0))
+            if dev is not None and abs(dev) > abs(max_dev):
                 max_dev = dev
         signature[dom] = {"stars": stars_from_max_dev(max_dev), "max_dev": round(max_dev, 4)}
     return signature
 
 
+def relative_deviation(value, baseline) -> float | None:
+    """Deviation of ``value`` from ``baseline`` as a fraction, or None if that is meaningless.
+
+    A percentage needs a positive magnitude to be a percentage *of*. When the population
+    mean is zero or negative the quantity has crossed zero — it is a signed measure, not a
+    size — and the ratio is arithmetic without meaning.
+
+    Observed live: ``avg_delivery_delay_days`` (negative = delivered early) had a population
+    mean of -11.18 and a cluster mean of 9.74, and the report asserted "cao hơn trung bình
+    toàn tập 187%". Callers must render the two absolute numbers instead.
+
+    Args:
+        value: The cluster's mean for a feature.
+        baseline: The population mean for the same feature.
+
+    Returns:
+        ``(value - baseline) / baseline`` when ``baseline`` is positive, else None.
+    """
+    if isinstance(value, bool) or isinstance(baseline, bool):
+        return None
+    if not isinstance(value, (int, float)) or not isinstance(baseline, (int, float)):
+        return None
+    if baseline <= 0:
+        return None
+    return (value - baseline) / baseline
+
+
+def name_by_top_feature(
+    personas: list[dict],
+    global_means: dict,
+    labels: dict[str, str] | None = None,
+    means_key: str = "feature_means",
+) -> list[str | None]:
+    """Name each persona after the feature that most separates it, avoiding collisions.
+
+    Needs no DatasetProfile and no domain map, so the pipeline can call it directly. That
+    matters: naming used to happen only in the report renderer, and every other consumer of
+    the same persona JSON — dashboard, feed, database — was left with the rule engine's
+    telco fallback repeated once per cluster.
+
+    Personas are processed strongest-signal-first so the cluster with the most extreme claim
+    on a feature keeps it and weaker ones fall to their next-best unclaimed feature.
+
+    Args:
+        personas: Persona dicts. Not mutated.
+        global_means: Whole-dataset per-feature means.
+        labels: Optional column -> human label. Defaults to the raw column name, which the
+            report layer may later upgrade.
+        means_key: Key holding each persona's per-feature means.
+
+    Returns:
+        Names positionally aligned with ``personas``; None where no feature deviates enough
+        to be worth naming, so the caller keeps whatever it already had.
+    """
+    labels = labels or {}
+    ranked: list[list[dict]] = []
+    for p in personas:
+        means = p.get(means_key) or {}
+        ranked.append(_top_features(means, global_means, labels, top_n=5)
+                      if isinstance(means, dict) else [])
+
+    def strength(i: int) -> float:
+        for t in ranked[i]:
+            if t.get("deviation") is not None:
+                return abs(float(t["deviation"]))
+        return 0.0
+
+    names: list[str | None] = [None] * len(personas)
+    claimed: set[str] = set()
+    for i in sorted(range(len(personas)), key=strength, reverse=True):
+        chosen = None
+        for t in ranked[i]:
+            dev = t.get("deviation")
+            if dev is None or abs(float(dev)) < _MIN_NAMING_DEVIATION:
+                continue
+            if str(t.get("feature")) not in claimed:
+                chosen = t
+                break
+            chosen = chosen or t
+        if chosen is None:
+            continue
+        claimed.add(str(chosen.get("feature")))
+        label = chosen.get("label") or chosen.get("feature")
+        direction = "cao" if float(chosen.get("deviation") or 0) >= 0 else "thấp"
+        names[i] = f"Nhóm {_lower_first(str(label))} {direction}"
+    return names
+
+
 def _top_features(means: dict, global_means: dict, labels: dict, top_n: int = 3) -> list[dict]:
-    devs: list[tuple[str, float]] = []
+    devs: list[tuple[str, float | None, float, float]] = []
     for f, v in means.items():
         if not isinstance(v, (int, float)):
             continue
         g = global_means.get(f, 0)
-        dev = (v - g) / abs(g) if g else 0.0
-        devs.append((str(f), dev))
-    devs.sort(key=lambda x: abs(x[1]), reverse=True)
+        devs.append((str(f), relative_deviation(v, g), float(v), float(g or 0.0)))
+    # A feature whose percentage is unusable sorts last rather than as if it were huge.
+    devs.sort(key=lambda x: abs(x[1]) if x[1] is not None else -1.0, reverse=True)
     return [
-        {"feature": f, "label": labels.get(f, f), "deviation": round(d, 4)}
-        for f, d in devs[:top_n]
+        {"feature": f, "label": labels.get(f, f),
+         "deviation": None if d is None else round(d, 4),
+         "value": round(v, 4), "baseline": round(g, 4)}
+        for f, d, v, g in devs[:top_n]
     ]
 
 
@@ -137,6 +226,7 @@ def distinguishing_signal(
         bits = [
             f"{t['label']} ({'+' if t['deviation'] >= 0 else ''}{t['deviation'] * 100:.0f}% so với trung bình)"
             for t in top
+            if t.get('deviation') is not None
             if abs(t["deviation"]) >= 0.1
         ]
         if bits:
@@ -248,7 +338,8 @@ def _signal_strength(persona: dict) -> float:
     """Magnitude of a persona's strongest feature deviation; 0.0 when unavailable."""
     try:
         top = (persona.get("distinguishing_signal") or {}).get("top_features") or []
-        return abs(float(top[0].get("deviation", 0.0))) if top else 0.0
+        dev = top[0].get("deviation") if top else None
+        return abs(float(dev)) if dev is not None else 0.0
     except (AttributeError, IndexError, TypeError, ValueError):
         return 0.0
 
@@ -325,14 +416,17 @@ def generic_persona_name(sig: dict | None, claimed: set[str] | None = None) -> s
             if claimed is not None:
                 for cand in top:
                     feat = str(cand.get("feature", ""))
-                    if feat and feat not in claimed and abs(
-                        float(cand.get("deviation", 0.0))
-                    ) >= _MIN_NAMING_DEVIATION:
+                    cand_dev = cand.get("deviation")
+                    if (feat and feat not in claimed and cand_dev is not None
+                            and abs(float(cand_dev)) >= _MIN_NAMING_DEVIATION):
                         t = cand
                         break
                 claimed.add(str(t.get("feature", "")))
             label = t.get("label") or t.get("feature") or dom
-            direction = "cao" if t.get("deviation", 0) >= 0 else "thấp"
+            _d = t.get("deviation")
+            if _d is None:
+                _d = (t.get("value") or 0) - (t.get("baseline") or 0)
+            direction = "cao" if _d >= 0 else "thấp"
             return f"Nhóm {_lower_first(str(label))} {direction}"
         return fallback
     except Exception:

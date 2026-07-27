@@ -26,6 +26,7 @@ from sklearn.cluster import KMeans
 from sklearn.metrics import silhouette_score
 from sklearn.preprocessing import StandardScaler
 
+from triadic_dgm.persona.characterization import name_by_top_feature
 from triadic_dgm.persona.clustering import try_substage_cluster
 from triadic_dgm.persona.profiling import (
     compute_churn_drivers,
@@ -210,6 +211,26 @@ def _dedupe_names(base_names: dict) -> dict:
     return final
 
 
+def _auto_features(data: pd.DataFrame, cluster_col: str) -> list[str]:
+    """Every numeric column that actually varies — the pipeline's own deterministic choice."""
+    numeric = data.select_dtypes(include="number")
+    return [c for c in numeric.columns if c != cluster_col and numeric[c].nunique(dropna=True) > 1]
+
+
+def _prepare_matrix(data: pd.DataFrame, feats: list[str]):
+    """Coerce ``feats`` to a scaled matrix, or None if the set cannot be clustered on.
+
+    Returns None rather than raising so a candidate feature set that turns out unusable
+    (too few columns, almost entirely zeros) simply loses the comparison.
+    """
+    if len(feats) < 2:
+        return None
+    raw = data[feats].apply(pd.to_numeric, errors="coerce").fillna(0.0)
+    if float((raw == 0).to_numpy().mean()) > _MAX_ZERO_FRACTION:
+        return None
+    return raw, StandardScaler().fit_transform(raw.to_numpy(dtype=float))
+
+
 def _failed_persona(data: pd.DataFrame, reason: str) -> list[dict]:
     """The single persona emitted when the data genuinely does not split.
 
@@ -270,23 +291,69 @@ def run_persona_pipeline(
     if data is None or len(data) == 0:
         return _failed_persona(pd.DataFrame(), "empty_dataset")
 
-    feats = [
-        f for f in (behavioral_features or [])
-        if f in data.columns and pd.api.types.is_numeric_dtype(data[f])
-    ]
-    if not feats:
-        numeric = data.select_dtypes(include="number")
-        feats = [c for c in numeric.columns if c != cluster_col and numeric[c].nunique(dropna=True) > 1]
-    if len(feats) < 2:
-        return _failed_persona(data, "insufficient_numeric_features")
+    # A caller that names features is making a claim about this dataset's schema. Check it
+    # instead of quietly repairing it: the old code filtered the list down to whatever
+    # existed and auto-selected when nothing did, so a feature list copied from a DIFFERENT
+    # dataset still produced a confident, plausible report. Observed live — a model emitted
+    # Iris column names for a retail upload, all four were dropped, and the run "succeeded".
+    if behavioral_features:
+        missing = [f for f in behavioral_features if f not in data.columns]
+        if missing:
+            return _failed_persona(
+                data,
+                f"unknown_columns: {', '.join(missing)} — không tồn tại trong dataset này "
+                f"(các cột thực có: {', '.join(map(str, data.columns[:20]))}"
+                f"{'…' if len(data.columns) > 20 else ''})",
+            )
+        non_numeric = [f for f in behavioral_features if not pd.api.types.is_numeric_dtype(data[f])]
+        if non_numeric:
+            return _failed_persona(
+                data,
+                f"non_numeric_columns: {', '.join(non_numeric)} — tồn tại nhưng không phải "
+                f"kiểu số, không dùng để phân cụm được",
+            )
 
     mode = dataset_mode or detect_dataset_mode(data.columns)
-    X_raw = data[feats].apply(pd.to_numeric, errors="coerce").fillna(0.0)
+    auto_feats = _auto_features(data, cluster_col)
+    caller_feats = list(behavioral_features or [])
 
-    zero_fraction = float((X_raw == 0).to_numpy().mean())
-    if zero_fraction > _MAX_ZERO_FRACTION:
+    # On GENERIC data the pipeline picks the features, not the caller.
+    #
+    # The caller is an LLM improvising a list per run. Two runs over the same 50k file gave
+    # silhouette 0.426 (12 features) and 0.286 (9 features) — one dataset, two segmentations,
+    # the second a third worse purely because the model named fewer columns that time. The
+    # pipeline's own selection scored 0.426, matching the model's best attempt.
+    #
+    # Scoring both and keeping the higher silhouette was tried and rejected: silhouette
+    # measures how compact the partition it FOUND is, not whether that structure is real, so
+    # two pure-noise columns scored 0.351 against 0.308 for a set containing the actual
+    # signal. A measure that prefers noise cannot arbitrate.
+    #
+    # So the deterministic rule wins: use every numeric column that varies. Callers wanting a
+    # subset filter the DataFrame before calling, which is what the prompt already instructs.
+    # The caller's list is still validated above — catching a list copied from another
+    # dataset is its real value — and what was actually used is recorded on every persona.
+    #
+    # Unchanged on the telco path: there the column list carries domain meaning, and that
+    # path is deliberately left exactly as it was.
+    if mode == "GENERIC" and auto_feats:
+        feats, feature_selection = auto_feats, "auto"
+        if caller_feats and caller_feats != auto_feats:
+            print(f"[PIPELINE] feature set: bỏ qua {len(caller_feats)} feature do caller đề xuất, "
+                  f"dùng {len(auto_feats)} cột số biến thiên của dataset (tất định)")
+    else:
+        feats = caller_feats or auto_feats
+        feature_selection = "caller" if caller_feats else "auto"
+
+    if len(feats) < 2:
+        return _failed_persona(data, "insufficient_numeric_features")
+    prepared = _prepare_matrix(data, feats)
+    if prepared is None:
+        zero_fraction = float(
+            (data[feats].apply(pd.to_numeric, errors="coerce").fillna(0.0) == 0).to_numpy().mean()
+        )
         return _failed_persona(data, f"zero_inflated_{zero_fraction:.3f}")
-    X = StandardScaler().fit_transform(X_raw.to_numpy(dtype=float))
+    X_raw, X = prepared
 
     best_k, best_sil, labels = choose_k(X)
     data[cluster_col] = labels
@@ -364,9 +431,33 @@ def run_persona_pipeline(
             "risk_tier": classify_risk_tier(meta, profile),
             "is_anomaly": is_anomaly,
             "segmentation_quality": quality,
+            # "caller" = the feature list supplied to this call was used; "auto" = the
+            # pipeline's own selection scored better and replaced it. Surfaced so a reader
+            # can see WHICH set produced the segmentation in front of them.
+            "feature_selection": feature_selection,
+            "features_used": list(feats),
             "recommended_actions": generate_actions(mode, name, meta["severity"], meta["risk"], profile),
             "sample_persona_text": _sample_persona_text(name, means, global_mean),
         })
+
+    # Name generic personas from their own measured deviations, HERE rather than in the
+    # report renderer. The rule engine's ladder is entirely telco predicates, so on any other
+    # dataset every cluster fell to one fallback string: a real 50k-row retail upload came
+    # out as "Khách hàng ổn định - Nhóm 1..4". The report looked right only because it
+    # re-named personas itself; the dashboard, feed and database all showed the four
+    # identical names. Anomalies keep their own label, and the report may still upgrade a raw
+    # column name to a human one.
+    if mode == "GENERIC":
+        generic_names = name_by_top_feature(personas, global_mean)
+        for p, new_name in zip(personas, generic_names):
+            if new_name and not p["is_anomaly"]:
+                p["persona_name"] = new_name
+                p["sample_persona_text"] = _sample_persona_text(
+                    new_name, p["feature_means"], global_mean
+                )
+        deduped = _dedupe_names({p["cluster_id"]: p["persona_name"] for p in personas})
+        for p in personas:
+            p["persona_name"] = deduped[p["cluster_id"]]
 
     drivers = hidden_drivers(X_raw, data[cluster_col], feats)
     if drivers:

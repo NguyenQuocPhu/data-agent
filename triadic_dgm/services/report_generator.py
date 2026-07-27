@@ -4,7 +4,7 @@ import time
 from datetime import datetime
 import instructor
 from openai import OpenAI
-from triadic_dgm.persona.characterization import apply_dataset_profile
+from triadic_dgm.persona.characterization import apply_dataset_profile, relative_deviation
 from triadic_dgm.persona.vocabulary import contains_forbidden_term
 from triadic_dgm.schemas.report_schema import ReportNarrative, ExecutiveSummaryNarrative
 
@@ -521,8 +521,22 @@ class ReportValidator:
         if not personas_data:
             return
             
+        # Not an assert: this fires on real user traffic, and the message is shown to the
+        # user verbatim as "[LLM ERROR: ...]". "Total support must be greater than 0" reads
+        # as an empty dataset — it is not. Every observed occurrence had a full dataset and
+        # successful clustering, and persona objects that simply carried no population
+        # count, because the sandbox emitted hand-written JSON instead of the output of
+        # run_persona_pipeline. Naming the field and showing the keys that ARE present
+        # identifies that in one line instead of an hour of log archaeology.
         total_customers = sum(p.get('support', 0) for p in personas_data)
-        assert total_customers > 0, "Total support must be greater than 0"
+        if total_customers <= 0:
+            observed_keys = sorted({k for p in personas_data for k in p})
+            raise ValueError(
+                f"Persona JSON thiếu số lượng bản ghi: {len(personas_data)} persona nhưng tổng "
+                f"`support` = {total_customers}. Dataset KHÔNG rỗng — lỗi nằm ở JSON mà sandbox "
+                f"sinh ra, thường là do tự viết JSON thay vì gọi `run_persona_pipeline`, vốn "
+                f"luôn đặt `support`. Các key thực có: {observed_keys}"
+            )
         
         # Check unique persona names
         names = [p.get('persona_name') for p in personas_data]
@@ -1063,10 +1077,23 @@ class ReportGenerator:
                 continue
             label = str(feat.get('label') or feat.get('feature') or '').strip()
             dev = feat.get('deviation')
-            if not label or not isinstance(dev, (int, float)):
+            if not label:
                 continue
-            direction = "cao hơn" if dev > 0 else "thấp hơn"
-            bullets.append(f"{label}: {direction} trung bình toàn tập {abs(dev) * 100:.0f}%")
+            if isinstance(dev, (int, float)):
+                direction = "cao hơn" if dev > 0 else "thấp hơn"
+                bullets.append(f"{label}: {direction} trung bình toàn tập {abs(dev) * 100:.0f}%")
+                continue
+            # No usable percentage — the population mean is zero or negative, so the feature
+            # is a signed measure with no magnitude to be a percentage of (see
+            # relative_deviation). State the two numbers instead of a false ratio; the
+            # report previously asserted "cao hơn trung bình toàn tập 187%" off a mean of
+            # -11.18, which is arithmetic without meaning.
+            value, baseline = feat.get('value'), feat.get('baseline')
+            if isinstance(value, (int, float)) and isinstance(baseline, (int, float)):
+                bullets.append(
+                    f"{label}: {value:g} (trung bình toàn tập {baseline:g}) — "
+                    f"không quy ra phần trăm vì trung bình không dương"
+                )
         evidence = str(sig.get('evidence') or '').strip()
         if evidence and not bullets:
             bullets.append(evidence)
@@ -2193,8 +2220,12 @@ Dữ liệu Business Facts duy nhất bạn được thấy:
             means = self._get_means(p)
             deviations = self._ranked_deviations(means, global_means)
             for f, val, g_val, dev in deviations[:5]:
-                delta_pct = ((val - g_val) / abs(g_val)) * 100 if g_val != 0 else (100 if val > 0 else 0)
-                md += f"| {f} | {val:.2f} | {g_val:.2f} | {delta_pct:+.1f}% |\n"
+                # n/a rather than a fabricated ratio when the baseline is not a positive
+                # magnitude — the appendix is the table a reader checks the prose against,
+                # so it must not be the one place the false percentage survives.
+                rel = relative_deviation(val, g_val)
+                delta = f"{rel * 100:+.1f}%" if rel is not None else "n/a"
+                md += f"| {f} | {val:.2f} | {g_val:.2f} | {delta} |\n"
             md += "\n"
         
         md += "### Raw Facts\n"

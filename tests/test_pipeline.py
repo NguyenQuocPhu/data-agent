@@ -170,7 +170,17 @@ def test_non_numeric_columns_are_ignored_not_fatal():
     assert len(personas) >= 3
 
 
-def test_explicit_feature_list_is_respected():
+def test_an_explicit_feature_list_no_longer_decides_on_generic_data():
+    """Deliberate contract change — this test asserted the opposite until 2026-07-27.
+
+    Honouring the caller's list made the segmentation depend on which columns the model
+    happened to name that run: two runs over one 50k file gave silhouette 0.426 and 0.286.
+    On GENERIC data the pipeline now clusters on every numeric column that varies, so the
+    same data always gives the same personas. The list is still validated against the schema
+    (see tests/test_feature_list_gate.py), and a caller wanting a subset filters the
+    DataFrame before calling.
+    """
     df = _separable()
     personas = run_persona_pipeline(df, behavioral_features=["spend", "visits"])
-    assert all("noise" not in p["feature_means"] for p in personas)
+    assert any("noise" in p["feature_means"] for p in personas)
+    assert personas[0]["feature_selection"] == "auto"
