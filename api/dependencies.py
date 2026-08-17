@@ -13,8 +13,12 @@ _SAFE_REPO_ROOT = str(REPO_ROOT).replace('\\', '/')
 workspace_dir = workspace_service.resolve_workspace_root("default")
 safe_workspace_dir = str(workspace_dir).replace('\\', '/')
 
-print("Injecting load_dataset into Sandbox Kernel...")
-tool_layer_code = f"""
+if getattr(lambda_instance.conv, "is_rlm_agent", False):
+    print("RLM mode: notebook tools will be installed by the persistent IPython runtime.")
+    tool_layer_code = None
+else:
+    print("Injecting load_dataset into legacy Sandbox Kernel...")
+    tool_layer_code = f"""
 import sys
 # Put the repo on the sandbox kernel's path: it runs with cwd set to the session cache
 # directory, so `import triadic_dgm` fails without this. The generated code needs it to call
@@ -128,7 +132,8 @@ def list_datasets():
     for fid, info in index_data.items():
         print(f"  - load_dataset('{{fid}}')  # {{info.get('filename', fid)}}")
 """
-lambda_instance.conv.run_code(tool_layer_code)
+if tool_layer_code is not None:
+    lambda_instance.conv.run_code(tool_layer_code)
 
 def get_lambda_agent():
     return lambda_instance

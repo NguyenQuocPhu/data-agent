@@ -46,8 +46,23 @@ base_url_inspector : 'https://proxy.onebot.meobeo.ai/v1'
 #                                       Config of the system
 #================================================================================================
 project_cache_path : "cache/conv_cache/" # local cache path
+agent_runtime: "rlm" # "rlm" = persistent RLM/IPython; "legacy" = observation loop
 max_attempts : 5 # The max attempts of self-correcting
 max_exe_time: 18000 # max time for the execution
+agent_max_steps: 15 # Max decisions/notebook actions in one observation-loop request
+rlm:
+  environment: "ipython"
+  kernel_mode: "subprocess"
+  max_iterations: 8
+  max_depth: 1
+  max_timeout: 300
+  cell_timeout: 300
+  max_errors: 5
+  max_concurrent_subcalls: 4
+  compaction_threshold_pct: 0.80
+  model_context_tokens: 30000
+  max_output_tokens: 2048
+  sub_max_output_tokens: 4096
 load_chat: False # whether to load the dialogue from the local cache
 chat_history_path: "" # The path of the chat history, effective if load_chat is True.
 

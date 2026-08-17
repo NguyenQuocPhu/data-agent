@@ -4,9 +4,7 @@ import json
 import time
 import random
 import logging
-from triadic_dgm import TriadicAgent
-from triadic_dgm.prompts.prompts import *
-from langgraph_agent import DataAgentGraph
+from triadic_dgm.rlm_agent import RLMDataAgent
 import yaml
 from utils.utils import *
 import sys
@@ -40,9 +38,31 @@ class LAMBDA:
 
         with open(config_path, 'r', encoding='utf-8') as f:
             self.config = yaml.load(f, Loader=yaml.FullLoader)
-            
+
+        # Allow the standard environment bundle supplied by the company-hosted
+        # OpenAI-compatible gateway to override checked-in model routing.
+        env_base_url = os.environ.get('OPENAI_BASE_URL')
+        env_model_id = os.environ.get('OPENAI_MODEL_ID')
+        if env_base_url:
+            self.config['base_url_conv_model'] = env_base_url
+            self.config['base_url_programmer'] = env_base_url
+            self.config['base_url_inspector'] = env_base_url
+        if env_model_id:
+            self.config['conv_model'] = env_model_id
+            self.config['programmer_model'] = env_model_id
+            self.config['inspector_model'] = env_model_id
+
         if 'api_key' not in self.config and 'api_key_env_var' in self.config:
-            self.config['api_key'] = os.environ.get(self.config['api_key_env_var'], 'dummy_key')
+            # Docker Compose deliberately defines optional keys as an empty string when no
+            # .env value exists. OpenAI's client rejects "" during construction, preventing
+            # even non-LLM endpoints and the notebook kernel from starting. A non-empty
+            # placeholder lets the PoC boot; the first real model call still fails clearly
+            # until the user supplies a valid key.
+            self.config['api_key'] = (
+                os.environ.get(self.config['api_key_env_var'])
+                or os.environ.get('OPENAI_API_KEY')
+                or 'dummy_key'
+            )
         elif 'api_key' not in self.config:
             self.config['api_key'] = 'dummy_key'
         
@@ -58,7 +78,7 @@ class LAMBDA:
         )
         self.vocab_dropout_rate = self._mutate_param(
             getattr(self, 'vocab_dropout_rate', 0.15),
-            -0.1, 0.1, 0.5
+            -0.1, 0.1, 0.5576
         )
         
         # Ensure epiplexity_min < epiplexity_max with buffer
@@ -78,30 +98,45 @@ class LAMBDA:
         
         print("Session cache path: ", self.session_cache_path)
         
-        # Initialize conversation with proper error handling
+        # Select exactly one reasoning harness. RLM mode owns its persistent
+        # IPython notebook; legacy mode keeps the observation loop.
         try:
-            self.conv = TriadicAgent(self.config)
-            logger.info("TriadicAgent initialized successfully")
+            runtime_name = os.environ.get(
+                'DATA_AGENT_RUNTIME', self.config.get('agent_runtime', 'legacy')
+            ).strip().lower()
+            self.config['agent_runtime'] = runtime_name
+            if runtime_name == 'rlm':
+                self.conv = RLMDataAgent(self.config, self.session_cache_path)
+                logger.info("RLMDataAgent initialized successfully")
+            else:
+                # Keep the large legacy engine out of the RLM process. This is
+                # a true fallback harness, not an inner layer of RLMDataAgent.
+                from triadic_dgm import TriadicAgent
+
+                self.conv = TriadicAgent(self.config)
+                logger.info("TriadicAgent initialized successfully")
         except Exception as e:
-            logger.error(f"Failed to initialize TriadicAgent: {e}")
+            logger.error(f"Failed to initialize data-agent runtime: {e}")
             raise
 
-        safe_working_path = str(self.session_cache_path).replace('\\', '/')
-        self.conv.programmer.messages = [
-            {
-                "role": "system",
-                "content": PROGRAMMER_PROMPT.format(working_path=safe_working_path)
-            }
-        ]
+        if runtime_name != 'rlm':
+            from langgraph_agent import DataAgentGraph
+            from triadic_dgm.prompts.prompts import (
+                KNOWLEDGE_INTEGRATION_SYSTEM,
+                OBSERVATION_AGENT_PROMPT,
+            )
 
-        if self.conv.retrieval:
-            self.conv.programmer.messages[0]["content"] += KNOWLEDGE_INTEGRATION_SYSTEM
+            agent_prompt = OBSERVATION_AGENT_PROMPT
+            if self.conv.retrieval:
+                agent_prompt += KNOWLEDGE_INTEGRATION_SYSTEM
+            self.conv.programmer.set_system_prompt(agent_prompt)
 
-        # ── LangGraph wrapper (Phase 1) ─────────────────────────────────────
-        # DataAgentGraph wraps the existing TriadicAgent into a LangGraph
-        # StateGraph. Set USE_LANGGRAPH=False to fall back to the old engine.
-        self.USE_LANGGRAPH = True
-        self.lg_graph = DataAgentGraph(self.conv)
+            # RLM mode already is the reasoning loop, so LangGraph is legacy-only.
+            self.USE_LANGGRAPH = True
+            self.lg_graph = DataAgentGraph(self.conv)
+        else:
+            self.USE_LANGGRAPH = False
+            self.lg_graph = None
 
         # Log evolutionary parameters
         logger.info(f"Evolutionary Parameters - epiplexity_min: {self.epiplexity_min}, "
@@ -166,6 +201,10 @@ class LAMBDA:
         return desc_maps
 
     def refresh_workspace_context(self, workspace_root: str):
+        if getattr(self.conv, 'is_rlm_agent', False):
+            # RLM mode builds a bounded workspace snapshot every turn.
+            self.conv.set_workspace(workspace_root)
+            return
         try:
             # [HOTFIX] Re-inject load_dataset to point to the correct session workspace instead of 'default'
             safe_workspace_dir = str(workspace_root).replace('\\', '/')
@@ -327,10 +366,15 @@ def list_datasets():
                             
             context_str += "\nIMPORTANT:\nTo load this data, you MUST use the built-in function `load_dataset(file_id)`.\nExample: `df = load_dataset('abc12345')`\nDo NOT use pd.read_csv for these datasets!\n"
             
-            # Clean up old ACTIVE DATASETS to avoid duplicate appending
+            # Replace the prior active-dataset block and preserve the result across clear().
             import re
-            base_prompt = re.sub(r'\[ACTIVE DATASETS\].*', '', self.conv.programmer.messages[0]["content"], flags=re.DOTALL)
-            self.conv.programmer.messages[0]["content"] = base_prompt.strip() + context_str
+            base_prompt = re.sub(
+                r'\[ACTIVE DATASETS?\].*',
+                '',
+                self.conv.programmer.system_prompt,
+                flags=re.DOTALL,
+            )
+            self.conv.programmer.set_system_prompt(base_prompt.strip() + context_str)
             
             logger.info("Workspace context refreshed successfully.")
         except Exception as e:

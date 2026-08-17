@@ -119,7 +119,10 @@ async def upload_files(
 async def clear_workspace(session_id: str = Query("default"), lambda_instance = Depends(get_lambda_agent)):
     result = workspace_service.clear_workspace(session_id)
     try:
-        lambda_instance.conv.run_code("if '_DATASET_CACHE' in globals(): _DATASET_CACHE.clear()")
+        if getattr(lambda_instance.conv, "is_rlm_agent", False):
+            lambda_instance.conv.clear_workspace_state()
+        else:
+            lambda_instance.conv.run_code("if '_DATASET_CACHE' in globals(): _DATASET_CACHE.clear()")
     except Exception as e:
         print(f"Failed to clear python cache: {e}")
     return result
@@ -129,7 +132,10 @@ async def clear_workspace(session_id: str = Query("default"), lambda_instance = 
 async def clear_workspace_via_post(session_id: str = Query("default"), lambda_instance = Depends(get_lambda_agent)):
     result = workspace_service.clear_workspace(session_id)
     try:
-        lambda_instance.conv.run_code("if '_DATASET_CACHE' in globals(): _DATASET_CACHE.clear()")
+        if getattr(lambda_instance.conv, "is_rlm_agent", False):
+            lambda_instance.conv.clear_workspace_state()
+        else:
+            lambda_instance.conv.run_code("if '_DATASET_CACHE' in globals(): _DATASET_CACHE.clear()")
     except Exception as e:
         print(f"Failed to clear python cache: {e}")
     return result

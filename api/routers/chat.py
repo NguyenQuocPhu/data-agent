@@ -10,6 +10,7 @@ from fastapi.responses import StreamingResponse
 from ..dependencies import get_lambda_agent
 from ..services import workspace as workspace_service
 from ..services.metadata_gate import collect_matching_metadata
+from triadic_dgm.rlm_agent.skill_registry import list_skills
 import os
 
 router = APIRouter()
@@ -72,8 +73,13 @@ async def execute_code_api(
         }
 
     try:
-        # Snapshot files before execution
-        source_dir = lambda_instance.session_cache_path
+        is_rlm = getattr(lambda_instance.conv, "is_rlm_agent", False)
+        # RLM's notebook works directly in the active workspace. Legacy code
+        # still writes into LAMBDA's session cache first.
+        source_dir = (
+            str(workspace_service.resolve_workspace_root(session_id))
+            if is_rlm else lambda_instance.session_cache_path
+        )
         known_before = {
             f for f in os.listdir(source_dir)
             if os.path.isfile(os.path.join(source_dir, f))
@@ -87,12 +93,16 @@ async def execute_code_api(
         if display:
             exe_res += f"\n\n[Files Generated]: {link_info}"
 
-        # Scan and register newly generated files
-        new_generated_files = workspace_service.scan_and_register_generated(
-            session_id=session_id,
-            source_dir=source_dir,
-            known_files_before=known_before,
-        )
+        # RLM tools already save below workspace/generated. Legacy execution
+        # still needs the copy/register pass from its cache directory.
+        if is_rlm:
+            new_generated_files = workspace_service.get_generated_files_for_session(session_id)
+        else:
+            new_generated_files = workspace_service.scan_and_register_generated(
+                session_id=session_id,
+                source_dir=source_dir,
+                known_files_before=known_before,
+            )
 
         success = True if sign and 'error' not in sign else False
         
@@ -113,6 +123,8 @@ async def execute_code_api(
 @router.get("/memory")
 async def get_rimrule_memory(lambda_instance = Depends(get_lambda_agent)):
     try:
+        if getattr(lambda_instance.conv, "verifier", None) is None:
+            return {"success": True, "rules": [], "linked": False}
         rules = [r.to_dict() for r in lambda_instance.conv.verifier.memory_bank.rules]
         return {
             "success": True,
@@ -123,6 +135,39 @@ async def get_rimrule_memory(lambda_instance = Depends(get_lambda_agent)):
             "success": False,
             "error": str(exc)
         }
+
+
+@router.get("/chat/context")
+async def get_context_usage(lambda_instance = Depends(get_lambda_agent)):
+    """Expose current agent context metrics for initial page load and refresh."""
+    if getattr(lambda_instance.conv, "is_rlm_agent", False):
+        return lambda_instance.conv.context_usage()
+    return lambda_instance.conv.programmer.context_usage()
+
+
+@router.get("/skills")
+async def get_user_skills():
+    """Return only skills that users may explicitly select from the chat UI."""
+    return {"skills": list_skills(user_invocable_only=True)}
+
+
+@router.post("/chat/reset")
+async def reset_chat_context(lambda_instance = Depends(get_lambda_agent)):
+    """Reset model conversation/compaction state without deleting data or notebook variables."""
+    if getattr(lambda_instance.conv, "is_rlm_agent", False):
+        lambda_instance.conv.clear()
+        return {
+            "success": True,
+            "context_usage": lambda_instance.conv.context_usage(),
+        }
+    lambda_instance.conv.programmer.clear()
+    lambda_instance.conv.observation_paused = False
+    lambda_instance.conv.observation_pause_reason = None
+    lambda_instance.conv.pending_human_decision = None
+    return {
+        "success": True,
+        "context_usage": lambda_instance.conv.programmer.context_usage(),
+    }
 
 
 def format_chunk(content: str, model: str) -> str:
@@ -141,6 +186,132 @@ def format_chunk(content: str, model: str) -> str:
     }
     return "data: " + json.dumps(chunk) + "\n\n"
 
+
+def format_context_chunk(context_usage: dict, model: str) -> str:
+    """Send control-plane context metrics without adding text to the assistant answer."""
+    chunk = {
+        "id": "chatcmpl-" + str(uuid.uuid4()),
+        "object": "chat.completion.chunk",
+        "created": int(time.time()),
+        "model": model,
+        "choices": [{"index": 0, "delta": {}, "finish_reason": None}],
+        "context_usage": context_usage,
+    }
+    return "data: " + json.dumps(chunk) + "\n\n"
+
+
+def format_human_decision_chunk(decision: dict, model: str) -> str:
+    """Send a HITL control event without embedding UI syntax in chat text."""
+    chunk = {
+        "id": "chatcmpl-" + str(uuid.uuid4()),
+        "object": "chat.completion.chunk",
+        "created": int(time.time()),
+        "model": model,
+        "choices": [{"index": 0, "delta": {}, "finish_reason": None}],
+        "human_decision": decision,
+    }
+    return "data: " + json.dumps(chunk, ensure_ascii=False) + "\n\n"
+
+
+def format_rlm_event_chunk(event: dict, model: str) -> str:
+    """Expose typed RLM events while keeping the tagged chat UI readable."""
+    event_type = event.get("type")
+    content = ""
+    if event_type == "turn_started":
+        # Open the section immediately, but do not present transport/runtime
+        # status as model analysis. The following `analysis` event contains the
+        # main model's verbatim prose before its first REPL block.
+        content = "<Analyze>\n"
+    elif event_type == "iteration_started":
+        content = ""
+    elif event_type == "analysis":
+        response = str(event.get("content", "")).strip()
+        content = "\n" + response + "\n" if response else ""
+    elif event_type == "subcall_started":
+        # Lifecycle events are useful in the typed event stream, but rendering
+        # them inside the main model's Analyze/Execute sections makes the two
+        # models look like one response. The complete call is rendered by the
+        # `subcall_result` event below.
+        content = ""
+    elif event_type == "subcall_completed":
+        content = ""
+    elif event_type == "subcall_result":
+        prompt = event.get("prompt", "")
+        if not isinstance(prompt, str):
+            prompt = json.dumps(prompt, ensure_ascii=False, indent=2)
+        response = str(event.get("response", "") or "")
+        error = event.get("error")
+        usage = event.get("usage") or {}
+        duration = event.get("execution_time")
+        details = [
+            f"**Call:** {event.get('call', '?')}",
+            f"**Method:** `{event.get('call_type', 'sub_llm')}`",
+            f"**Model:** `{event.get('model', 'unknown')}`",
+        ]
+        if duration is not None:
+            details.append(f"**Duration:** {float(duration):.2f}s")
+        details.extend([
+            "---\n### Input prompt (full)\n" + str(prompt),
+            "---\n### Output response (full)\n" + response,
+        ])
+        if usage:
+            details.append(
+                "---\n### Usage\n```json\n"
+                + json.dumps(usage, ensure_ascii=False, indent=2)
+                + "\n```"
+            )
+        if error:
+            details.append("**Error:**\n" + str(error))
+        content = (
+            "\n</Execute>\n<SubLLM>\n"
+            + "\n\n".join(details)
+            + "\n</SubLLM>\n<Execute>\n"
+        )
+    elif event_type == "code":
+        content = (
+            "\n</Analyze>\n<Code>\n```python\n"
+            + str(event.get("code", ""))
+            + "\n```\n</Code>\n<Execute>\n"
+        )
+    elif event_type == "observation":
+        output = str(event.get("stdout") or event.get("stderr") or "")
+        if not output:
+            output = "Cell completed without textual output."
+        content = f"\n```trace\n{output}\n```\n</Execute>\n<Analyze>\n"
+    elif event_type == "final_answer":
+        content = "\n</Analyze>\n<Answer>\n" + str(event.get("content", "")) + "\n</Answer>"
+    elif event_type == "error":
+        content = "\n</Analyze>\n<Answer>\nError: " + str(event.get("message", "")) + "\n</Answer>"
+
+    chunk = {
+        "id": "chatcmpl-" + str(uuid.uuid4()),
+        "object": "chat.completion.chunk",
+        "created": int(time.time()),
+        "model": model,
+        "choices": [{
+            "index": 0,
+            "delta": {"content": content} if content else {},
+            "finish_reason": None,
+        }],
+        "agent_event": event,
+    }
+    if event_type == "context_usage":
+        chunk["context_usage"] = {
+            key: value for key, value in event.items() if key != "type"
+        }
+    if event_type == "human_decision":
+        chunk["human_decision"] = {
+            key: value for key, value in event.items() if key != "type"
+        }
+    return "data: " + json.dumps(chunk, ensure_ascii=False) + "\n\n"
+
+
+def _next_or_done(iterator):
+    try:
+        return False, next(iterator)
+    except StopIteration:
+        return True, None
+
 def format_end_chunk(model: str) -> str:
     end_chunk = {
         "id": "chatcmpl-" + str(uuid.uuid4()),
@@ -155,6 +326,7 @@ def format_end_chunk(model: str) -> str:
 async def chat(body: dict = Body(...), lambda_instance = Depends(get_lambda_agent)):
     messages = body.get("messages", [])
     session_id = body.get("session_id", "default")
+    selected_skill = body.get("selected_skill")
     if not messages:
         raise HTTPException(status_code=400, detail="No messages provided")
         
@@ -165,53 +337,6 @@ async def chat(body: dict = Body(...), lambda_instance = Depends(get_lambda_agen
     # something about the data without checking it. Peek at the dataset once, up front, and
     # gate all of them on it.
     active_cols = [str(c).lower() for c in (_active_dataset_columns() or [])]
-
-    # [DOMAIN KNOWLEDGE INJECTION & RIMRULE EVOLUTION]
-    if any(keyword in user_query.lower() for keyword in ["phân cụm", "persona", "clustering", "cluster"]):
-        try:
-            # Learned rules come from past debugging sessions, all of which ran on one telco
-            # dataset — 83 of the 284 archived rules name its columns. Injected unfiltered,
-            # they tell the model that THIS dataset has `RMDT`/ARPU, and it duly writes those
-            # column names into behavioral_features for a retail upload that has neither.
-            # Passing the real columns keeps them for the telco dataset and drops them
-            # everywhere else.
-            rules_context = lambda_instance.conv.verifier.memory_bank.retrieve_rules_symbolic(
-                query_domain="python", top_k=5, active_columns=active_cols
-            )
-            if not rules_context:
-                rules_context = "No past mistakes recorded yet."
-        except Exception as e:
-            rules_context = ""
-
-        financial_metrics_lines = []
-        if "cuoc_hang_thang" in active_cols:
-            financial_metrics_lines.append(
-                "- ARPU (Average Revenue Per User) MUST be calculated exactly as `df['cuoc_hang_thang'].mean()` for each cluster. NEVER divide by 30 or any other number."
-            )
-        if "rmdt" in active_cols:
-            financial_metrics_lines.append(
-                "- Churn_Rate MUST be calculated exactly as `df['RMDT'].mean()` for each cluster."
-            )
-        if not financial_metrics_lines:
-            financial_metrics_lines.append(
-                "- Dataset đang phân tích KHÔNG có cột `cuoc_hang_thang`/`RMDT` (đó là tên cột của một dataset telco cụ thể, KHÔNG áp dụng cho mọi dataset). Nếu cần tính chỉ số doanh thu/tỷ lệ mục tiêu theo cụm, PHẢI tự xác định đúng cột tương ứng THỰC SỰ có trong dataset này (không hardcode tên cột của dataset khác); nếu không có cột phù hợp thì bỏ qua, KHÔNG được bịa cột."
-            )
-        financial_metrics_block = "\n".join(financial_metrics_lines)
-
-        domain_knowledge = f"""
----
-[DOMAIN KNOWLEDGE FOR DATA AGENT]
-1. Financial Metrics:
-{financial_metrics_block}
-
-2. Anti-Hallucination for Categorical Data:
-- When writing if-else rules to describe a persona based on a categorical column, you MUST NOT guess that column's values. Run `.unique()` on the column and use only the values it actually returns. Do NOT reach for plausible-sounding categories you have seen in other datasets.
-
-3. RIMRULE EVOLUTION MEMORY (LESSONS LEARNED FROM PAST ERRORS):
-{rules_context}
----
-"""
-        user_query += "\n" + domain_knowledge
 
     # Dynamic Metadata Injection.
     # Only dictionaries that actually describe the loaded dataset are injected. This used to
@@ -229,6 +354,22 @@ async def chat(body: dict = Body(...), lambda_instance = Depends(get_lambda_agen
 
     model_name = body.get("model", "lambda-triadic-agent")
 
+    if getattr(lambda_instance.conv, "is_rlm_agent", False):
+        async def rlm_event_generator():
+            iterator = iter(lambda_instance.conv.stream_turn(
+                user_query,
+                session_id=session_id,
+                selected_skill=selected_skill,
+            ))
+            while True:
+                done, event = await asyncio.to_thread(_next_or_done, iterator)
+                if done:
+                    break
+                yield format_rlm_event_chunk(event.to_dict(), model_name)
+            yield format_end_chunk(model_name)
+
+        return StreamingResponse(rlm_event_generator(), media_type="text/event-stream")
+
     async def event_generator():
         try:
             # Reconstruct history for LAMBDA Gradio interface
@@ -242,12 +383,20 @@ async def chat(body: dict = Body(...), lambda_instance = Depends(get_lambda_agen
             # we MUST add the user's current message here.
             gradio_history.append({"role": "user", "content": user_query})
             
-            # Sync backend memory: If frontend only sends 1 message, it means it's a new chat, so clear backend context!
-            if not messages[:-1]:
+            # A custom UI system prompt may precede the first user message, so detect actual
+            # conversational history rather than relying on the raw array length.
+            has_prior_conversation = any(
+                msg.get("role") in {"user", "assistant"} for msg in messages[:-1]
+            )
+            if not has_prior_conversation:
                 lambda_instance.conv.programmer.clear()
             
             # CRITICAL: We also MUST add it to the actual LLM's conversation context!
             lambda_instance.conv.programmer.messages.append({"role": "user", "content": user_query})
+            yield format_context_chunk(
+                lambda_instance.conv.programmer.context_usage(),
+                model_name,
+            )
             
             # Start streaming workflow
             # ── Phase 1: LangGraph routing ──────────────────────────────────────
@@ -256,7 +405,11 @@ async def chat(body: dict = Body(...), lambda_instance = Depends(get_lambda_agen
             if use_lg and hasattr(lambda_instance, "lg_graph"):
                 workflow_generator = lambda_instance.lg_graph.stream(user_query, gradio_history, session_id=session_id)
             else:
-                workflow_generator = lambda_instance.conv.stream_workflow(gradio_history, code=None)
+                workflow_generator = lambda_instance.conv.stream_workflow(
+                    gradio_history,
+                    code=None,
+                    session_id=session_id,
+                )
 
             
             last_len = 0
@@ -270,6 +423,10 @@ async def chat(body: dict = Body(...), lambda_instance = Depends(get_lambda_agen
             for history in workflow_generator:
                 if not history:
                     continue
+                yield format_context_chunk(
+                    lambda_instance.conv.programmer.context_usage(),
+                    model_name,
+                )
                 last_msg_dict = history[-1]
                 if last_msg_dict.get("role") == "assistant" and last_msg_dict.get("content"):
                     assistant_response = last_msg_dict["content"]
@@ -279,6 +436,22 @@ async def chat(body: dict = Body(...), lambda_instance = Depends(get_lambda_agen
                         buffer += new_text
 
                         while True:
+                            if "🧭 Agent deciding next action" in buffer:
+                                idx = buffer.find("🧭 Agent deciding next action")
+                                chunk_to_yield = buffer[:idx]
+                                if chunk_to_yield:
+                                    yield format_chunk(chunk_to_yield, model_name)
+                                if current_tag != "Analyze":
+                                    yield format_chunk(f"\n</{current_tag}>\n<Analyze>\n", model_name)
+                                    current_tag = "Analyze"
+                                line_end = buffer.find("\n", idx)
+                                if line_end == -1:
+                                    buffer = ""
+                                else:
+                                    buffer = buffer[line_end + 1:]
+                                yield format_chunk("Choosing the next notebook action...\n", model_name)
+                                continue
+
                             if "🖥️ Execute code..." in buffer:
                                 idx = buffer.find("🖥️ Execute code...")
                                 chunk_to_yield = buffer[:idx]
@@ -331,6 +504,34 @@ async def chat(body: dict = Body(...), lambda_instance = Depends(get_lambda_agen
                                 buffer = buffer[idx + len("**Final Report:**"):]
                                 continue
 
+                            if "**Final Answer:**" in buffer:
+                                idx = buffer.find("**Final Answer:**")
+                                chunk_to_yield = buffer[:idx]
+                                if chunk_to_yield:
+                                    yield format_chunk(chunk_to_yield, model_name)
+                                if current_tag != "Answer":
+                                    yield format_chunk(f"\n\n</{current_tag}>\n\n<Answer>\n\n", model_name)
+                                    current_tag = "Answer"
+                                buffer = buffer[idx + len("**Final Answer:**"):]
+                                continue
+
+                            human_marker = None
+                            for candidate in ("**Agent cần bạn quyết định:**", "**Kế hoạch đề xuất:**"):
+                                if candidate in buffer:
+                                    human_marker = candidate
+                                    break
+                            if human_marker:
+                                idx = buffer.find(human_marker)
+                                chunk_to_yield = buffer[:idx]
+                                if chunk_to_yield:
+                                    yield format_chunk(chunk_to_yield, model_name)
+                                if current_tag != "Answer":
+                                    yield format_chunk(f"\n\n</{current_tag}>\n\n<Answer>\n\n", model_name)
+                                    current_tag = "Answer"
+                                yield format_chunk(human_marker, model_name)
+                                buffer = buffer[idx + len(human_marker):]
+                                continue
+
                             # Remove unsupported html fragments
                             for tag in ["</button></div>", "<button class='suggestion-btn'>"]:
                                 if tag in buffer:
@@ -340,7 +541,7 @@ async def chat(body: dict = Body(...), lambda_instance = Depends(get_lambda_agen
                                         yield format_chunk(chunk_to_yield, model_name)
                                     buffer = buffer[idx + len(tag):]
 
-                            markers = ["🖥️ Execute code...", "⭕ Execution error", "**Execution Results:**", "**Final Report:**", "```python", "</button></div>", "<button class='suggestion-btn'>"]
+                            markers = ["🧭 Agent deciding next action", "🖥️ Execute code...", "⭕ Execution error", "**Execution Results:**", "**Final Report:**", "**Final Answer:**", "**Agent cần bạn quyết định:**", "**Kế hoạch đề xuất:**", "```python", "</button></div>", "<button class='suggestion-btn'>"]
                             safe_len = len(buffer)
                             for marker in markers:
                                 for i in range(1, len(marker)):
@@ -379,8 +580,15 @@ async def chat(body: dict = Body(...), lambda_instance = Depends(get_lambda_agen
                 final_state = lambda_instance.lg_graph.compiled.get_state(config)
                 if len(final_state.next) > 0:
                     is_paused_now = True
+            elif getattr(lambda_instance.conv, "observation_paused", False):
+                is_paused_now = True
 
             if is_paused_now:
+                pending_decision = getattr(
+                    lambda_instance.conv, "pending_human_decision", None
+                )
+                if pending_decision:
+                    yield format_human_decision_chunk(pending_decision, model_name)
                 yield format_chunk("Chờ phản hồi của bạn để chạy tiếp...\n\n</Answer>", model_name)
             else:
                 yield format_chunk("Workflow complete.\n\n</Answer>", model_name)
@@ -399,6 +607,10 @@ async def chat(body: dict = Body(...), lambda_instance = Depends(get_lambda_agen
             except Exception as scan_err:
                 print(f"[chat] scan_and_register_generated failed: {scan_err}")
 
+            yield format_context_chunk(
+                lambda_instance.conv.programmer.context_usage(),
+                model_name,
+            )
             yield format_end_chunk(model_name)
             
         except Exception as e:

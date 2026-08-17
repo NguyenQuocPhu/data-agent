@@ -3,7 +3,8 @@ import re
 import openai
 import json
 import random
-from triadic_dgm.agent.programmer import Programmer
+from triadic_dgm.agent.programmer import DecisionAgent
+from triadic_dgm.agent.action_protocol import ActionProtocolError, parse_agent_action
 from triadic_dgm.agent.verifier import SemanticVerifier
 import pandas as pd
 from triadic_dgm.prompts.prompts import *
@@ -25,11 +26,16 @@ class TriadicAgent:
         self.config = config    
         self.client = openai.OpenAI(api_key=config['api_key'], base_url=config['base_url_conv_model'])
         self.model = config['conv_model']
-        self.programmer = Programmer(api_key=config['api_key'], model=config['programmer_model'],
-                                     base_url=config['base_url_programmer'])
+        self.decision_agent = DecisionAgent(api_key=config['api_key'], model=config['programmer_model'],
+                                            base_url=config['base_url_programmer'])
+        # Transitional alias: ancillary UI/export code still reads ``programmer.messages``.
+        self.programmer = self.decision_agent
         self.verifier = SemanticVerifier(api_key=config['api_key'], model=config['inspector_model'],
                                         base_url=config['base_url_inspector'])
-        self.proposer = ProposerAgent(UnifiedLLMClient(config['programmer_model']))
+        # The observation-loop path does not use the legacy Proposer. Constructing it eagerly
+        # creates a second model client from process environment variables and prevents the
+        # notebook/API from booting without a real key. Keep it lazy for legacy-only calls.
+        self.proposer = None
         self.session_cache_path = config["session_cache_path"]
         self.chat_history_display = config["chat_history_display"] if "chat_history_display" in config else []
         self.retrieval = self.config['retrieval']
@@ -40,6 +46,9 @@ class TriadicAgent:
         self.file_list = []
         self.figure_list = config["figure_list"] if "figure_list" in config else []
         self.function_repository = {}
+        self.observation_paused = False
+        self.observation_pause_reason = None
+        self.pending_human_decision = None
         self.run_code(IMPORT)
 
     def add_functions(self, function_lib: dict) -> None:
@@ -169,14 +178,179 @@ class TriadicAgent:
         clear_working_path(self.session_cache_path)
         self.messages = []
         self.programmer.clear()
+        self.observation_paused = False
+        self.observation_pause_reason = None
+        self.pending_human_decision = None
         self.verifier.clear()
         self.kernel.shutdown()
         del self.kernel
         self.kernel = CodeKernel(session_cache_path=self.session_cache_path, max_exe_time=self.config['max_exe_time'])
 
 
-    def stream_workflow(self, chat_history_display, code=None) -> object:
+    @staticmethod
+    def _truncate_observation(text: str, limit: int = 12000) -> str:
+        text = str(text or "")
+        if len(text) <= limit:
+            return text
+        half = max(1, (limit - 80) // 2)
+        return text[:half] + "\n...[OBSERVATION TRUNCATED]...\n" + text[-half:]
+
+    def _run_notebook_action(self, code: str, step: int) -> tuple[dict, str]:
+        """Execute one agent-selected notebook cell and return model/UI observations."""
+        sign, msg_llm, exe_res = self.run_code(code)
+        marks = sign if isinstance(sign, (list, tuple, set)) else [sign]
+        success = "error" not in marks
+
+        display, link_info = self.check_folder()
+        visible_output = exe_res or msg_llm or "Cell completed without textual output."
+        if display and link_info:
+            visible_output += link_info
+
+        observation = {
+            "type": "NOTEBOOK_OBSERVATION",
+            "step": step,
+            "success": success,
+            "output": self._truncate_observation(msg_llm or exe_res),
+        }
+        return observation, visible_output
+
+    def stream_workflow(self, chat_history_display, code=None, session_id="default") -> object:
+        """Run a mini-SWE-style observation loop over one stateful Jupyter kernel.
+
+        The decision model emits one structured action at a time. EXECUTE_PYTHON is
+        deliberately the only execution tool: after each cell, its real output is appended
+        to the model conversation and the model decides again. ASK_USER and PROPOSE_PLAN
+        pause this generator; the next HTTP turn resumes through the preserved conversation.
+        """
+        if not chat_history_display or chat_history_display[-1].get("role") != "assistant":
+            chat_history_display.append({"role": "assistant", "content": ""})
+        chat_history_display[-1]["content"] = ""
+        self.observation_paused = False
+        self.observation_pause_reason = None
+        self.pending_human_decision = None
+        yield chat_history_display
+
+        max_steps = int(self.config.get("agent_max_steps", 15))
+        protocol_failures = 0
+        queued_code = code
+
         try:
+            for step in range(1, max_steps + 1):
+                if queued_code is not None:
+                    raw_decision = json.dumps({
+                        "action": "EXECUTE_PYTHON",
+                        "description": "Execute code supplied by the caller",
+                        "code": queued_code,
+                    })
+                    queued_code = None
+                else:
+                    chat_history_display[-1]["content"] += (
+                        f"\n\n🧭 Agent deciding next action (step {step}/{max_steps})...\n"
+                    )
+                    yield chat_history_display
+                    raw_decision = self.decision_agent.decide_next_action()
+
+                try:
+                    action = parse_agent_action(raw_decision)
+                except ActionProtocolError as exc:
+                    protocol_failures += 1
+                    self.programmer.messages.append({"role": "assistant", "content": raw_decision})
+                    self.programmer.messages.append({
+                        "role": "user",
+                        "content": (
+                            "[ACTION_PROTOCOL_ERROR]\n"
+                            f"{exc}\n"
+                            "Return exactly one valid JSON action object. Do not include prose or markdown."
+                        ),
+                    })
+                    chat_history_display[-1]["content"] += (
+                        f"\n⚠️ Invalid action envelope; requesting correction ({protocol_failures}/3).\n"
+                    )
+                    yield chat_history_display
+                    if protocol_failures >= 3:
+                        raise RuntimeError("Decision model failed the action protocol three times")
+                    continue
+
+                protocol_failures = 0
+                self.programmer.messages.append({"role": "assistant", "content": raw_decision})
+
+                if action.action == "ASK_USER":
+                    self.observation_paused = True
+                    self.observation_pause_reason = "user_input"
+                    self.pending_human_decision = {
+                        "kind": "ask_user",
+                        "question": action.question,
+                        "options": list(action.options),
+                    }
+                    chat_history_display[-1]["content"] += (
+                        "\n\n**Agent cần bạn quyết định:**\n\n" + action.question
+                    )
+                    yield chat_history_display
+                    return
+
+                if action.action == "PROPOSE_PLAN":
+                    self.observation_paused = True
+                    self.observation_pause_reason = "plan_review"
+                    plan_text = "\n".join(
+                        f"{index}. {item}" for index, item in enumerate(action.plan, start=1)
+                    )
+                    chat_history_display[-1]["content"] += (
+                        "\n\n**Kế hoạch đề xuất:**\n\n"
+                        f"{plan_text}\n\n"
+                        "Hãy phê duyệt hoặc cho biết phần bạn muốn chỉnh sửa."
+                    )
+                    yield chat_history_display
+                    return
+
+                if action.action == "EXECUTE_PYTHON":
+                    description = action.description or "Run the next notebook step"
+                    chat_history_display[-1]["content"] += (
+                        f"\n\n**Notebook step {step}:** {description}\n\n"
+                        f"```python\n{action.code}\n```\n"
+                        "🖥️ Execute code..."
+                    )
+                    yield chat_history_display
+
+                    observation, visible_output = self._run_notebook_action(action.code, step)
+                    observation_json = json.dumps(observation, ensure_ascii=False)
+                    self.programmer.messages.append({
+                        "role": "user",
+                        "content": (
+                            "[NOTEBOOK_OBSERVATION]\n"
+                            f"{observation_json}\n"
+                            "Use this real observation to choose exactly one next action."
+                        ),
+                    })
+
+                    chat_history_display[-1]["content"] += (
+                        "\n\n**Notebook Observation:**\n"
+                        f"```trace\n{visible_output}\n```\n"
+                    )
+                    yield chat_history_display
+                    continue
+
+                if action.action == "FINAL_ANSWER":
+                    chat_history_display[-1]["content"] += (
+                        "\n\n**Final Answer:**\n\n" + action.answer
+                    )
+                    yield chat_history_display
+                    return
+
+            chat_history_display[-1]["content"] += (
+                f"\n\n⚠️ Agent reached the safety limit of {max_steps} actions before finishing."
+            )
+            yield chat_history_display
+        except Exception as exc:
+            self.observation_paused = False
+            self.observation_pause_reason = None
+            chat_history_display[-1]["content"] += f"\n\nAgent loop error: {exc}"
+            yield chat_history_display
+            traceback.print_exc()
+
+    def stream_workflow_legacy(self, chat_history_display, code=None) -> object:
+        try:
+            if self.proposer is None:
+                self.proposer = ProposerAgent(UnifiedLLMClient(self.config['programmer_model']))
             if not chat_history_display or chat_history_display[-1].get("role") != "assistant":
                 chat_history_display.append({"role": "assistant", "content": ""})
             chat_history_display[-1]["content"] = ""

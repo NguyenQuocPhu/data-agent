@@ -89,6 +89,7 @@ import {
   FileJson,
   ChevronLeft,
   Plus,
+  HelpCircle,
 } from "lucide-react";
 import { toast as sonnerToast } from "sonner";
 import { BrainCircuit } from "lucide-react";
@@ -115,6 +116,17 @@ import {
 import { PersonaDashboard } from "@/components/persona-dashboard";
 import { PersonaCards } from "@/components/persona-cards";
 
+interface HumanDecision {
+  kind: "ask_user" | "plan_review" | "action_approval";
+  question: string;
+  options: string[];
+  plan?: string[];
+  action?: string;
+  reason?: string;
+  request_id?: string;
+  details?: Record<string, unknown>;
+}
+
 interface Message {
   id: string;
   content: string;
@@ -122,6 +134,13 @@ interface Message {
   timestamp: Date;
   attachments?: FileAttachment[];
   localOnly?: boolean;
+}
+
+interface AgentSkill {
+  name: string;
+  description: string;
+  argument_hint?: string;
+  user_invocable: boolean;
 }
 
 interface FileAttachment {
@@ -203,6 +222,80 @@ interface ExportResponsePayload {
     pdf?: string | null;
   };
 }
+
+interface ContextUsage {
+  estimated_tokens: number;
+  context_limit: number;
+  used_percent: number;
+  remaining_tokens: number;
+  compaction_trigger_tokens: number;
+  compaction_progress_percent: number;
+  near_compaction: boolean;
+  compaction_count: number;
+  source?: string;
+  phase?: string;
+  iteration?: number;
+}
+
+const EMPTY_CONTEXT_USAGE: ContextUsage = {
+  estimated_tokens: 0,
+  context_limit: 32000,
+  used_percent: 0,
+  remaining_tokens: 32000,
+  compaction_trigger_tokens: 20000,
+  compaction_progress_percent: 0,
+  near_compaction: false,
+  compaction_count: 0,
+};
+
+type ContextUsagePayload = Partial<ContextUsage> & {
+  context_limit_tokens?: number;
+};
+
+const normalizeContextUsage = (value: unknown): ContextUsage | null => {
+  if (!value || typeof value !== "object") return null;
+  const payload = value as ContextUsagePayload;
+  const numberOr = (candidate: unknown, fallback: number) =>
+    typeof candidate === "number" && Number.isFinite(candidate)
+      ? candidate
+      : fallback;
+  const contextLimit = Math.max(
+    1,
+    numberOr(payload.context_limit, numberOr(payload.context_limit_tokens, 32000))
+  );
+  const estimatedTokens = Math.max(0, numberOr(payload.estimated_tokens, 0));
+  const compactionTrigger = Math.max(
+    1,
+    numberOr(payload.compaction_trigger_tokens, Math.round(contextLimit * 0.8))
+  );
+  const compactionProgress = numberOr(
+    payload.compaction_progress_percent,
+    Math.min(100, (estimatedTokens / compactionTrigger) * 100)
+  );
+
+  return {
+    estimated_tokens: estimatedTokens,
+    context_limit: contextLimit,
+    used_percent: numberOr(
+      payload.used_percent,
+      Math.min(100, (estimatedTokens / contextLimit) * 100)
+    ),
+    remaining_tokens: numberOr(
+      payload.remaining_tokens,
+      Math.max(0, contextLimit - estimatedTokens)
+    ),
+    compaction_trigger_tokens: compactionTrigger,
+    compaction_progress_percent: compactionProgress,
+    near_compaction:
+      typeof payload.near_compaction === "boolean"
+        ? payload.near_compaction
+        : compactionProgress >= 80,
+    compaction_count: numberOr(payload.compaction_count, 0),
+    source: typeof payload.source === "string" ? payload.source : undefined,
+    phase: typeof payload.phase === "string" ? payload.phase : undefined,
+    iteration: numberOr(payload.iteration, 0) || undefined,
+  };
+};
 
 const PREVIEW_TABLE_PAGE_SIZE = 10;
 const BLOCKED_UPLOAD_EXTENSIONS = new Set(["py"]);
@@ -325,7 +418,7 @@ type WorkspaceNode = {
 };
 
 interface AnalysisSection {
-  type: "Analyze" | "Understand" | "Code" | "Execute" | "Answer";
+  type: "Analyze" | "Understand" | "Code" | "Execute" | "SubLLM" | "Answer";
   content: string;
   icon: string;
   color: string;
@@ -520,6 +613,7 @@ type StructuredSectionType =
   | "Understand"
   | "Code"
   | "Execute"
+  | "SubLLM"
   | "Answer"
   | "File";
 
@@ -995,8 +1089,15 @@ export function ThreePanelInterface() {
     },
   ]);
   const [inputValue, setInputValue] = useState("");
+  const [agentSkills, setAgentSkills] = useState<AgentSkill[]>([]);
+  const [selectedSkill, setSelectedSkill] = useState<AgentSkill | null>(null);
   const [isTyping, setIsTyping] = useState(false);
   const [isStopping, setIsStopping] = useState(false);
+  const [contextUsage, setContextUsage] = useState<ContextUsage>(EMPTY_CONTEXT_USAGE);
+  const [pendingHumanDecision, setPendingHumanDecision] =
+    useState<HumanDecision | null>(null);
+  const [showDecisionOther, setShowDecisionOther] = useState(false);
+  const [decisionOtherValue, setDecisionOtherValue] = useState("");
   const [attachments, setAttachments] = useState<FileAttachment[]>([]);
   const [workspaceFiles, setWorkspaceFiles] = useState<WorkspaceFile[]>([]);
   // Danh sách file mới nhất được AI sinh ra (CSV, PNG, model, ...) — dùng để hiển thị Output Files tray
@@ -1019,6 +1120,39 @@ export function ThreePanelInterface() {
   const [uiLanguage, setUiLanguage] = useState<UILanguage>("en");
   const [isMemorySheetOpen, setIsMemorySheetOpen] = useState(false);
   const [memoryRules, setMemoryRules] = useState<any[]>([]);
+  useEffect(() => {
+    if (!sessionId) return;
+    const controller = new AbortController();
+    fetch(`${API_URLS.CONTEXT_USAGE}?session_id=${encodeURIComponent(sessionId)}`, {
+      signal: controller.signal,
+    })
+      .then((response) => (response.ok ? response.json() : null))
+      .then((usage) => {
+        const normalized = normalizeContextUsage(usage);
+        if (normalized) setContextUsage(normalized);
+      })
+      .catch((error) => {
+        if ((error as Error)?.name !== "AbortError") {
+          console.warn("load context usage failed", error);
+        }
+      });
+    return () => controller.abort();
+  }, [sessionId]);
+  useEffect(() => {
+    const controller = new AbortController();
+    fetch(API_URLS.SKILLS, { signal: controller.signal })
+      .then((response) => {
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        return response.json();
+      })
+      .then((payload) => setAgentSkills(Array.isArray(payload?.skills) ? payload.skills : []))
+      .catch((error) => {
+        if ((error as Error)?.name !== "AbortError") {
+          console.warn("load agent skills failed", error);
+        }
+      });
+    return () => controller.abort();
+  }, []);
   const fetchMemoryRules = async () => {
     try {
       const res = await fetch(API_URLS.CHAT_COMPLETIONS.replace("/chat/completions", "/memory") + (sessionId ? `?session_id=${sessionId}` : ""));
@@ -1041,8 +1175,26 @@ export function ThreePanelInterface() {
     DATA_ANALYSIS_PROMPT_PRESETS[0]?.id || ""
   );
 
+  const resetBackendChatContext = useCallback(async () => {
+    try {
+      const response = await fetch(API_URLS.CHAT_RESET, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ session_id: sessionId || "default" }),
+      });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const payload = await response.json();
+      if (payload?.context_usage) {
+        const normalized = normalizeContextUsage(payload.context_usage);
+        if (normalized) setContextUsage(normalized);
+      }
+    } catch (error) {
+      console.warn("reset backend chat context failed", error);
+    }
+  }, [sessionId]);
+
   const handleNewChat = () => {
-    const welcome = {
+    const welcome: Message = {
       id: `welcome-${Date.now()}`,
       content: "Hello! I'm DeepAnalyze-8B, your autonomous data science assistant. Upload your data and let's explore it together!",
       sender: "ai",
@@ -1050,6 +1202,12 @@ export function ThreePanelInterface() {
       localOnly: true,
     };
     setMessages([welcome]);
+    setContextUsage(EMPTY_CONTEXT_USAGE);
+    setPendingHumanDecision(null);
+    setShowDecisionOther(false);
+    setDecisionOtherValue("");
+    setSelectedSkill(null);
+    void resetBackendChatContext();
     localStorage.setItem("chat_messages_v1", JSON.stringify([welcome])); // Đè luôn bộ nhớ tạm ngay lập tức
   };
 
@@ -1157,7 +1315,6 @@ export function ThreePanelInterface() {
   const lastWorkspaceFilesErrorRef = useRef("");
   const isTypingRef = useRef(false);
   const toastRef = useRef(toast);
-  const collapsedSectionsRef = useRef<Record<string, boolean>>({});
   const lastActiveSectionUpdateAtRef = useRef(0);
   const [streamingMessageId, setStreamingMessageId] = useState<string | null>(
     null
@@ -1173,10 +1330,6 @@ export function ThreePanelInterface() {
   useEffect(() => {
     toastRef.current = toast;
   }, [toast]);
-
-  useEffect(() => {
-    collapsedSectionsRef.current = collapsedSections;
-  }, [collapsedSections]);
 
   const scrollToBottom = useCallback((force: boolean = false) => {
     const now = Date.now();
@@ -1305,6 +1458,12 @@ export function ThreePanelInterface() {
       localOnly: true,
     };
     setMessages([welcome]);
+    setContextUsage(EMPTY_CONTEXT_USAGE);
+    setPendingHumanDecision(null);
+    setShowDecisionOther(false);
+    setDecisionOtherValue("");
+    setSelectedSkill(null);
+    void resetBackendChatContext();
     try {
       if (typeof window !== "undefined") {
         sessionStorage.setItem(CHAT_STORAGE_KEY, JSON.stringify([welcome]));
@@ -3503,6 +3662,7 @@ export function ThreePanelInterface() {
         "Understand",
         "Code",
         "Execute",
+        "SubLLM",
         "Answer",
         "File",
       ] as const;
@@ -3530,6 +3690,11 @@ export function ThreePanelInterface() {
           color:
             "bg-orange-50 border-orange-200 dark:bg-orange-950/30 dark:border-orange-800",
         },
+        SubLLM: {
+          icon: "🧩",
+          color:
+            "bg-violet-50 border-violet-200 dark:bg-violet-950/30 dark:border-violet-800",
+        },
         Answer: {
           icon: "✅",
           color:
@@ -3552,7 +3717,7 @@ export function ThreePanelInterface() {
       }
 
       const parts: React.ReactNode[] = [];
-      const openRe = /<(Analyze|Understand|Code|Execute|Answer|File)>/g;
+      const openRe = /<(Analyze|Understand|Code|Execute|SubLLM|Answer|File)>/g;
       let cursor = 0;
       let m: RegExpExecArray | null;
 
@@ -3581,10 +3746,9 @@ export function ThreePanelInterface() {
         const body = content.slice(openEnd, bodyEnd).trim();
 
         const sectionKey = buildSectionKey(type, start, messageIndex);
-        const collapseState = collapsedSectionsRef.current;
         const isCollapsed = autoCollapseEnabled
-          ? !!(collapseState as any)[sectionKey]
-          : !!manualLocks[sectionKey] && !!(collapseState as any)[sectionKey];
+          ? !!collapsedSections[sectionKey]
+          : !!manualLocks[sectionKey] && !!collapsedSections[sectionKey];
 
         const toggleSection = () => {
           setCollapsedSections((prev) => {
@@ -3600,7 +3764,7 @@ export function ThreePanelInterface() {
         parts.push(
           <div
             key={`stream-section-${sectionKey}`}
-            className={`mb-4 border rounded-lg overflow-hidden ${sectionConfigs[type].color}`}
+            className={`mb-4 rounded-lg overflow-hidden ${type === "SubLLM" ? "border-2 border-violet-400 shadow-md shadow-violet-500/10 dark:border-violet-600" : "border"} ${sectionConfigs[type].color}`}
             data-section={type}
             data-section-key={sectionKey}
             style={{
@@ -3608,7 +3772,7 @@ export function ThreePanelInterface() {
               containIntrinsicSize: isCollapsed ? "56px" : "220px",
             }}
           >
-            <div className="flex items-center justify-between px-3 py-2 bg-white/60 dark:bg-black/30 border-b border-black/5 dark:border-white/10">
+            <div className={`flex items-center justify-between px-3 py-2 border-b border-black/5 dark:border-white/10 ${type === "SubLLM" ? "bg-violet-100/90 dark:bg-violet-950/80" : "bg-white/60 dark:bg-black/30"}`}>
               <div className="flex items-center gap-2 min-w-0">
                 <Button
                   variant="ghost"
@@ -3624,8 +3788,13 @@ export function ThreePanelInterface() {
                 </Button>
                 <span className="text-sm">{sectionConfigs[type].icon}</span>
                 <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                  {type}
+                  {type === "SubLLM" ? "Sub-LLM" : type}
                 </span>
+                {type === "SubLLM" && (
+                  <span className="rounded-full bg-violet-600 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white">
+                    delegated model
+                  </span>
+                )}
                 {!isComplete && (
                   <span className="text-xs text-blue-600 dark:text-blue-400 font-medium flex items-center gap-1 animate-pulse">
                     <RefreshCw className="h-3 w-3 animate-spin" />
@@ -3759,6 +3928,7 @@ export function ThreePanelInterface() {
     [
       autoCollapseEnabled,
       buildSectionKey,
+      collapsedSections,
       fixedStreamingSectionHeightEnabled,
       manualLocks,
       renderMarkdownContent,
@@ -3795,6 +3965,11 @@ export function ThreePanelInterface() {
         icon: "⚡",
         color:
           "bg-orange-50 border-orange-200 dark:bg-orange-950/30 dark:border-orange-800",
+      },
+      SubLLM: {
+        icon: "🧩",
+        color:
+          "bg-violet-50 border-violet-200 dark:bg-violet-950/30 dark:border-violet-800",
       },
       Answer: {
         icon: "✅",
@@ -3864,10 +4039,9 @@ export function ThreePanelInterface() {
         match.position,
         messageIndex
       );
-      const collapseState = collapsedSectionsRef.current;
       const isCollapsed = autoCollapseEnabled
-        ? !!(collapseState as any)[sectionKey]
-        : !!manualLocks[sectionKey] && !!(collapseState as any)[sectionKey];
+        ? !!collapsedSections[sectionKey]
+        : !!manualLocks[sectionKey] && !!collapsedSections[sectionKey];
 
       const toggleSection = () => {
         setCollapsedSections((prev) => {
@@ -3944,7 +4118,7 @@ export function ThreePanelInterface() {
       parts.push(
         <div
           key={`section-${sectionKey}`}
-          className={`mb-4 border rounded-lg overflow-hidden ${config.color}`}
+          className={`mb-4 rounded-lg overflow-hidden ${match.type === "SubLLM" ? "border-2 border-violet-400 shadow-md shadow-violet-500/10 dark:border-violet-600" : "border"} ${config.color}`}
           data-section={match.type}
           data-section-key={sectionKey}
           style={{
@@ -3952,7 +4126,7 @@ export function ThreePanelInterface() {
             containIntrinsicSize: isCollapsed ? "56px" : "240px",
           }}
         >
-          <div className="flex items-center justify-between px-3 py-2 bg-white/60 dark:bg-black/30 border-b border-black/5 dark:border-white/10">
+          <div className={`flex items-center justify-between px-3 py-2 border-b border-black/5 dark:border-white/10 ${match.type === "SubLLM" ? "bg-violet-100/90 dark:bg-violet-950/80" : "bg-white/60 dark:bg-black/30"}`}>
             <div className="flex items-center gap-2">
               <Button
                 variant="ghost"
@@ -3968,8 +4142,13 @@ export function ThreePanelInterface() {
               </Button>
               <span className="text-sm">{config.icon}</span>
               <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                {match.type}
+                {match.type === "SubLLM" ? "Sub-LLM" : match.type}
               </span>
+              {match.type === "SubLLM" && (
+                <span className="rounded-full bg-violet-600 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white">
+                  delegated model
+                </span>
+              )}
             </div>
             <div className="flex items-center gap-1">
               {match.type === "Answer" && (
@@ -4088,7 +4267,7 @@ export function ThreePanelInterface() {
     }
 
     return <>{parts}</>;
-  }, [autoCollapseEnabled, buildSectionKey, fixedStreamingSectionHeightEnabled, manualLocks, renderMarkdownContent, renderSectionContent, textLabels.exportActionTitle, textLabels.exportBlockedWhileStreaming, textLabels.relatedFiles, touchMessageAt]);
+  }, [autoCollapseEnabled, buildSectionKey, collapsedSections, fixedStreamingSectionHeightEnabled, manualLocks, renderMarkdownContent, renderSectionContent, textLabels.exportActionTitle, textLabels.exportBlockedWhileStreaming, textLabels.relatedFiles, touchMessageAt]);
 
   // 根据完整内容自动折叠：除最后一个块外全部折叠
   const autoCollapseForContent = useCallback(
@@ -4099,6 +4278,7 @@ export function ThreePanelInterface() {
         "Understand",
         "Code",
         "Execute",
+        "SubLLM",
         "File",
         "Answer",
       ] as const;
@@ -4633,6 +4813,7 @@ export function ThreePanelInterface() {
       Understand: { icon: "🧠", color: "bg-cyan-500" },
       Code: { icon: "💻", color: "bg-gray-500" },
       Execute: { icon: "⚡", color: "bg-orange-500" },
+      SubLLM: { icon: "🧩", color: "bg-violet-500" },
       Answer: { icon: "✅", color: "bg-green-500" },
       File: { icon: "📎", color: "bg-purple-500" }, // 添加 File 类型
     };
@@ -5045,15 +5226,47 @@ export function ThreePanelInterface() {
       return;
     }
 
-    const effectiveMessage = typeof customMessage === "string" ? customMessage : inputValue;
+    const isCustomMessage = typeof customMessage === "string";
+    let effectiveMessage = isCustomMessage ? customMessage : inputValue;
+    let effectiveSkill = isCustomMessage ? null : selectedSkill;
+    if (!isCustomMessage && !effectiveSkill) {
+      const command = effectiveMessage.match(/^\s*\.?\/([a-z0-9-]+)(?:\s+([\s\S]*))?$/i);
+      if (command) {
+        const matchedSkill = agentSkills.find(
+          (skill) => skill.name.toLowerCase() === command[1].toLowerCase()
+        );
+        if (!matchedSkill) {
+          toastRef.current({
+            description: `Unknown skill /${command[1]}`,
+            variant: "destructive",
+          });
+          return;
+        }
+        effectiveSkill = matchedSkill;
+        effectiveMessage = command[2]?.trim() || "";
+        if (!effectiveMessage) {
+          setSelectedSkill(matchedSkill);
+          setInputValue("");
+          return;
+        }
+      }
+    }
     if (!effectiveMessage.trim() && attachments.length === 0) return;
+
+    // Any user turn resolves the currently pending HITL prompt. If the backend asks
+    // another question, a new control event will populate it again.
+    setPendingHumanDecision(null);
+    setShowDecisionOther(false);
+    setDecisionOtherValue("");
 
     const baseMessageIndex = messages.length;
     const aiMessageIndex = baseMessageIndex + 1;
 
     const newMessage: Message = {
       id: Date.now().toString(),
-      content: effectiveMessage,
+      content: effectiveSkill
+        ? `/${effectiveSkill.name} ${effectiveMessage}`
+        : effectiveMessage,
       sender: "user",
       timestamp: new Date(),
       attachments: attachments.length > 0 ? [...attachments] : undefined,
@@ -5061,6 +5274,7 @@ export function ThreePanelInterface() {
 
     setMessages((prev) => [...prev, newMessage]);
     setInputValue("");
+    setSelectedSkill(null);
     setAttachments([]);
     setIsTyping(true);
     setIsStopping(false);
@@ -5111,6 +5325,7 @@ export function ThreePanelInterface() {
           ],
           stream: true,
           session_id: sessionId,
+          selected_skill: effectiveSkill?.name || null,
         }),
       });
 
@@ -5124,6 +5339,9 @@ export function ThreePanelInterface() {
       // 情况1: 非流式 JSON (兜底)
       if (contentType.includes("application/json")) {
         const data = await response.json();
+        if (data?.human_decision) {
+          setPendingHumanDecision(data.human_decision as HumanDecision);
+        }
         const content = data?.choices?.[0]?.message?.content || "";
         setMessages((prev) => [
           ...prev,
@@ -5253,13 +5471,22 @@ export function ThreePanelInterface() {
             // Strip SSE 'data: ' prefix if present
             const jsonStr = trimmed.startsWith("data: ") ? trimmed.slice(6) : trimmed;
             const json = JSON.parse(jsonStr);
+            if (json.context_usage) {
+              const normalized = normalizeContextUsage(json.context_usage);
+              if (normalized) setContextUsage(normalized);
+            }
+            if (json.human_decision) {
+              setPendingHumanDecision(json.human_decision as HumanDecision);
+              setShowDecisionOther(false);
+              setDecisionOtherValue("");
+            }
             const deltaContent = json.choices?.[0]?.delta?.content;
 
             if (deltaContent) {
               accumulatedMessage += deltaContent;
 
               // Parse GENERATED_FILES event emitted by backend after execute
-              const genFilesRegex = /<!-- GENERATED_FILES:(.*?) -->/s;
+              const genFilesRegex = /<!-- GENERATED_FILES:([\s\S]*?) -->/;
               const genFilesMatch = accumulatedMessage.match(genFilesRegex);
               if (genFilesMatch) {
                 try {
@@ -5325,7 +5552,17 @@ export function ThreePanelInterface() {
 
       if (buffer.trim()) {
         try {
-          const json = JSON.parse(buffer.trim());
+          const trailing = buffer.trim();
+          const json = JSON.parse(trailing.startsWith("data: ") ? trailing.slice(6) : trailing);
+          if (json.context_usage) {
+            const normalized = normalizeContextUsage(json.context_usage);
+            if (normalized) setContextUsage(normalized);
+          }
+          if (json.human_decision) {
+            setPendingHumanDecision(json.human_decision as HumanDecision);
+            setShowDecisionOther(false);
+            setDecisionOtherValue("");
+          }
           const deltaContent = json.choices?.[0]?.delta?.content;
           if (deltaContent) {
             accumulatedMessage += deltaContent;
@@ -5414,6 +5651,136 @@ export function ThreePanelInterface() {
 
   const removeAttachment = (id: string) => {
     setAttachments((prev) => prev.filter((att) => att.id !== id));
+  };
+
+  const renderHumanDecisionBar = () => {
+    if (!pendingHumanDecision) return null;
+
+    const isPlanReview = pendingHumanDecision.kind === "plan_review";
+    const isActionApproval = pendingHumanDecision.kind === "action_approval";
+    const decisionOptions = isPlanReview
+      ? ["Approve and execute"]
+      : pendingHumanDecision.options.slice(0, 4);
+
+    const submitDecision = (answer: string) => {
+      const cleaned = answer.trim();
+      if (!cleaned || isTyping) return;
+      void handleSendMessage(cleaned);
+    };
+
+    return (
+      <div className="mb-3 rounded-2xl border border-violet-200 bg-violet-50/80 p-3 shadow-sm dark:border-violet-900 dark:bg-violet-950/30">
+        <div className="mb-2 flex items-start gap-2">
+          <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-violet-600 dark:text-violet-400" />
+          <div>
+            <div className="text-xs font-semibold uppercase tracking-wide text-violet-700 dark:text-violet-300">
+              {isActionApproval ? "Action approval" : "Your decision"}
+            </div>
+            <div className="mt-0.5 text-sm text-gray-800 dark:text-gray-200">
+              {pendingHumanDecision.question || "Review the proposed plan before execution."}
+            </div>
+          </div>
+        </div>
+        {isPlanReview && pendingHumanDecision.plan?.length ? (
+          <ol className="mb-3 ml-6 list-decimal space-y-1 text-sm text-gray-800 dark:text-gray-200">
+            {pendingHumanDecision.plan.map((step, index) => (
+              <li key={`${index}-${step}`}>{step}</li>
+            ))}
+          </ol>
+        ) : null}
+        {isActionApproval ? (
+          <div className="mb-3 space-y-2 rounded-xl border border-violet-200 bg-white/80 p-3 text-sm dark:border-violet-800 dark:bg-gray-950/70">
+            <div>
+              <span className="font-semibold">Action:</span>{" "}
+              <code>{pendingHumanDecision.action || "sensitive_action"}</code>
+            </div>
+            {pendingHumanDecision.reason ? (
+              <div className="text-gray-700 dark:text-gray-300">
+                {pendingHumanDecision.reason}
+              </div>
+            ) : null}
+            {Array.isArray(pendingHumanDecision.details?.methods) ? (
+              <div>
+                <span className="font-semibold">Methods:</span>{" "}
+                {(pendingHumanDecision.details?.methods as string[]).join(", ")}
+              </div>
+            ) : null}
+            {typeof pendingHumanDecision.details?.scope === "string" ? (
+              <div>
+                <span className="font-semibold">Scope:</span>{" "}
+                {pendingHumanDecision.details.scope}
+              </div>
+            ) : null}
+            {typeof pendingHumanDecision.details?.code_preview === "string" ? (
+              <details>
+                <summary className="cursor-pointer font-semibold">Review blocked code</summary>
+                <pre className="mt-2 max-h-40 overflow-auto whitespace-pre-wrap rounded-lg bg-gray-950 p-2 text-xs text-gray-100">
+                  {pendingHumanDecision.details.code_preview}
+                </pre>
+              </details>
+            ) : null}
+          </div>
+        ) : null}
+        <div className="flex flex-wrap gap-2">
+          {decisionOptions.map((option) => (
+            <Button
+              key={option}
+              type="button"
+              size="sm"
+              variant="outline"
+              disabled={isTyping}
+              onClick={() => submitDecision(option)}
+              className="h-auto min-h-9 whitespace-normal rounded-xl border-violet-200 bg-white px-3 py-2 text-left hover:bg-violet-100 dark:border-violet-800 dark:bg-gray-950 dark:hover:bg-violet-950"
+            >
+              {option}
+            </Button>
+          ))}
+          <Button
+            type="button"
+            size="sm"
+            variant={showDecisionOther ? "default" : "outline"}
+            disabled={isTyping}
+            onClick={() => setShowDecisionOther((current) => !current)}
+            className="min-h-9 rounded-xl px-3"
+          >
+            {isPlanReview ? "Request changes / Other" : isActionApproval ? "Custom response" : "Other"}
+          </Button>
+        </div>
+        {showDecisionOther && (
+          <div className="mt-3 flex gap-2">
+            <Input
+              autoFocus
+              value={decisionOtherValue}
+              disabled={isTyping}
+              onChange={(event) => setDecisionOtherValue(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") {
+                  event.preventDefault();
+                  submitDecision(decisionOtherValue);
+                }
+              }}
+              placeholder={
+                isPlanReview
+                  ? "Describe the changes you want..."
+                  : isActionApproval
+                    ? "Explain approval conditions or why you deny it..."
+                    : "Type your own answer..."
+              }
+              className="h-9 bg-white dark:bg-gray-950"
+            />
+            <Button
+              type="button"
+              size="sm"
+              disabled={isTyping || !decisionOtherValue.trim()}
+              onClick={() => submitDecision(decisionOtherValue)}
+              className="h-9 rounded-xl"
+            >
+              <Send className="mr-1 h-3.5 w-3.5" /> Send
+            </Button>
+          </div>
+        )}
+      </div>
+    );
   };
 
   const formatFileSize = (bytes: number) => {
@@ -5556,6 +5923,67 @@ export function ThreePanelInterface() {
     );
   };
 
+  const renderSkillPicker = () => {
+    const command = selectedSkill
+      ? null
+      : inputValue.match(/^\s*\.?\/([a-z0-9-]*)$/i);
+    const query = command?.[1]?.toLowerCase() || "";
+    const visibleSkills = command
+      ? agentSkills.filter((skill) => skill.name.toLowerCase().includes(query))
+      : [];
+    if (!selectedSkill && !command) return null;
+    return (
+      <div className="mb-2">
+        {selectedSkill ? (
+          <div className="inline-flex max-w-full items-center gap-2 rounded-full border border-violet-200 bg-violet-50 px-3 py-1.5 text-xs text-violet-800 dark:border-violet-800 dark:bg-violet-950/50 dark:text-violet-200">
+            <Sparkles className="h-3.5 w-3.5 shrink-0" />
+            <span className="font-medium">/{selectedSkill.name}</span>
+            <span className="truncate text-violet-600 dark:text-violet-300">
+              {selectedSkill.argument_hint || selectedSkill.description}
+            </span>
+            <button
+              type="button"
+              onClick={() => setSelectedSkill(null)}
+              className="rounded-full p-0.5 hover:bg-violet-200 dark:hover:bg-violet-800"
+              aria-label={`Remove /${selectedSkill.name}`}
+            >
+              <X className="h-3 w-3" />
+            </button>
+          </div>
+        ) : (
+          <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-lg dark:border-gray-800 dark:bg-gray-950">
+            <div className="border-b border-gray-100 px-3 py-2 text-[11px] font-medium uppercase tracking-wide text-gray-500 dark:border-gray-800">
+              Data skills
+            </div>
+            {visibleSkills.length > 0 ? visibleSkills.map((skill) => (
+              <button
+                key={skill.name}
+                type="button"
+                onClick={() => {
+                  setSelectedSkill(skill);
+                  setInputValue("");
+                }}
+                className="flex w-full items-start gap-2 px-3 py-2.5 text-left hover:bg-gray-50 dark:hover:bg-gray-900"
+              >
+                <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-violet-500" />
+                <span className="min-w-0">
+                  <span className="block text-sm font-medium text-gray-900 dark:text-gray-100">
+                    /{skill.name} <span className="font-normal text-gray-400">{skill.argument_hint}</span>
+                  </span>
+                  <span className="block text-xs text-gray-500 dark:text-gray-400">
+                    {skill.description}
+                  </span>
+                </span>
+              </button>
+            )) : (
+              <div className="px-3 py-3 text-sm text-gray-500">No matching skill</div>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  };
+
   const renderChatComposer = (
     wrapperClassName: string,
     options?: { stacked?: boolean }
@@ -5563,25 +5991,29 @@ export function ThreePanelInterface() {
     const stacked = !!options?.stacked;
     return (
       <div className={wrapperClassName}>
+        {renderHumanDecisionBar()}
         {renderGeneratedFilesTray()}
         <div className={stacked ? "space-y-3" : "flex gap-3 items-end"}>
           {stacked ? (
-            <Textarea
-              value={inputValue}
-              onChange={(e) => setInputValue(e.target.value)}
-              placeholder={
-                uiLanguage === "zh"
-                  ? "\u8f93\u5165\u4f60\u7684\u5206\u6790\u9700\u6c42\uff0c\u6216\u5728\u5de6\u4fa7\u5207\u6362\u9884\u8bbe Prompt..."
-                  : "Describe your analysis task, or pick a preset from the left panel..."
-              }
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.shiftKey) {
-                  e.preventDefault();
-                  handleSendMessage();
-                }
-              }}
-              className="min-h-24 rounded-2xl border-gray-200 dark:border-gray-800 bg-white dark:bg-black pr-4"
-            />
+            <div>
+              {renderSkillPicker()}
+              <Textarea
+                value={inputValue}
+                onChange={(e) => setInputValue(e.target.value)}
+                placeholder={selectedSkill?.argument_hint || (
+                  uiLanguage === "zh"
+                    ? "\u8f93\u5165\u4f60\u7684\u5206\u6790\u9700\u6c42\uff0c\u6216\u5728\u5de6\u4fa7\u5207\u6362\u9884\u8bbe Prompt..."
+                    : "Describe your analysis task, or type / to choose a skill..."
+                )}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault();
+                    handleSendMessage();
+                  }
+                }}
+                className="min-h-24 rounded-2xl border-gray-200 dark:border-gray-800 bg-white dark:bg-black pr-4"
+              />
+            </div>
           ) : (
             <>
               <Button
@@ -5603,13 +6035,14 @@ export function ThreePanelInterface() {
                 <Trash2 className="h-4 w-4" />
               </Button>
               <div className="flex-1 relative">
+                {renderSkillPicker()}
                 <Textarea
                   value={inputValue}
                   onChange={(e) => setInputValue(e.target.value)}
                   placeholder={
                     uiLanguage === "zh"
                       ? "\u8f93\u5165\u4f60\u7684\u5206\u6790\u9700\u6c42\uff0c\u6216\u5728\u5de6\u4fa7\u5207\u6362\u9884\u8bbe Prompt..."
-                      : "Describe your analysis task, or pick a preset from the left panel..."
+                      : selectedSkill?.argument_hint || "Describe your analysis task, or type / to choose a skill..."
                   }
                   onKeyDown={(e) => {
                     if (e.key === "Enter" && !e.shiftKey) {
@@ -5667,6 +6100,73 @@ export function ThreePanelInterface() {
               {renderMemoryButton("h-10 rounded-full px-3")}
               {renderClearChatButton("h-10 rounded-full px-3")}
             </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const renderContextUsageRing = () => {
+    const percent = Math.max(0, Math.min(100, contextUsage.used_percent || 0));
+    const progressToCompact = Math.max(
+      0,
+      Math.min(100, contextUsage.compaction_progress_percent || 0)
+    );
+    const radius = 16;
+    const circumference = 2 * Math.PI * radius;
+    const dashOffset = circumference * (1 - percent / 100);
+    const tone = contextUsage.near_compaction
+      ? "text-red-500"
+      : progressToCompact >= 60
+        ? "text-amber-500"
+        : "text-emerald-500";
+    const title =
+      contextUsage.estimated_tokens > 0
+        ? `Root prompt: ${contextUsage.estimated_tokens.toLocaleString()} / ${contextUsage.context_limit.toLocaleString()} tokens (${Math.round(percent)}%). Auto-compact at ${contextUsage.compaction_trigger_tokens.toLocaleString()} tokens. Actual compactions: ${contextUsage.compaction_count}. Updated ${contextUsage.phase?.replaceAll("_", " ") || "at the latest loop boundary"}.`
+        : "Context usage will appear after the first model request.";
+
+    return (
+      <div
+        className="flex items-center gap-2 rounded-full border border-gray-200 bg-white/80 py-1 pl-1 pr-2.5 shadow-sm dark:border-gray-800 dark:bg-gray-950/80"
+        title={title}
+        aria-label={title}
+      >
+        <div className={`relative h-9 w-9 shrink-0 ${tone}`}>
+          <svg className="h-9 w-9 -rotate-90" viewBox="0 0 40 40" aria-hidden="true">
+            <circle
+              cx="20"
+              cy="20"
+              r={radius}
+              fill="none"
+              stroke="currentColor"
+              strokeOpacity="0.14"
+              strokeWidth="3"
+            />
+            <circle
+              cx="20"
+              cy="20"
+              r={radius}
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="3"
+              strokeLinecap="round"
+              strokeDasharray={circumference}
+              strokeDashoffset={dashOffset}
+              className="transition-all duration-500"
+            />
+          </svg>
+          <span className="absolute inset-0 flex items-center justify-center text-[9px] font-bold text-gray-700 dark:text-gray-200">
+            {Math.round(percent)}%
+          </span>
+        </div>
+        <div className="hidden 2xl:block leading-tight">
+          <div className="text-[11px] font-semibold text-gray-700 dark:text-gray-200">Context</div>
+          <div className="text-[10px] text-gray-500 dark:text-gray-400">
+            {contextUsage.compaction_count > 0
+              ? `compacted ×${contextUsage.compaction_count}`
+              : contextUsage.near_compaction
+                ? "compact soon"
+                : `${Math.round(contextUsage.estimated_tokens / 100) / 10}k / ${Math.round(contextUsage.context_limit / 1000)}k`}
           </div>
         </div>
       </div>
@@ -6214,6 +6714,7 @@ export function ThreePanelInterface() {
                   </p>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
+                  {renderContextUsageRing()}
                   <div className="hidden xl:flex items-center gap-2 text-xs text-gray-600 dark:text-gray-400 rounded-full border border-gray-200 dark:border-gray-800 px-3 py-1.5">
                     <span>{uiLanguage === "zh" ? "自动折叠" : "Auto Collapse"}</span>
                     <Switch
@@ -6311,7 +6812,8 @@ export function ThreePanelInterface() {
               {/* Input Area */}
               {!moveDialogToLeftPanel && (
                 <div className="p-4 border-t border-gray-200 dark:border-gray-800 shrink-0 bg-white/80 dark:bg-gray-950/80">
-                  {messages.length > 0 && messages[messages.length - 1].sender === "assistant" && messages[messages.length - 1].content.includes("Chờ phản hồi của bạn để chạy tiếp") && (
+                  {renderHumanDecisionBar()}
+                  {messages.length > 0 && messages[messages.length - 1].sender === "ai" && messages[messages.length - 1].content.includes("**Kế hoạch đề xuất:**") && messages[messages.length - 1].content.includes("Chờ phản hồi của bạn để chạy tiếp") && (
                     <div className="flex gap-2 mb-3">
                       <Button
                         size="sm"
@@ -6358,13 +6860,14 @@ export function ThreePanelInterface() {
                       <Trash2 className="h-4 w-4" />
                     </Button>
                     <div className="flex-1 relative">
+                      {renderSkillPicker()}
                       <Textarea
                         value={inputValue}
                         onChange={(e) => setInputValue(e.target.value)}
                         placeholder={
                           uiLanguage === "zh"
                             ? "输入你的分析需求，或在左侧切换预设 Prompt..."
-                            : "Describe your analysis task, or pick a preset from the left panel..."
+                            : selectedSkill?.argument_hint || "Describe your analysis task, or type / to choose a skill..."
                         }
                         onKeyDown={(e) => {
                           if (e.key === "Enter" && !e.shiftKey) {
