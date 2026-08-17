@@ -2,6 +2,10 @@ FROM python:3.11-slim-bookworm
 
 WORKDIR /app
 
+# The customized RLM implementation is vendored with this repository. Keep it ahead of
+# site-packages so both the built image and Docker Compose run the checked-in source.
+ENV PYTHONPATH=/app/vendor/rlm:/app
+
 # Install dependencies required for some python packages if any
 RUN apt-get update && apt-get install -y \
     build-essential \

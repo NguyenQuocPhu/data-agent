@@ -13,9 +13,9 @@ services:
       - OPENAI_MODEL_ID=${OPENAI_MODEL_ID:-}
       - OPENAI_EXTRA_BODY=${OPENAI_EXTRA_BODY:-}
       - DATA_AGENT_RUNTIME=${DATA_AGENT_RUNTIME:-rlm}
-      # Prefer the checked-out RLM source mounted at /opt/rlm over the
-      # released package installed in site-packages.
-      - PYTHONPATH=/opt/rlm:/app
+      # Prefer the RLM source vendored in this repository over the compatibility
+      # package installed in site-packages.
+      - PYTHONPATH=/app/vendor/rlm:/app
       - CLEAR_DATASETS_ON_START=${CLEAR_DATASETS_ON_START:-1}
       - QWEN_API_KEY=${QWEN_API_KEY:-}
       - H2O_MAX_MEM_SIZE=${H2O_MAX_MEM_SIZE:-4G}
@@ -23,7 +23,6 @@ services:
       - H2O_MAX_CONCURRENT_EXPERIMENTS=${H2O_MAX_CONCURRENT_EXPERIMENTS:-1}
     volumes:
       - .:/app
-      - ../rlm:/opt/rlm:ro
     restart: unless-stopped
 
   frontend:

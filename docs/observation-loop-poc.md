@@ -83,3 +83,10 @@ The backend intentionally installs `flaml`, `lightgbm`, the minimal official `xg
 package and scikit-learn rather than the GPU-heavy `flaml[automl]` dependency resolution.
 Agent runs can use `lgbm`, `xgboost`, `rf` and `extra_tree`; CatBoost remains optional and is
 not part of the PoC image.
+
+## Repository layout
+
+The customized RLM runtime is checked into `vendor/rlm` using `git subtree`. The backend
+loads that source through `PYTHONPATH=/app/vendor/rlm:/app`; it does not require a sibling
+`../rlm` checkout. A fresh clone of this repository therefore contains the agent wrapper,
+the H2O framework, and the exact RLM implementation used at runtime.
