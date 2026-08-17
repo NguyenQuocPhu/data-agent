@@ -16,13 +16,9 @@ const nextConfig = {
     serverActions: {
       bodySizeLimit: "500mb",
     },
-  },
-  // Cho phép body lớn qua Next.js router
-  api: {
-    bodyParser: {
-      sizeLimit: "500mb",
-    },
-    responseLimit: "500mb",
+    // Next.js 16 buffers rewritten/proxied request bodies and truncates them at
+    // 10 MB by default. Dataset uploads pass through the `/api/*` rewrite.
+    proxyClientMaxBodySize: "500mb",
   },
   async rewrites() {
     return [

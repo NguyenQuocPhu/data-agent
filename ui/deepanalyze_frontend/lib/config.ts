@@ -9,6 +9,9 @@ export const API_CONFIG = {
   ENDPOINTS: {
     CHAT_COMPLETIONS: "/chat/completions",
     CHAT_STOP: "/chat/stop",
+    CONTEXT_USAGE: "/chat/context",
+    CHAT_RESET: "/chat/reset",
+    SKILLS: "/skills",
     WORKSPACE_FILES: "/workspace/files",
     WORKSPACE_TREE: "/workspace/tree",
     WORKSPACE_PREVIEW: "/workspace/preview",
@@ -25,6 +28,10 @@ export const API_CONFIG = {
     CONVERGENCE_PERSONAS: "/convergence/personas",
     CONVERGENCE_STATUS: "/convergence/status",
     CONVERGENCE_MARKDOWN: "/convergence/markdown",
+    ML_HEALTH: "/ml/health",
+    ML_DATASETS: "/ml/datasets",
+    ML_DATASET_UPLOAD: "/ml/datasets/upload",
+    ML_EXPERIMENTS: "/ml/experiments",
   },
 };
 
@@ -37,7 +44,20 @@ export const buildApiUrl = (
   endpoint: string,
   baseUrl: string = API_CONFIG.BACKEND_BASE_URL
 ) => {
-  return `${normalizeBaseUrl(baseUrl)}${normalizeEndpoint(endpoint)}`;
+  const normalizedBase = normalizeBaseUrl(baseUrl);
+  const normalizedPath = normalizeEndpoint(endpoint);
+
+  // API_URLS entries are already fully built (for example `/api/ml/datasets`).
+  // Keep the helper idempotent so callers adding query params do not accidentally
+  // turn that path into `/api/api/ml/datasets`.
+  if (
+    normalizedBase.startsWith("/") &&
+    (normalizedPath === normalizedBase || normalizedPath.startsWith(`${normalizedBase}/`))
+  ) {
+    return normalizedPath;
+  }
+
+  return `${normalizedBase}${normalizedPath}`;
 };
 
 export const buildApiUrlWithParams = (
@@ -45,14 +65,20 @@ export const buildApiUrlWithParams = (
   params: Record<string, string | number | boolean | null | undefined>,
   baseUrl: string = API_CONFIG.BACKEND_BASE_URL
 ) => {
-  const url = new URL(buildApiUrl(endpoint, baseUrl));
+  const builtUrl = buildApiUrl(endpoint, baseUrl);
+  const isAbsolute = /^[a-z][a-z\d+.-]*:\/\//i.test(builtUrl);
+  // `new URL("/api/...")` throws because it has no origin. Use a temporary origin while
+  // assembling query parameters, then return the original same-origin relative shape.
+  const url = new URL(builtUrl, "http://local.invalid");
   Object.entries(params).forEach(([key, value]) => {
     if (value === undefined || value === null || value === "") {
       return;
     }
     url.searchParams.set(key, String(value));
   });
-  return url.toString();
+  return isAbsolute
+    ? url.toString()
+    : `${url.pathname}${url.search}${url.hash}`;
 };
 
 // Helper: build direct backend URL (bypass Next.js proxy for SSE streaming)
@@ -84,7 +110,14 @@ export const API_URLS = {
   CONVERGENCE_PERSONAS: buildApiUrl(API_CONFIG.ENDPOINTS.CONVERGENCE_PERSONAS),
   CONVERGENCE_STATUS: buildApiUrl(API_CONFIG.ENDPOINTS.CONVERGENCE_STATUS),
   CONVERGENCE_MARKDOWN: buildApiUrl(API_CONFIG.ENDPOINTS.CONVERGENCE_MARKDOWN),
+  ML_HEALTH: buildApiUrl(API_CONFIG.ENDPOINTS.ML_HEALTH),
+  ML_DATASETS: buildApiUrl(API_CONFIG.ENDPOINTS.ML_DATASETS),
+  ML_DATASET_UPLOAD: buildApiUrl(API_CONFIG.ENDPOINTS.ML_DATASET_UPLOAD),
+  ML_EXPERIMENTS: buildApiUrl(API_CONFIG.ENDPOINTS.ML_EXPERIMENTS),
   // Chat dùng proxy nội bộ để bypass việc Next.js tự động buffer SSE Stream
   CHAT_COMPLETIONS: "/proxy/chat/completions",
   CHAT_STOP: buildApiUrl(API_CONFIG.ENDPOINTS.CHAT_STOP),
+  CONTEXT_USAGE: buildApiUrl(API_CONFIG.ENDPOINTS.CONTEXT_USAGE),
+  CHAT_RESET: buildApiUrl(API_CONFIG.ENDPOINTS.CHAT_RESET),
+  SKILLS: buildApiUrl(API_CONFIG.ENDPOINTS.SKILLS),
 };

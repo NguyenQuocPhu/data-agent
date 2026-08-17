@@ -1,14 +1,20 @@
-FROM python:3.10-slim
+FROM python:3.11-slim-bookworm
 
 WORKDIR /app
 
 # Install dependencies required for some python packages if any
 RUN apt-get update && apt-get install -y \
     build-essential \
+    default-jre-headless \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements
 COPY requirements.txt .
+
+# The backend does not expose a GPU device. Installing Torch from the default PyPI index
+# pulls several gigabytes of CUDA 13 wheels that can never be used here. Preinstall the CPU
+# wheel so the existing analytics dependencies reuse it.
+RUN pip install --no-cache-dir --index-url https://download.pytorch.org/whl/cpu torch
 
 # Install python dependencies
 RUN pip install --no-cache-dir -r requirements.txt

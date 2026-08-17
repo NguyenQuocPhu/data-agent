@@ -1,0 +1,13 @@
+.git
+.pytest_cache
+__pycache__
+*.py[cod]
+cache
+workspace
+data/results_unified
+ui/deepanalyze_frontend/.next
+ui/deepanalyze_frontend/node_modules
+*.csv
+*.pkl
+*.png
+*.log

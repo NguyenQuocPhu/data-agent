@@ -8,8 +8,18 @@ version = "1.0.0"
 description = "Triadic Darwin Gödel Machine: Self-Evolving Multi-Agent Data Analytics"
 dependencies = [
     "openai",
+    "numpy<2",
     "pandas",
+    "pyarrow",
+    "duckdb",
+    "pandera",
     "scikit-learn",
+    "flaml==2.6.0",
+    "lightgbm==4.7.0",
+    "xgboost-cpu==2.1.4",
+    "h2o==3.46.0.11",
+    "rlms[ipython]==0.1.3",
+    "dill>=0.3.7",
     "matplotlib",
     "seaborn",
     "scipy",

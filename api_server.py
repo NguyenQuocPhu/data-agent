@@ -8,6 +8,7 @@ from api.routers.workspace import router as workspace_router
 from api.routers.chat import router as chat_router
 from api.routers.export import router as export_router
 from api.routers.convergence import router as convergence_router
+from api.routers.ml import router as ml_router
 from api.services.convergence_loop import convergence_loop
 from triadic_dgm.services.report_generator import set_profile_resolver
 
@@ -103,6 +104,13 @@ app.include_router(workspace_router)
 app.include_router(chat_router)
 app.include_router(export_router)
 app.include_router(convergence_router)
+app.include_router(ml_router)
+# The website normally strips ``/api`` through its Next.js rewrite. Some deployments put
+# another reverse proxy in front of Next and forward the prefix unchanged (confirmed by
+# backend access logs), which made every ML Studio request return 404 while the chat routes
+# happened to use their own proxy handlers. Keep the canonical ``/ml`` API and expose this
+# compatibility mount so both topologies behave identically.
+app.include_router(ml_router, prefix="/api")
 
 from fastapi.responses import FileResponse
 from fastapi import Query
